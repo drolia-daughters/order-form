@@ -1,0 +1,157 @@
+=========================================================
+  STEP-BY-STEP GUIDE: Take Your Order Form LIVE (Free)
+=========================================================
+
+Total time: ~15 minutes
+Cost: ₹0 (completely free using Google)
+
+You need: A Google account (Gmail), and the 3 files from this folder.
+
+
+---------------------------------------------------------
+STEP 1: CREATE YOUR MASTER DATABASE (Google Sheet)
+---------------------------------------------------------
+
+1. Go to → https://sheets.google.com
+2. Click the big "+" button → "Blank spreadsheet"
+3. Rename it: Click "Untitled spreadsheet" at top → type "Order Master Database"
+4. Done! Leave this tab open, you'll need it.
+
+
+---------------------------------------------------------
+STEP 2: ADD THE SCRIPT (connects form to sheet)
+---------------------------------------------------------
+
+1. In your Google Sheet, click menu: Extensions → Apps Script
+2. A new tab opens with some default code
+3. DELETE everything in the code editor (select all → delete)
+4. Open the file "google_apps_script.js" from this folder
+   - Right-click → Open with → Notepad
+   - Select all (Ctrl+A) → Copy (Ctrl+C)
+5. Go back to the Apps Script tab → Paste (Ctrl+V)
+6. Click the 💾 Save button (or Ctrl+S)
+7. The project name at top says "Untitled project" → rename to "Order Form Script"
+
+
+---------------------------------------------------------
+STEP 3: DEPLOY THE SCRIPT (make it accessible)
+---------------------------------------------------------
+
+1. In Apps Script, click the blue "Deploy" button (top right)
+2. Select "New deployment"
+3. Click the ⚙️ gear icon next to "Select type" → choose "Web app"
+4. Fill in:
+   - Description: "Order Form"
+   - Execute as: "Me" (your email)
+   - Who has access: "Anyone"    ← IMPORTANT!
+5. Click "Deploy"
+6. It will ask for permissions → Click "Authorize access"
+   - Choose your Google account
+   - If you see "Google hasn't verified this app":
+     → Click "Advanced" (bottom left)
+     → Click "Go to Order Form Script (unsafe)"
+     → Click "Allow"
+7. You'll see a URL that looks like:
+   https://script.google.com/macros/s/AKfycbx.../exec
+   
+   ★ COPY THIS URL ★ — you need it in the next step!
+
+
+---------------------------------------------------------
+STEP 4: CONNECT YOUR FORM
+---------------------------------------------------------
+
+1. Open the file "order_form_live.html" from this folder
+   - Double-click it → it opens in your browser (Chrome/Edge)
+2. You'll see an orange "Setup" banner at the top
+3. Paste the URL you copied in Step 3 into the text box
+4. Click "Save & Connect"
+5. Done! The banner disappears. Your form is now connected.
+
+
+---------------------------------------------------------
+STEP 5: TEST IT
+---------------------------------------------------------
+
+1. Fill in a test order:
+   - Party Name: "Test Company"
+   - Select any loadcell type
+   - Add any quantity
+2. Click "Submit Order →"
+3. Go to your Google Sheet tab → refresh the page
+4. You should see the test order appear as a new row!
+
+   ✓ If you see the data → Everything is working!
+   ✗ If empty → Go back to Step 3, make sure you selected "Anyone" for access
+
+
+---------------------------------------------------------
+STEP 6: SHARE WITH YOUR TEAM (Optional)
+---------------------------------------------------------
+
+OPTION A — Share the HTML file directly:
+   Send "order_form_live.html" to your team via WhatsApp/email.
+   They open it in their browser, paste the same script URL once.
+   Every submission goes to the SAME Google Sheet.
+
+OPTION B — Host it free on the internet (so anyone with link can access):
+   1. Go to → https://netlify.com
+   2. Sign up (free) with your Google account
+   3. Drag the "order_form_live.html" file onto the Netlify page
+   4. It gives you a live URL like: https://your-name.netlify.app
+   5. Share this URL with anyone!
+   
+OPTION C — Host free on GitHub Pages:
+   1. Go to → https://github.com → Sign up (free)
+   2. Create a new repository called "order-form"
+   3. Upload "order_form_live.html" → rename to "index.html"
+   4. Go to Settings → Pages → Source: main branch → Save
+   5. Your form is live at: https://yourusername.github.io/order-form
+
+
+---------------------------------------------------------
+HOW THE SYSTEM WORKS
+---------------------------------------------------------
+
+   [Your team fills the form]
+            ↓
+   [Form sends data to Google Apps Script]
+            ↓
+   [Script writes to Google Sheet]
+            ↓
+   [You see ALL orders in one master sheet]
+
+- Every order gets auto-numbered (ORD-2026-0001, etc.)
+- Google Sheet = your master database (searchable, filterable)
+- Works on phone, tablet, laptop — any browser
+- Multiple people can submit at the same time
+- The form also keeps a local copy (visible in "Master Database" tab)
+
+
+---------------------------------------------------------
+TROUBLESHOOTING
+---------------------------------------------------------
+
+Q: Form says "Failed to save"
+A: Check your internet connection. The local copy is still saved.
+
+Q: Data not appearing in Google Sheet
+A: Go back to Apps Script → Deploy → check "Who has access" is "Anyone"
+
+Q: Want to change the script URL later?
+A: Open browser console (F12) → type: localStorage.removeItem('order_form_script_url')
+   Refresh the page → the setup banner will appear again.
+
+Q: Can I add more fields later?
+A: Yes! Ask Claude to modify the form and script for you.
+
+
+=========================================================
+  FILES IN THIS FOLDER
+=========================================================
+
+1. order_form_live.html  → The form (open in browser)
+2. google_apps_script.js → The script (paste into Google Sheet)
+3. setup_guide.txt       → This guide
+
+=========================================================

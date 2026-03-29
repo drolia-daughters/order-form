@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Sheet — Live Form</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--border-focus:#3b82f6;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#3b82f6;--accent-glow:rgba(59,130,246,0.15);--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;margin-left:4px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;margin-left:8px;}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;}.tab-btn{padding:7px 18px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:13px;font-weight:500;border-radius:6px;cursor:pointer;transition:all 0.2s;}.tab-btn:hover{color:var(--text);}.tab-btn.active{background:var(--accent);color:#fff;}
+.setup-banner{background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid var(--orange);border-radius:10px;padding:20px 24px;margin:24px 32px 0;display:flex;align-items:flex-start;gap:14px;}.setup-banner.hidden{display:none;}.setup-banner h3{font-size:14px;color:var(--orange);margin-bottom:6px;}.setup-banner p{font-size:13px;color:var(--text-dim);line-height:1.5;}
+.edit-banner{display:none;background:linear-gradient(135deg,#1a1a3e,#0f172a);border:2px solid var(--orange);border-radius:10px;padding:16px 24px;margin-bottom:24px;align-items:center;gap:14px;justify-content:space-between;}.edit-banner.visible{display:flex;}.edit-banner-left{display:flex;align-items:center;gap:12px;}.edit-banner h3{font-size:15px;color:var(--orange);font-weight:700;}.edit-banner p{font-size:13px;color:var(--text-dim);}
+.btn-cancel-edit{padding:8px 16px;background:transparent;color:var(--red);border:1px solid var(--red);border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);}
+.main{padding:32px;max-width:1400px;margin:0 auto;}@media(max-width:768px){.main{padding:16px;}}
+.form-view{display:block;}.form-view.hidden{display:none;}
+.form-header{margin-bottom:32px;}.form-header h2{font-size:22px;font-weight:700;margin-bottom:6px;}.form-header p{color:var(--text-dim);font-size:14px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}@media(max-width:768px){.form-grid{grid-template-columns:1fr;}}
+.form-group{display:flex;flex-direction:column;gap:6px;}.form-group.full-width{grid-column:1/-1;}
+.form-group label{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);}
+.form-group label .sl{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--surface-2);border-radius:4px;font-size:10px;color:var(--text-muted);margin-right:6px;}
+.auto-hint{font-size:11px;color:var(--green);font-family:var(--mono);margin-top:2px;display:none;}.auto-hint.show{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;font-family:var(--sans);font-size:14px;color:var(--text);transition:all 0.2s;outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-glow);}
+input::placeholder,textarea::placeholder{color:var(--text-muted);}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%237a8599' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+textarea{resize:vertical;min-height:60px;}
+.combo-row{display:flex;gap:8px;}.combo-row select{flex:1;}
+.btn-add-new{padding:11px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:var(--accent);font-size:18px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;width:44px;flex-shrink:0;}.btn-add-new:hover{background:var(--accent-glow);border-color:var(--accent);}
+.add-new-input{display:none;margin-top:8px;}.add-new-input.visible{display:flex;gap:8px;}.add-new-input input{flex:1;}
+.add-new-input .btn-confirm{padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;}.add-new-input .btn-cancel{padding:8px 14px;background:transparent;color:var(--text-dim);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer;}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px;}
+.chip-check{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;color:var(--text-dim);user-select:none;transition:all 0.2s;}.chip-check:hover{border-color:var(--accent);color:var(--text);}.chip-check input{display:none;}.chip-check.checked{background:var(--accent-glow);border-color:var(--accent);color:var(--accent);font-weight:500;}
+.chip-check .dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--text-muted);}.chip-check.checked .dot{border-color:var(--accent);background:var(--accent);}
+.confirm-section{grid-column:1/-1;margin-top:8px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}.confirm-section h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);font-family:var(--mono);margin-bottom:16px;}.confirm-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}@media(max-width:768px){.confirm-grid{grid-template-columns:1fr;}}
+.section-divider{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0;}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;background:var(--surface);position:relative;}.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:var(--accent-glow);}
+.upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}.upload-zone p{font-size:13px;color:var(--text-dim);}.upload-zone p strong{color:var(--accent);}
+.img-preview-wrap{position:relative;display:none;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}.img-preview-wrap.visible{display:block;}.img-preview-wrap img{width:100%;max-height:200px;object-fit:contain;display:block;padding:8px;background:#fff;}.img-preview-wrap .remove-img{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.db-logo-thumb{width:44px;height:44px;object-fit:contain;border-radius:4px;background:#fff;padding:2px;cursor:pointer;border:1px solid var(--border);}.db-logo-thumb:hover{transform:scale(1.1);}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:2000;cursor:pointer;backdrop-filter:blur(4px);}.lightbox.open{display:flex;}.lightbox img{max-width:90vw;max-height:85vh;border-radius:8px;background:#fff;padding:12px;}.lightbox .lb-close{position:absolute;top:24px;right:24px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:12px;margin-top:12px;flex-wrap:wrap;}
+.btn{padding:11px 24px;border-radius:var(--radius);font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all 0.2s;}
+.btn-ghost{background:transparent;color:var(--text-dim);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}.btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-update{background:var(--orange);color:#000;border-color:var(--orange);}.btn-completed{background:var(--green);color:#fff;border-color:var(--green);}
+.btn-export{background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.2);font-size:13px;padding:8px 16px;}
+.db-view{display:none;}.db-view.visible{display:block;}
+.db-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;}.db-header h2{font-size:22px;font-weight:700;}
+.db-stats{display:flex;gap:12px;flex-wrap:wrap;}.stat-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;font-size:13px;font-family:var(--mono);}.stat-pill .dot{width:8px;height:8px;border-radius:50%;}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1500px;}
+thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}tbody tr:hover{background:rgba(59,130,246,0.04);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.tag-blue{background:rgba(59,130,246,0.12);color:#60a5fa;}.tag-green{background:var(--green-dim);color:var(--green);}.tag-red{background:rgba(239,68,68,0.1);color:var(--red);}.tag-orange{background:rgba(245,158,11,0.12);color:var(--orange);}
+.tag-overdue{background:rgba(239,68,68,0.15);color:var(--red);font-weight:700;animation:blink 1.5s infinite;}@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
+.btn-remind{padding:3px 8px;background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);border-radius:4px;font-size:9px;font-family:var(--mono);font-weight:600;cursor:pointer;margin-top:3px;display:inline-block;}.btn-remind:hover{background:rgba(239,68,68,0.2);}
+.order-num{font-family:var(--mono);font-weight:600;color:var(--accent);font-size:11px;}.date-display{font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+.edit-link-input{width:160px;padding:3px 6px;font-size:10px;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:4px;color:var(--text);outline:none;}
+.track-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;background:rgba(168,85,247,0.12);color:var(--purple);border:1px solid rgba(168,85,247,0.25);border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;text-decoration:none;}
+.save-link-btn{padding:2px 6px;background:var(--green);color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;margin-left:2px;font-weight:600;}
+.btn-edit-row,.btn-delete-row,.btn-mark-done,.btn-undo-done{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid;margin:1px;}
+.btn-edit-row{background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);}
+.btn-delete-row{background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.2);}
+.btn-mark-done{background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.3);}
+.btn-undo-done{background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);}
+.contact-btn{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:4px;font-size:9px;font-family:var(--mono);font-weight:600;cursor:pointer;text-decoration:none;border:1px solid;margin:1px;}
+.contact-email{background:rgba(59,130,246,0.1);color:var(--accent);border-color:rgba(59,130,246,0.25);}
+.contact-whatsapp{background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.25);}
+.contact-call{background:rgba(168,85,247,0.1);color:var(--purple);border-color:rgba(168,85,247,0.25);}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);z-index:1000;}.toast.show{transform:translateY(0);opacity:1;}
+.toast-success{background:var(--green);color:#fff;}.toast-error{background:var(--red);color:#fff;}.toast-warn{background:var(--orange);color:#000;}.toast-despatch{background:var(--cyan);color:#000;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top:2px solid #fff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:8px;vertical-align:middle;}@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><div class="icon">OS</div><h1>Order Sheet</h1><span>LIVE</span><div class="live-dot"></div></div><div class="tab-bar"><button class="tab-btn active" onclick="showView('form')">+ New Order</button><button class="tab-btn" onclick="showView('db')">Master Database</button></div></div>
+<div class="setup-banner" id="setupBanner"><div style="font-size:22px;">⚙️</div><div style="flex:1;"><h3>One-time Setup</h3><p>Paste your Google Apps Script URL.</p><input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/..." style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:13px;color:var(--text);font-family:var(--mono);outline:none;width:100%;max-width:500px;margin-top:10px;"><br><button onclick="saveScriptUrl()" style="margin-top:8px;padding:7px 16px;background:var(--orange);color:#000;border:none;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;">Save</button></div></div>
+
+<div class="main">
+<div class="form-view" id="formView">
+  <div class="edit-banner" id="editBanner"><div class="edit-banner-left"><div style="font-size:20px;">✏️</div><div><h3>Editing: <span id="editingOrderNo"></span></h3><p>Modify and click "Update Order".</p></div></div><button class="btn-cancel-edit" onclick="cancelEdit()">✕ Cancel</button></div>
+  <div class="form-header"><h2 id="formTitle">New Order Entry</h2><p id="formSubtitle">Fill in order details.</p></div>
+  <form class="form-grid" id="orderForm" onsubmit="return submitOrder(event)">
+    <div class="form-group"><label><span class="sl">1</span> Order No.</label><input type="text" id="orderNo" readonly style="color:var(--accent);font-family:var(--mono);"></div>
+    <div class="form-group"><label><span class="sl">2</span> Date</label><input type="date" id="orderDate" required></div>
+    <div class="section-divider"></div>
+
+    <!-- PARTY + CLIENT CONTACT -->
+    <div class="form-group"><label><span class="sl">3</span> Name of Party</label>
+      <div class="combo-row"><select id="partyName" required onchange="onPartyChange()"><option value="">— Select —</option></select><button type="button" class="btn-add-new" onclick="toggleAddNew('party')" title="Add new">+</button><button type="button" class="btn-add-new" onclick="editPartyName()" title="Edit selected" style="color:var(--orange);">✏️</button><button type="button" class="btn-add-new" onclick="deletePartyName()" title="Delete selected" style="color:var(--red);">🗑</button></div>
+      <div class="add-new-input" id="partyAddNew"><input type="text" id="partyNewInput" placeholder="New party..."><button type="button" class="btn-confirm" onclick="addNewItem('party')">Add</button><button type="button" class="btn-cancel" onclick="toggleAddNew('party')">Cancel</button></div>
+      <div class="add-new-input" id="partyEditBox"><input type="text" id="partyEditInput" placeholder="New name..."><button type="button" class="btn-confirm" onclick="savePartyEdit()">Save</button><button type="button" class="btn-cancel" onclick="document.getElementById('partyEditBox').classList.remove('visible')">Cancel</button></div>
+    </div>
+    <div class="form-group"><label><span class="sl">4</span> Location</label><input type="text" id="location" placeholder="City / Area"><div class="auto-hint" id="locHint">↑ Auto-filled</div></div>
+    <div class="form-group"><label><span class="sl">5</span> Client Email</label><input type="email" id="clientEmail" placeholder="client@company.com"><div class="auto-hint" id="cEmailHint">↑ Auto-filled</div></div>
+    <div class="form-group"><label><span class="sl">6</span> Client Phone</label><input type="tel" id="clientPhone" placeholder="+91 98765 43210"><div class="auto-hint" id="cPhoneHint">↑ Auto-filled</div></div>
+
+    <!-- LOADCELL -->
+    <div class="form-group full-width"><label><span class="sl">7</span> Type of Loadcell</label>
+      <div class="checkbox-group">
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="ALC"><span class="dot"></span>ALC</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="DLC"><span class="dot"></span>DLC</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="AS"><span class="dot"></span>AS</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="DS"><span class="dot"></span>DS</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="REG"><span class="dot"></span>REG</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="CUT"><span class="dot"></span>CUT</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="JUMBO"><span class="dot"></span>JUMBO</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="S.E"><span class="dot"></span>S.E</label>
+        <label class="chip-check" onclick="toggleChip(this)"><input type="checkbox" name="lc" value="S TYPE"><span class="dot"></span>S TYPE</label>
+      </div>
+    </div>
+    <div class="form-group"><label><span class="sl">8</span> Quantity (pcs.)</label><input type="number" id="quantity" placeholder="54" min="1"></div>
+    <div class="form-group"><label><span class="sl">9</span> Capacity</label><input type="text" id="capacity" placeholder="33T / 2.5 MV"></div>
+    <div class="form-group"><label><span class="sl">10</span> Wire (type/mtr.)</label><input type="text" id="wire" placeholder="Blue - 16 Mtrs"></div>
+
+    <!-- PAYMENT MODE -->
+    <div class="form-group"><label><span class="sl">11</span> Mode of Payment</label>
+      <select id="paymentMode" onchange="onPaymentModeChange()"><option value="">— Select —</option><option value="Advance">Advance</option><option value="COD">COD</option><option value="Credit">Credit</option></select>
+      <div id="creditDaysBox" style="display:none;margin-top:8px;"><label style="font-size:11px;color:var(--orange);margin-bottom:4px;">Credit Days (e.g. 30, 45, 60)</label><input type="number" id="creditDays" placeholder="30" min="1" max="99" style="width:100px;"><div class="auto-hint" id="creditHint">↑ Auto-filled from client</div></div>
+    </div>
+
+    <!-- LASER/LOGO -->
+    <div class="form-group full-width"><label><span class="sl">12</span> Laser / Logo</label>
+      <input type="text" id="laserLogo" placeholder="Logo text">
+      <div id="savedLogoArea" style="display:none;margin-top:8px;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><span style="font-size:11px;color:var(--green);font-family:var(--mono);">✓ Saved logo for this client</span><button type="button" onclick="deleteSavedLogo()" style="padding:3px 8px;background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);border-radius:4px;font-size:10px;cursor:pointer;font-family:var(--mono);font-weight:600;">🗑 Delete Saved Logo</button></div>
+        <img id="savedLogoImg" src="" style="max-height:120px;max-width:100%;object-fit:contain;background:#fff;border-radius:4px;padding:4px;">
+      </div>
+      <div style="margin-top:8px;"><div class="upload-zone" id="uploadZone"><input type="file" id="logoFileInput" accept="image/*" onchange="handleLogoUpload(event)"><p>📷 Drop or <strong>browse</strong> (replaces saved logo)</p></div><div class="img-preview-wrap" id="logoPreview"><img id="logoPreviewImg" src=""><button type="button" class="remove-img" onclick="removeLogo()">×</button></div></div>
+    </div>
+    <div class="section-divider"></div>
+    <div class="form-group full-width"><label><span class="sl">13</span> Production Remarks</label><textarea id="productionRemarks" placeholder="Production notes..."></textarea></div>
+
+    <!-- TRANSPORTER -->
+    <div class="form-group"><label><span class="sl">14</span> Transporter</label>
+      <div class="combo-row"><select id="transporterName" onchange="onTransporterChange()"><option value="">— Select —</option></select><button type="button" class="btn-add-new" onclick="toggleAddNew('transporter')">+</button></div>
+      <div class="add-new-input" id="transporterAddNew"><input type="text" id="transporterNewInput" placeholder="New transporter..."><button type="button" class="btn-confirm" onclick="addNewItem('transporter')">Add</button><button type="button" class="btn-cancel" onclick="toggleAddNew('transporter')">Cancel</button></div>
+    </div>
+    <div class="form-group"><label><span class="sl">15</span> Transporter ID</label><input type="text" id="transporterId" placeholder="e.g. TR-001"><div class="auto-hint" id="tIdHint">↑ Auto-filled</div></div>
+    <div class="form-group"><label><span class="sl">16</span> Transporter Email</label><input type="email" id="transporterEmail" placeholder="transporter@email.com"><div class="auto-hint" id="tEmailHint">↑ Auto-filled</div></div>
+    <div class="form-group"><label><span class="sl">17</span> Transporter Phone</label><input type="tel" id="transporterPhone" placeholder="+91..."><div class="auto-hint" id="tPhoneHint">↑ Auto-filled</div></div>
+
+    <div class="form-group"><label><span class="sl">18</span> L.R. Number</label><input type="text" id="lrNumber" placeholder="LR-123456" oninput="onLRChange()"></div>
+    <div class="form-group"><label><span class="sl">19</span> Tracking Link</label><input type="url" id="trackingLink" placeholder="Auto-fills from transporter"><div class="auto-hint" id="trackHint">↑ Auto-filled from transporter</div></div>
+    <div class="form-group"><label><span class="sl">20</span> DOD (Date of Despatch)</label><input type="date" id="dod"></div>
+    <div class="form-group"></div>
+    <div class="form-group full-width"><label><span class="sl">21</span> Order Remarks</label><textarea id="orderRemarks" placeholder="e.g. With Lightning"></textarea></div>
+    <div class="section-divider"></div>
+    <div class="confirm-section"><h3><span class="sl" style="display:inline-flex;">22</span>&nbsp; Dept. Confirmation</h3><div class="confirm-grid"><div class="form-group"><label>Wiring</label><input type="text" id="wiringBy"></div><div class="form-group"><label>Packing</label><input type="text" id="packingBy"></div><div class="form-group"><label>Testing</label><input type="text" id="testingBy"></div></div></div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" onclick="cancelEdit();resetForm();">Clear</button>
+      <button type="button" class="btn btn-primary" id="printFormBtn" onclick="printCurrentForm()" style="background:var(--cyan);border-color:var(--cyan);">🖨 Print Order (PDF)</button>
+      <button type="submit" class="btn btn-primary" id="submitBtn">Submit Order →</button>
+      <button type="button" class="btn btn-completed" id="completedBtn" onclick="markCurrentCompleted()" style="display:none;">✓ Order Completed — Ready for Despatch</button>
+    </div>
+  </form>
+</div>
+
+<!-- DB -->
+<div class="db-view" id="dbView">
+  <div class="db-header"><div><h2>Master Database</h2></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="db-stats"><div class="stat-pill"><span class="dot" style="background:var(--accent);"></span><span id="totalOrders">0</span></div><div class="stat-pill"><span class="dot" style="background:var(--green);"></span><span id="totalQty">0</span> pcs</div><div class="stat-pill"><span class="dot" style="background:var(--orange);"></span><span id="pendingCount">0</span> pending</div><div class="stat-pill"><span class="dot" style="background:var(--green);"></span><span id="doneCount">0</span> done</div><div class="stat-pill"><span class="dot" style="background:var(--red);"></span><span id="overdueCount">0</span> overdue</div></div>
+      <button class="btn btn-export" onclick="exportCSV()">↓ CSV</button>
+    </div>
+  </div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>Actions</th><th>Status</th><th>Order#</th><th>Date</th><th>Party</th><th>Client Contact</th><th>Location</th><th>Loadcell</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Logo</th><th>Transporter</th><th>Tr. Contact</th><th>L.R.</th><th>DOD</th><th>Payment</th><th>Track</th><th>Remarks</th><th>Wiring</th><th>Packing</th><th>Testing</th>
+  </tr></thead><tbody id="dbBody"></tbody></table>
+  <div class="empty-state" id="emptyState"><div class="icon">📋</div><p>No orders yet.</p></div></div>
+</div></div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><button class="lb-close" style="position:absolute;top:24px;right:24px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.15);color:#fff;border:none;font-size:22px;cursor:pointer;">×</button><img id="lightboxImg" src=""></div>
+<div class="toast toast-success" id="toastSuccess">✓ Saved</div><div class="toast toast-error" id="toastError">✗ Failed</div><div class="toast toast-warn" id="toastWarn">✓ Updated</div><div class="toast toast-despatch" id="toastDespatch">📦 Despatch note sent to client!</div>
+
+<script>
+const SK='order_form_script_url',DK='ordersheet_master_db',PK='ordersheet_parties',TK='ordersheet_transporters',PLK='ordersheet_party_locs',TCK='ordersheet_transporter_contacts',CCK='ordersheet_client_contacts';
+let logoBase64='',editingIndex=-1;
+const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+const gm=k=>{try{return JSON.parse(localStorage.getItem(k))||{};}catch{return{};}};const sm=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+const gsu=()=>localStorage.getItem(SK)||'';const gdb=()=>g(DK);const sdb=d=>s(DK,d);
+
+function popDD(id,lk){const sel=document.getElementById(id),l=g(lk);while(sel.options.length>1)sel.remove(1);l.sort().forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});}
+function toggleAddNew(t){const el=document.getElementById(t==='party'?'partyAddNew':'transporterAddNew');el.classList.toggle('visible');if(el.classList.contains('visible'))document.getElementById(t==='party'?'partyNewInput':'transporterNewInput').focus();}
+function addNewItem(t){const isP=t==='party',id=isP?'partyNewInput':'transporterNewInput',lk=isP?PK:TK,sid=isP?'partyName':'transporterName';const n=document.getElementById(id).value.trim();if(!n)return alert('Enter a name.');const l=g(lk);if(l.includes(n))return alert('Exists!');l.push(n);s(lk,l);popDD(sid,lk);document.getElementById(sid).value=n;toggleAddNew(t);if(isP)onPartyChange();else onTransporterChange();}
+
+function showHint(id){const h=document.getElementById(id);h.classList.add('show');setTimeout(()=>h.classList.remove('show'),3000);}
+
+// ─── PARTY EDIT / DELETE ───
+function editPartyName(){
+  const sel=document.getElementById('partyName');if(!sel.value)return alert('Select a party first.');
+  document.getElementById('partyEditInput').value=sel.value;
+  document.getElementById('partyEditBox').classList.add('visible');
+}
+function savePartyEdit(){
+  const oldName=document.getElementById('partyName').value;
+  const newName=document.getElementById('partyEditInput').value.trim();
+  if(!newName)return alert('Enter a name.');if(oldName===newName){document.getElementById('partyEditBox').classList.remove('visible');return;}
+  // Update party list
+  const list=g(PK);const idx=list.indexOf(oldName);if(idx>=0)list[idx]=newName;s(PK,list);
+  // Migrate location map
+  const pm=gm(PLK);if(pm[oldName]){pm[newName]=pm[oldName];delete pm[oldName];sm(PLK,pm);}
+  // Migrate client contacts (email, phone, payment, logo — everything)
+  const cc=gm(CCK);if(cc[oldName]){cc[newName]=cc[oldName];delete cc[oldName];sm(CCK,cc);}
+  // Update ALL orders in DB — change partyName + sync email/phone/location from saved data
+  const db=gdb();const savedCC=cc[newName]||{};const savedLoc=pm[newName]||'';
+  db.forEach(o=>{
+    if(o.partyName===oldName){
+      o.partyName=newName;
+      // Also sync contact data across all orders for this party
+      if(savedLoc) o.location=savedLoc;
+      if(savedCC.email) o.clientEmail=savedCC.email;
+      if(savedCC.phone) o.clientPhone=savedCC.phone;
+    }
+  });sdb(db);
+  // Refresh UI
+  popDD('partyName',PK);document.getElementById('partyName').value=newName;
+  onPartyChange(); // refresh all fields for new name
+  document.getElementById('partyEditBox').classList.remove('visible');renderDB();showToast('success');
+}
+function deletePartyName(){
+  const sel=document.getElementById('partyName');if(!sel.value)return alert('Select a party first.');
+  if(!confirm('Delete party "'+sel.value+'" from the list? This will NOT delete their orders.'))return;
+  const list=g(PK);const idx=list.indexOf(sel.value);if(idx>=0)list.splice(idx,1);s(PK,list);
+  popDD('partyName',PK);sel.value='';showToast('success');
+}
+
+// ─── SAVED LOGO PER CLIENT ───
+function deleteSavedLogo(){
+  const p=document.getElementById('partyName').value;if(!p)return;
+  const cc=gm(CCK);if(cc[p]){delete cc[p].logo;delete cc[p].laserLogo;sm(CCK,cc);}
+  document.getElementById('savedLogoArea').style.display='none';document.getElementById('savedLogoImg').src='';
+  showToast('success');
+}
+
+function onPartyChange(){const p=document.getElementById('partyName').value;
+  // ALWAYS clear all party-related fields first
+  document.getElementById('location').value='';
+  document.getElementById('clientEmail').value='';
+  document.getElementById('clientPhone').value='';
+  document.getElementById('paymentMode').value='';onPaymentModeChange();
+  document.getElementById('creditDays').value='';
+  document.getElementById('laserLogo').value='';
+  document.getElementById('savedLogoArea').style.display='none';
+  document.getElementById('savedLogoImg').src='';
+  logoBase64='';removeLogo();
+  if(!p)return;
+  // Now fill from saved data
+  const pm=gm(PLK);if(pm[p]){document.getElementById('location').value=pm[p];showHint('locHint');}
+  const cc=gm(CCK);if(cc[p]){
+    if(cc[p].email){document.getElementById('clientEmail').value=cc[p].email;showHint('cEmailHint');}
+    if(cc[p].phone){document.getElementById('clientPhone').value=cc[p].phone;showHint('cPhoneHint');}
+    if(cc[p].paymentMode){document.getElementById('paymentMode').value=cc[p].paymentMode;onPaymentModeChange();if(cc[p].creditDays){document.getElementById('creditDays').value=cc[p].creditDays;showHint('creditHint');}}
+    if(cc[p].logo){
+      document.getElementById('savedLogoArea').style.display='block';
+      document.getElementById('savedLogoImg').src=cc[p].logo;
+      logoBase64=cc[p].logo;
+      if(cc[p].laserLogo) document.getElementById('laserLogo').value=cc[p].laserLogo;
+    }
+  }
+}
+
+function onPaymentModeChange(){const m=document.getElementById('paymentMode').value;document.getElementById('creditDaysBox').style.display=m==='Credit'?'block':'none';}
+
+function onTransporterChange(){const t=document.getElementById('transporterName').value;if(!t)return;
+  const tc=gm(TCK);if(tc[t]){
+    if(tc[t].email){document.getElementById('transporterEmail').value=tc[t].email;showHint('tEmailHint');}
+    if(tc[t].phone){document.getElementById('transporterPhone').value=tc[t].phone;showHint('tPhoneHint');}
+    if(tc[t].trackingBase){document.getElementById('trackingLink').value=tc[t].trackingBase;document.getElementById('trackingLink').dataset.auto='t';showHint('trackHint');}
+    if(tc[t].transporterId){document.getElementById('transporterId').value=tc[t].transporterId;showHint('tIdHint');}
+  }}
+
+function onLRChange(){const lr=document.getElementById('lrNumber').value.trim(),tf=document.getElementById('trackingLink');
+  // If transporter has a saved tracking base, don't override it
+  if(tf.dataset.auto==='t')return;
+  if(lr&&(!tf.value||tf.dataset.auto==='1')){tf.value='https://www.google.com/search?q='+encodeURIComponent(lr+' tracking status');tf.dataset.auto='1';}if(!lr&&tf.dataset.auto==='1'){tf.value='';tf.dataset.auto='';}}
+
+function learnFromDB(){const db=gdb(),p=g(PK),t=g(TK),pm=gm(PLK),tc=gm(TCK),cc=gm(CCK);let pc=0,tt=0;
+  db.forEach(o=>{if(o.partyName&&!p.includes(o.partyName)){p.push(o.partyName);pc++;}if(o.transporterName&&!t.includes(o.transporterName)){t.push(o.transporterName);tt++;}
+  if(o.partyName&&o.location)pm[o.partyName]=o.location;
+  if(o.partyName){if(!cc[o.partyName])cc[o.partyName]={};if(o.clientEmail)cc[o.partyName].email=o.clientEmail;if(o.clientPhone)cc[o.partyName].phone=o.clientPhone;}
+  if(o.transporterName){if(!tc[o.transporterName])tc[o.transporterName]={};if(o.transporterEmail)tc[o.transporterName].email=o.transporterEmail;if(o.transporterPhone)tc[o.transporterName].phone=o.transporterPhone;if(o.trackingLink)tc[o.transporterName].trackingBase=o.trackingLink;if(o.transporterId)tc[o.transporterName].transporterId=o.transporterId;}});
+  if(pc)s(PK,p);if(tt)s(TK,t);sm(PLK,pm);sm(TCK,tc);sm(CCK,cc);}
+
+function saveScriptUrl(){const u=document.getElementById('scriptUrl').value.trim();if(!u.startsWith('https://script.google.com/'))return alert('Invalid.');localStorage.setItem(SK,u);document.getElementById('setupBanner').classList.add('hidden');showToast('success');}
+function genON(){
+  const db=gdb();let maxNum=0;
+  db.forEach(o=>{if(o.orderNo){const m=o.orderNo.match(/(\d+)$/);if(m){const n=parseInt(m[1]);if(n>maxNum)maxNum=n;}}});
+  return 'ORD-'+new Date().getFullYear()+'-'+(maxNum+1).toString().padStart(4,'0');
+}
+function init(){document.getElementById('orderNo').value=genON();document.getElementById('orderDate').valueAsDate=new Date();if(gsu())document.getElementById('setupBanner').classList.add('hidden');learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
+function toggleChip(el){const cb=el.querySelector('input');cb.checked=!cb.checked;el.classList.toggle('checked',cb.checked);}
+function handleLogoUpload(e){const f=e.target.files[0];if(!f||f.size>5e6)return;const r=new FileReader();r.onload=ev=>{logoBase64=ev.target.result;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';};r.readAsDataURL(f);}
+function removeLogo(){logoBase64='';document.getElementById('logoPreviewImg').src='';document.getElementById('logoPreview').classList.remove('visible');document.getElementById('uploadZone').style.display='block';document.getElementById('logoFileInput').value='';}
+const uz=document.getElementById('uploadZone');['dragenter','dragover'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('dragover');}));['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.remove('dragover');}));uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById('logoFileInput').files=e.dataTransfer.files;handleLogoUpload({target:{files:[f]}});}});
+function openLightbox(src){document.getElementById('lightboxImg').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+// ─── PDF DESPATCH NOTE (fields 1,3,4,6,9,12 only) ───
+function generateDespatchPDF(o){
+  const{jsPDF}=window.jspdf;const doc=new jsPDF();
+  doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text('DESPATCH NOTE',105,25,{align:'center'});
+  doc.setDrawColor(59,130,246);doc.setLineWidth(0.5);doc.line(20,30,190,30);
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(100);
+  doc.text('Order No: '+o.orderNo,20,40);doc.text('Date: '+o.date,140,40);
+  doc.setDrawColor(200);doc.line(20,45,190,45);
+  const rows=[
+    ['Party Name (1)',o.partyName||'—'],
+    ['Loadcell Type (3)',o.loadcellType||'—'],
+    ['Quantity (4)',o.quantity||'—'],
+    ['Wire Details (6)',o.wire||'—'],
+    ['Transporter (9)',o.transporterName||'—'],
+    ['L.R. Number (12)',o.lrNumber||'—'],
+    ['Date of Despatch',o.dod||'—'],
+    ['Tracking Link',o.trackingLink||'—']
+  ];
+  let y=55;doc.setFontSize(12);
+  rows.forEach(([label,val])=>{
+    doc.setFont('helvetica','bold');doc.setTextColor(50);doc.text(label,25,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(0);doc.text(String(val),90,y);
+    doc.setDrawColor(230);doc.line(20,y+3,190,y+3);y+=12;
+  });
+  y+=10;doc.setFontSize(10);doc.setTextColor(100);
+  doc.text('This is a system-generated despatch note.',105,y,{align:'center'});
+  doc.text('For queries, please contact us.',105,y+6,{align:'center'});
+  return doc;
+}
+
+// ─── MARK DONE — notify transporter for pickup ───
+function markDone(ri){const db=gdb();const o=db[ri];
+  db[ri].status='completed';db[ri].completedAt=new Date().toISOString();sdb(db);
+
+  // Send pickup notification to transporter
+  const tc=gm(TCK);
+  const tEmail=o.transporterEmail||tc[o.transporterName]?.email||'';
+  const tPhone=o.transporterPhone||tc[o.transporterName]?.phone||'';
+
+  if(tEmail||tPhone){
+    const subj='Pickup Request - '+o.orderNo+' | '+o.partyName;
+    const body=`Dear ${o.transporterName||'Transporter'},\n\nOrder ${o.orderNo} is ready for pickup. Please arrange collection.\n\nPickup Details:\n• Party: ${o.partyName||'N/A'}\n• Location: ${o.location||'N/A'}\n• No. of Boxes: ________\n• Weight: ________ Kg\n• Order Date: ${o.date||'N/A'}\n\nKindly confirm the pickup schedule.\n\nRegards`;
+    if(tEmail) window.open('mailto:'+tEmail+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+
+    const tp=tPhone.replace(/[^0-9+]/g,'');const tw=tp.startsWith('+')?tp.slice(1):tp;
+    if(tw){
+      const wm=`Dear ${o.transporterName||'Transporter'},\n\n📦 *Pickup Request*\n\nOrder *${o.orderNo}* is ready for collection.\n\n• Party: ${o.partyName||'N/A'}\n• Location: ${o.location||'N/A'}\n• No. of Boxes: ________\n• Weight: ________ Kg\n• Order Date: ${o.date||'N/A'}\n\nPlease confirm pickup schedule.\n\nThank you.`;
+      window.open('https://wa.me/'+tw+'?text='+encodeURIComponent(wm),'_blank');
+    }
+  }
+  renderDB();showToast('success');}
+
+function markCurrentCompleted(){if(editingIndex<0)return;markDone(editingIndex);cancelEdit();}
+function markPending(ri){const db=gdb();db[ri].status='pending';delete db[ri].completedAt;delete db[ri].dod;sdb(db);renderDB();showToast('warn');}
+
+// ─── SEND DESPATCH NOTIFICATION (called from submitOrder on update) ───
+function sendDespatchNotification(o){
+  // Generate PDF
+  const pdf=generateDespatchPDF(o);
+  const a=document.createElement('a');a.href=URL.createObjectURL(pdf.output('blob'));a.download='Despatch_'+o.orderNo+'.pdf';a.click();
+
+  const emailBody=`Dear ${o.partyName},\n\nYour order has been despatched. Details below:\n\nOrder No: ${o.orderNo}\nDate of Despatch: ${o.dod||'N/A'}\nLoadcell Type: ${o.loadcellType||'N/A'}\nQuantity: ${o.quantity||'N/A'} pcs\nWire: ${o.wire||'N/A'}\nTransporter: ${o.transporterName||'N/A'}\nL.R. Number: ${o.lrNumber||'N/A'}\nTracking: ${o.trackingLink||'N/A'}\n\nDespatch Note PDF has been downloaded. Please attach it to this email.\n\nThank you.\nRegards`;
+  const emailSubject='Order Despatched - '+o.orderNo+' | DOD: '+(o.dod||'')+' | L.R.: '+(o.lrNumber||'N/A');
+  if(o.clientEmail) window.open('mailto:'+o.clientEmail+'?subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailBody),'_blank');
+
+  const cp=(o.clientPhone||'').replace(/[^0-9+]/g,'');const wp=cp.startsWith('+')?cp.slice(1):cp;
+  if(wp){
+    const wm=`Dear ${o.partyName},\n\nYour order *${o.orderNo}* has been despatched.\n\n📦 *Despatch Details:*\n• Date: ${o.dod||'N/A'}\n• Loadcell: ${o.loadcellType||'N/A'}\n• Qty: ${o.quantity||'N/A'} pcs\n• Wire: ${o.wire||'N/A'}\n• Transporter: ${o.transporterName||'N/A'}\n• L.R. No: ${o.lrNumber||'N/A'}\n• Track: ${o.trackingLink||'N/A'}\n\nThank you!`;
+    window.open('https://wa.me/'+wp+'?text='+encodeURIComponent(wm),'_blank');
+  }
+  showToast('despatch');
+}
+
+function editOrder(ri){const db=gdb(),o=db[ri];if(!o)return;editingIndex=ri;showView('form');
+  document.getElementById('editBanner').classList.add('visible');document.getElementById('editingOrderNo').textContent=o.orderNo;document.getElementById('formTitle').textContent='Edit Order';document.getElementById('formSubtitle').textContent='Modify and click "Update Order". For despatched orders: fill L.R. + DOD then Update to notify client.';
+  document.getElementById('submitBtn').textContent='✓ Update Order';document.getElementById('submitBtn').className='btn btn-update';document.getElementById('completedBtn').style.display='inline-flex';
+  document.getElementById('orderNo').value=o.orderNo;document.getElementById('orderDate').value=o.date;
+  const pL=g(PK);if(o.partyName&&!pL.includes(o.partyName)){pL.push(o.partyName);s(PK,pL);popDD('partyName',PK);}
+  document.getElementById('partyName').value=o.partyName||'';document.getElementById('location').value=o.location||'';
+  document.getElementById('clientEmail').value=o.clientEmail||'';document.getElementById('clientPhone').value=o.clientPhone||'';
+  document.querySelectorAll('.chip-check').forEach(c=>{c.classList.remove('checked');c.querySelector('input').checked=false;});
+  if(o.loadcellType)o.loadcellType.split(', ').forEach(t=>{document.querySelectorAll('input[name="lc"]').forEach(cb=>{if(cb.value===t){cb.checked=true;cb.closest('.chip-check').classList.add('checked');}});});
+  document.getElementById('quantity').value=o.quantity||'';document.getElementById('capacity').value=o.capacity||'';document.getElementById('wire').value=o.wire||'';document.getElementById('laserLogo').value=o.laserLogo||'';
+  if(o.logoImage){logoBase64=o.logoImage;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';}else removeLogo();
+  document.getElementById('productionRemarks').value=o.productionRemarks||'';
+  const tL=g(TK);if(o.transporterName&&!tL.includes(o.transporterName)){tL.push(o.transporterName);s(TK,tL);popDD('transporterName',TK);}
+  document.getElementById('transporterName').value=o.transporterName||'';
+  document.getElementById('transporterId').value=o.transporterId||'';
+  document.getElementById('transporterEmail').value=o.transporterEmail||'';document.getElementById('transporterPhone').value=o.transporterPhone||'';
+  document.getElementById('lrNumber').value=o.lrNumber||'';document.getElementById('trackingLink').value=o.trackingLink||'';document.getElementById('trackingLink').dataset.auto='';
+  document.getElementById('dod').value=o.dod||'';
+  document.getElementById('paymentMode').value=o.paymentMode||'';onPaymentModeChange();document.getElementById('creditDays').value=o.creditDays||'';
+  // Show saved logo if exists
+  if(o.logoImage){logoBase64=o.logoImage;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';document.getElementById('savedLogoArea').style.display='none';}
+  else{removeLogo();const cc=gm(CCK);if(cc[o.partyName]&&cc[o.partyName].logo){document.getElementById('savedLogoArea').style.display='block';document.getElementById('savedLogoImg').src=cc[o.partyName].logo;logoBase64=cc[o.partyName].logo;}else{document.getElementById('savedLogoArea').style.display='none';}}
+  document.getElementById('orderRemarks').value=o.orderRemarks||'';document.getElementById('wiringBy').value=o.wiringBy||'';document.getElementById('packingBy').value=o.packingBy||'';document.getElementById('testingBy').value=o.testingBy||'';
+  window.scrollTo({top:0,behavior:'smooth'});}
+
+function cancelEdit(){editingIndex=-1;document.getElementById('editBanner').classList.remove('visible');document.getElementById('formTitle').textContent='New Order Entry';document.getElementById('formSubtitle').textContent='Fill in order details.';document.getElementById('submitBtn').textContent='Submit Order →';document.getElementById('submitBtn').className='btn btn-primary';document.getElementById('completedBtn').style.display='none';resetForm();}
+function cancelOrder(ri){if(!confirm('Cancel this order? The order number will be preserved as CANCELLED.'))return;const db=gdb();db[ri].status='cancelled';db[ri].cancelledAt=new Date().toISOString();sdb(db);renderDB();showToast('warn');}
+
+async function submitOrder(e){e.preventDefault();const btn=document.getElementById('submitBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+(editingIndex>=0?'Updating...':'Saving...');
+  const lt=Array.from(document.querySelectorAll('input[name="lc"]:checked')).map(c=>c.value).join(', ');
+  const order={orderNo:document.getElementById('orderNo').value,date:document.getElementById('orderDate').value,partyName:document.getElementById('partyName').value,location:document.getElementById('location').value,clientEmail:document.getElementById('clientEmail').value,clientPhone:document.getElementById('clientPhone').value,loadcellType:lt,quantity:document.getElementById('quantity').value,capacity:document.getElementById('capacity').value,wire:document.getElementById('wire').value,laserLogo:document.getElementById('laserLogo').value,logoImage:logoBase64,productionRemarks:document.getElementById('productionRemarks').value,transporterName:document.getElementById('transporterName').value,transporterId:document.getElementById('transporterId').value,transporterEmail:document.getElementById('transporterEmail').value,transporterPhone:document.getElementById('transporterPhone').value,lrNumber:document.getElementById('lrNumber').value,trackingLink:document.getElementById('trackingLink').value,dod:document.getElementById('dod').value,paymentMode:document.getElementById('paymentMode').value,creditDays:document.getElementById('creditDays').value,orderRemarks:document.getElementById('orderRemarks').value,wiringBy:document.getElementById('wiringBy').value,packingBy:document.getElementById('packingBy').value,testingBy:document.getElementById('testingBy').value,status:'pending',timestamp:new Date().toISOString()};
+  // Learn
+  if(order.partyName){const l=g(PK);if(!l.includes(order.partyName)){l.push(order.partyName);s(PK,l);popDD('partyName',PK);}}
+  if(order.transporterName){const l=g(TK);if(!l.includes(order.transporterName)){l.push(order.transporterName);s(TK,l);popDD('transporterName',TK);}}
+  if(order.partyName&&order.location){const m=gm(PLK);m[order.partyName]=order.location;sm(PLK,m);}
+  // Save ALL client data — always overwrite so edits are reflected
+  if(order.partyName){const cc=gm(CCK);if(!cc[order.partyName])cc[order.partyName]={};
+    cc[order.partyName].email=order.clientEmail||cc[order.partyName].email||'';
+    cc[order.partyName].phone=order.clientPhone||cc[order.partyName].phone||'';
+    cc[order.partyName].location=order.location||cc[order.partyName].location||'';
+    if(order.paymentMode)cc[order.partyName].paymentMode=order.paymentMode;
+    if(order.creditDays)cc[order.partyName].creditDays=order.creditDays;
+    if(order.logoImage)cc[order.partyName].logo=order.logoImage;
+    if(order.laserLogo)cc[order.partyName].laserLogo=order.laserLogo;
+    sm(CCK,cc);}
+  // Save transporter contact + tracking link + ID
+  if(order.transporterName){const tc=gm(TCK);if(!tc[order.transporterName])tc[order.transporterName]={};if(order.transporterEmail)tc[order.transporterName].email=order.transporterEmail;if(order.transporterPhone)tc[order.transporterName].phone=order.transporterPhone;if(order.trackingLink)tc[order.transporterName].trackingBase=order.trackingLink;if(order.transporterId)tc[order.transporterName].transporterId=order.transporterId;sm(TCK,tc);}
+
+  const db=gdb();
+  let shouldNotify=false;
+  if(editingIndex>=0){
+    const prev=db[editingIndex];
+    order.timestamp=prev.timestamp;order.status=prev.status||'pending';
+    if(prev.completedAt)order.completedAt=prev.completedAt;
+    // Check: if order is completed AND user just added LR+DOD (they weren't there before)
+    if(order.status==='completed'&&order.lrNumber&&order.dod&&(!prev.lrNumber||!prev.dod)){shouldNotify=true;}
+    db[editingIndex]=order;sdb(db);showToast('warn');
+  } else{db.push(order);sdb(db);const su=gsu();if(su){try{await fetch(su,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(order)});showToast('success');}catch(err){showToast('error');}}else showToast('success');}
+
+  renderDB();btn.disabled=false;cancelEdit();resetForm();
+
+  // Send notification AFTER form is reset (so popups don't interfere)
+  if(shouldNotify){
+    if(order.clientEmail||order.clientPhone){
+      setTimeout(()=>sendDespatchNotification(order),500);
+    } else { alert('Order updated but no client email/phone found. Please add client contact details to send despatch notification.'); }
+  }}
+
+function resetForm(){document.getElementById('orderForm').reset();document.querySelectorAll('.chip-check').forEach(c=>{c.classList.remove('checked');c.querySelector('input').checked=false;});document.getElementById('orderNo').value=genON();document.getElementById('orderDate').valueAsDate=new Date();document.getElementById('trackingLink').dataset.auto='';document.getElementById('savedLogoArea').style.display='none';document.getElementById('creditDaysBox').style.display='none';removeLogo();}
+function saveTrackingLink(idx){const db=gdb(),ri=db.length-1-idx,inp=document.getElementById('trackInput_'+idx);if(inp){db[ri].trackingLink=inp.value.trim();sdb(db);renderDB();showToast('success');}}
+
+function renderDB(){const db=gdb(),tb=document.getElementById('dbBody'),em=document.getElementById('emptyState');
+  document.getElementById('totalOrders').textContent=db.length;document.getElementById('totalQty').textContent=db.reduce((a,o)=>a+(parseInt(o.quantity)||0),0);
+  const done=db.filter(o=>o.status==='completed').length;const cancelled=db.filter(o=>o.status==='cancelled').length;
+  document.getElementById('doneCount').textContent=done;document.getElementById('pendingCount').textContent=db.length-done-cancelled;
+  const overdue=db.filter(o=>o.paymentMode==='Credit'&&o.dod&&o.creditDays&&((Date.now()-new Date(o.dod))/(86400000))>parseInt(o.creditDays)&&!o.paymentDone).length;
+  document.getElementById('overdueCount').textContent=overdue;
+  if(!db.length){tb.innerHTML='';em.style.display='block';return;}em.style.display='none';
+  const tc=gm(TCK),cc=gm(CCK);
+  tb.innerHTML=db.slice().reverse().map((o,i)=>{const ri=db.length-1-i;const isDone=o.status==='completed';const isCancelled=o.status==='cancelled';
+    const st=isCancelled?'<span class="tag tag-red">✕ Cancelled</span>':(isDone?'<span class="tag tag-green">✓ Done</span>':'<span class="tag tag-orange">⏳ Pending</span>');
+    const logo=o.logoImage?`<img class="db-logo-thumb" src="${o.logoImage}" onclick="openLightbox('${o.logoImage.replace(/'/g,"\\'")}')" />`:(o.laserLogo||'—');
+    const trk=o.trackingLink?`<a class="track-btn" href="${o.trackingLink}" target="_blank">🚚</a><input class="edit-link-input" id="trackInput_${i}" value="${o.trackingLink}" style="margin-top:2px;"><button class="save-link-btn" onclick="saveTrackingLink(${i})">✓</button>`:`<input class="edit-link-input" id="trackInput_${i}" placeholder="URL..." value=""><button class="save-link-btn" onclick="saveTrackingLink(${i})">✓</button>`;
+    const cEmail=o.clientEmail||cc[o.partyName]?.email||'';const cPhone=o.clientPhone||cc[o.partyName]?.phone||'';
+    const cClean=cPhone.replace(/[^0-9+]/g,'');const cWa=cClean.startsWith('+')?cClean.slice(1):cClean;
+    let cHtml='';if(cEmail)cHtml+=`<a class="contact-btn contact-email" href="mailto:${cEmail}" target="_blank">📧</a>`;if(cWa)cHtml+=`<a class="contact-btn contact-whatsapp" href="https://wa.me/${cWa}" target="_blank">💬</a><a class="contact-btn contact-call" href="tel:${cClean}">📞</a>`;if(!cEmail&&!cPhone)cHtml='—';
+    const tEmail=o.transporterEmail||tc[o.transporterName]?.email||'';const tPhone=o.transporterPhone||tc[o.transporterName]?.phone||'';
+    const tClean=tPhone.replace(/[^0-9+]/g,'');const tWa=tClean.startsWith('+')?tClean.slice(1):tClean;
+    let tHtml='';if(tEmail)tHtml+=`<a class="contact-btn contact-email" href="mailto:${tEmail}?subject=Pickup%20${o.orderNo}" target="_blank">📧</a>`;if(tWa)tHtml+=`<a class="contact-btn contact-whatsapp" href="https://wa.me/${tWa}?text=Pickup%20${o.orderNo}%20for%20${o.partyName}" target="_blank">💬</a><a class="contact-btn contact-call" href="tel:${tClean}">📞</a>`;if(!tEmail&&!tPhone)tHtml='—';
+    let actionBtns=`<button class="btn-edit-row" onclick="editOrder(${ri})">✏️</button><button class="btn-edit-row" onclick="printOrder(${ri})" style="color:var(--cyan);background:rgba(6,182,212,0.1);border-color:rgba(6,182,212,0.3);">🖨</button>`;
+    if(isCancelled){actionBtns+='';}
+    else if(isDone){actionBtns+=`<button class="btn-undo-done" onclick="markPending(${ri})">↩</button>`;}
+    else{actionBtns+=`<button class="btn-mark-done" onclick="markDone(${ri})">✅</button><button class="btn-delete-row" onclick="cancelOrder(${ri})">❌</button>`;}
+    // Payment column
+    let payHtml='';
+    if(o.paymentMode==='Credit'&&o.dod&&o.creditDays){
+      const daysPassed=Math.floor((Date.now()-new Date(o.dod))/(86400000));
+      const cd=parseInt(o.creditDays);const daysLeft=cd-daysPassed;
+      if(o.paymentDone){payHtml='<span class="tag tag-green">✓ Paid</span>';}
+      else if(daysLeft<=0){payHtml=`<span class="tag tag-overdue">⚠ OVERDUE ${Math.abs(daysLeft)}d</span><br><button class="btn-remind" onclick="sendPaymentReminder(${ri})">📧 Send Reminder</button><br><button class="btn-remind" style="background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3);margin-top:2px;" onclick="markPaid(${ri})">✓ Mark Paid</button>`;}
+      else{payHtml=`<span class="tag tag-orange">Credit ${cd}d</span><br><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${daysLeft}d left</span>`;}
+    } else if(o.paymentMode==='Credit'){payHtml=`<span class="tag tag-orange">Credit ${o.creditDays||'?'}d</span>`;
+    } else if(o.paymentMode){payHtml=`<span class="tag tag-blue">${o.paymentMode}</span>`;
+    } else{payHtml='—';}
+    const rowStyle=isCancelled?'opacity:0.35;text-decoration:line-through;':(isDone?'opacity:0.6;':'');
+    return `<tr style="${rowStyle}"><td style="white-space:nowrap;text-decoration:none;">${actionBtns}</td><td style="text-decoration:none;">${st}</td><td><span class="order-num">${o.orderNo}</span></td><td class="date-display">${o.date}</td><td><strong>${o.partyName}</strong></td><td style="white-space:normal;">${cHtml}</td><td>${o.location||'—'}</td><td>${o.loadcellType?o.loadcellType.split(', ').map(t=>'<span class="tag tag-blue">'+t+'</span>').join(' '):'—'}</td><td><strong>${o.quantity||'—'}</strong></td><td>${o.capacity||'—'}</td><td>${o.wire||'—'}</td><td>${logo}</td><td>${o.transporterName||'—'}</td><td style="white-space:normal;">${tHtml}</td><td style="font-family:var(--mono);font-size:10px;">${o.lrNumber||'—'}</td><td class="date-display">${o.dod||'—'}</td><td style="white-space:normal;min-width:120px;">${payHtml}</td><td>${trk}</td><td>${o.orderRemarks||'—'}</td><td>${o.wiringBy||'—'}</td><td>${o.packingBy||'—'}</td><td>${o.testingBy||'—'}</td></tr>`;
+  }).join('');}
+
+// ─── PRINT ORDER — full A4 PDF ───
+function printOrder(ri){
+  const db=gdb();const o=db[ri];if(!o)return;
+  const{jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4'); // A4 portrait
+  const W=210,H=297,M=15; // page width, height, margin
+  const CW=W-2*M; // content width = 180mm
+
+  // Header
+  doc.setFillColor(30,41,59);doc.rect(0,0,W,32,'F');
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(255);
+  doc.text('ORDER SHEET',W/2,15,{align:'center'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(200);
+  doc.text(o.orderNo+'  |  Date: '+o.date,W/2,24,{align:'center'});
+  if(o.status==='cancelled'){doc.setFontSize(14);doc.setTextColor(239,68,68);doc.text('CANCELLED',W/2,30,{align:'center'});}
+
+  // Table setup
+  let y=40;const LW=55;const VW=CW-LW; // label width, value width
+  doc.setDrawColor(200);
+
+  function addRow(label,value,bold){
+    if(y>H-20){doc.addPage();y=20;} // safety
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(100);
+    doc.text(label,M+2,y+4);
+    doc.setFontSize(10);doc.setFont('helvetica',bold?'bold':'normal');doc.setTextColor(30);
+    const lines=doc.splitTextToSize(String(value||'—'),VW-4);
+    lines.forEach((line,li)=>{doc.text(line,M+LW+2,y+4+li*4.5);});
+    const rh=Math.max(8,lines.length*4.5+3);
+    doc.setDrawColor(220);doc.rect(M,y-1,CW,rh);doc.line(M+LW,y-1,M+LW,y-1+rh);
+    y+=rh;
+  }
+
+  function addSection(title){
+    y+=3;doc.setFillColor(241,245,249);doc.rect(M,y-1,CW,7,'F');
+    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(80);
+    doc.text(title,M+2,y+4);y+=9;
+  }
+
+  // Party details
+  addSection('PARTY & CLIENT');
+  addRow('3. Name of Party',o.partyName,true);
+  addRow('4. Location',o.location);
+  addRow('5. Client Email',o.clientEmail);
+  addRow('6. Client Phone',o.clientPhone);
+
+  // Product details
+  addSection('PRODUCT DETAILS');
+  addRow('7. Type of Loadcell',o.loadcellType);
+  addRow('8. Quantity (pcs.)',o.quantity,true);
+  addRow('9. Capacity (tons)',o.capacity);
+  addRow('10. Wire (type/mtr.)',o.wire);
+  addRow('11. Mode of Payment',o.paymentMode+(o.paymentMode==='Credit'?' ('+o.creditDays+' days)':''));
+  addRow('12. Laser / Logo',o.laserLogo||'See image');
+
+  // Production
+  addSection('PRODUCTION');
+  addRow('13. Production Remarks',o.productionRemarks);
+  addRow('21. Order Remarks',o.orderRemarks);
+
+  // Transport
+  addSection('TRANSPORT & DESPATCH');
+  addRow('14. Transporter',o.transporterName);
+  addRow('15. Transporter ID',o.transporterId);
+  addRow('16. Transporter Email',o.transporterEmail);
+  addRow('17. Transporter Phone',o.transporterPhone);
+  addRow('18. L.R. Number',o.lrNumber);
+  addRow('19. Tracking Link',o.trackingLink);
+  addRow('20. DOD',o.dod);
+
+  // Department confirmation
+  addSection('22. DEPARTMENT CONFIRMATION');
+  y+=1;doc.setDrawColor(220);
+  // 3-column layout
+  const colW=CW/3;
+  ['Wiring: '+(o.wiringBy||'________'),'Packing: '+(o.packingBy||'________'),'Testing: '+(o.testingBy||'________')].forEach((txt,ci)=>{
+    doc.rect(M+ci*colW,y-1,colW,10);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(50);
+    doc.text(txt,M+ci*colW+3,y+5);
+  });
+  y+=14;
+
+  // Footer
+  doc.setDrawColor(200);doc.line(M,H-15,W-M,H-15);
+  doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150);
+  doc.text('Generated on '+new Date().toLocaleString()+' | '+o.orderNo,W/2,H-10,{align:'center'});
+
+  // Download
+  doc.save('OrderSheet_'+o.orderNo+'.pdf');
+}
+
+// ─── PRINT FROM FORM (reads current form fields) ───
+function printCurrentForm(){
+  const lt=Array.from(document.querySelectorAll('input[name="lc"]:checked')).map(c=>c.value).join(', ');
+  const o={
+    orderNo:document.getElementById('orderNo').value||'NEW',
+    date:document.getElementById('orderDate').value,
+    partyName:document.getElementById('partyName').value,
+    location:document.getElementById('location').value,
+    clientEmail:document.getElementById('clientEmail').value,
+    clientPhone:document.getElementById('clientPhone').value,
+    loadcellType:lt,
+    quantity:document.getElementById('quantity').value,
+    capacity:document.getElementById('capacity').value,
+    wire:document.getElementById('wire').value,
+    paymentMode:document.getElementById('paymentMode').value,
+    creditDays:document.getElementById('creditDays').value,
+    laserLogo:document.getElementById('laserLogo').value,
+    productionRemarks:document.getElementById('productionRemarks').value,
+    transporterName:document.getElementById('transporterName').value,
+    transporterId:document.getElementById('transporterId').value,
+    transporterEmail:document.getElementById('transporterEmail').value,
+    transporterPhone:document.getElementById('transporterPhone').value,
+    lrNumber:document.getElementById('lrNumber').value,
+    trackingLink:document.getElementById('trackingLink').value,
+    dod:document.getElementById('dod').value,
+    orderRemarks:document.getElementById('orderRemarks').value,
+    wiringBy:document.getElementById('wiringBy').value,
+    packingBy:document.getElementById('packingBy').value,
+    testingBy:document.getElementById('testingBy').value,
+    status:editingIndex>=0?(gdb()[editingIndex]?.status||'pending'):'new'
+  };
+  if(!o.partyName){alert('Please fill at least the Party Name before printing.');return;}
+  // Reuse the same printOrder PDF generator
+  const{jsPDF}=window.jspdf;const doc=new jsPDF('p','mm','a4');
+  const W=210,H=297,M=15,CW=W-2*M;
+  doc.setFillColor(30,41,59);doc.rect(0,0,W,32,'F');
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(255);
+  doc.text('ORDER SHEET',W/2,15,{align:'center'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(200);
+  doc.text(o.orderNo+'  |  Date: '+(o.date||'N/A'),W/2,24,{align:'center'});
+  if(o.status==='cancelled'){doc.setFontSize(14);doc.setTextColor(239,68,68);doc.text('CANCELLED',W/2,30,{align:'center'});}
+  let y=40;const LW=55,VW=CW-LW;
+  function addRow(label,value,bold){if(y>H-20){doc.addPage();y=20;}doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(100);doc.text(label,M+2,y+4);doc.setFontSize(10);doc.setFont('helvetica',bold?'bold':'normal');doc.setTextColor(30);const lines=doc.splitTextToSize(String(value||'—'),VW-4);lines.forEach((line,li)=>{doc.text(line,M+LW+2,y+4+li*4.5);});const rh=Math.max(8,lines.length*4.5+3);doc.setDrawColor(220);doc.rect(M,y-1,CW,rh);doc.line(M+LW,y-1,M+LW,y-1+rh);y+=rh;}
+  function addSection(title){y+=3;doc.setFillColor(241,245,249);doc.rect(M,y-1,CW,7,'F');doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(80);doc.text(title,M+2,y+4);y+=9;}
+  addSection('PARTY & CLIENT');
+  addRow('3. Name of Party',o.partyName,true);addRow('4. Location',o.location);addRow('5. Client Email',o.clientEmail);addRow('6. Client Phone',o.clientPhone);
+  addSection('PRODUCT DETAILS');
+  addRow('7. Type of Loadcell',o.loadcellType);addRow('8. Quantity (pcs.)',o.quantity,true);addRow('9. Capacity',o.capacity);addRow('10. Wire',o.wire);addRow('11. Payment Mode',o.paymentMode+(o.paymentMode==='Credit'?' ('+o.creditDays+' days)':''));addRow('12. Laser/Logo',o.laserLogo||'See image');
+  addSection('PRODUCTION');
+  addRow('13. Production Remarks',o.productionRemarks);addRow('21. Order Remarks',o.orderRemarks);
+  addSection('TRANSPORT & DESPATCH');
+  addRow('14. Transporter',o.transporterName);addRow('15. Transporter ID',o.transporterId);addRow('16. Tr. Email',o.transporterEmail);addRow('17. Tr. Phone',o.transporterPhone);addRow('18. L.R. Number',o.lrNumber);addRow('19. Tracking',o.trackingLink);addRow('20. DOD',o.dod);
+  addSection('22. DEPARTMENT CONFIRMATION');
+  y+=1;const colW=CW/3;['Wiring: '+(o.wiringBy||'________'),'Packing: '+(o.packingBy||'________'),'Testing: '+(o.testingBy||'________')].forEach((txt,ci)=>{doc.rect(M+ci*colW,y-1,colW,10);doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(50);doc.text(txt,M+ci*colW+3,y+5);});
+  doc.setDrawColor(200);doc.line(M,H-15,W-M,H-15);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(150);doc.text('Generated on '+new Date().toLocaleString()+' | '+o.orderNo,W/2,H-10,{align:'center'});
+  doc.save('OrderSheet_'+o.orderNo+'.pdf');
+}
+
+// ─── PAYMENT REMINDER ───
+function sendPaymentReminder(ri){
+  const db=gdb();const o=db[ri];const cc=gm(CCK);
+  const email=o.clientEmail||cc[o.partyName]?.email||'';
+  const phone=o.clientPhone||cc[o.partyName]?.phone||'';
+  if(!email&&!phone){alert('No client contact found for '+o.partyName);return;}
+  const daysPassed=Math.floor((Date.now()-new Date(o.dod))/(86400000));
+  const overdueDays=daysPassed-parseInt(o.creditDays);
+  const subj='Payment Reminder - '+o.orderNo+' | Overdue by '+overdueDays+' days';
+  const body=`Dear ${o.partyName},\n\nThis is a friendly reminder that payment for the following order is overdue.\n\nOrder No: ${o.orderNo}\nDate of Despatch: ${o.dod}\nCredit Period: ${o.creditDays} days\nOverdue by: ${overdueDays} days\nL.R. Number: ${o.lrNumber||'N/A'}\n\nKindly arrange the payment at the earliest.\n\nThank you.\nRegards`;
+  if(email) window.open('mailto:'+email+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body),'_blank');
+  const cp=phone.replace(/[^0-9+]/g,'');const wp=cp.startsWith('+')?cp.slice(1):cp;
+  if(wp){
+    const wm=`Dear ${o.partyName},\n\n⚠️ *Payment Reminder*\n\nOrder *${o.orderNo}* is overdue by *${overdueDays} days*.\n\n• Despatched: ${o.dod}\n• Credit: ${o.creditDays} days\n• L.R.: ${o.lrNumber||'N/A'}\n\nKindly arrange payment at the earliest.\n\nThank you.`;
+    window.open('https://wa.me/'+wp+'?text='+encodeURIComponent(wm),'_blank');
+  }
+  // Mark reminder sent
+  db[ri].lastReminderSent=new Date().toISOString();sdb(db);renderDB();showToast('despatch');
+}
+function markPaid(ri){const db=gdb();db[ri].paymentDone=true;db[ri].paidDate=new Date().toISOString();sdb(db);renderDB();showToast('success');}
+
+function exportCSV(){const db=gdb();if(!db.length)return alert('No data.');const h=['Order No','Date','Status','DOD','Payment Mode','Credit Days','Party','Client Email','Client Phone','Location','Loadcell','Qty','Capacity','Wire','Laser/Logo','Prod Remarks','Transporter','Tr Email','Tr Phone','LR No','Tracking','Remarks','Wiring','Packing','Testing'];const k=['orderNo','date','status','dod','paymentMode','creditDays','partyName','clientEmail','clientPhone','location','loadcellType','quantity','capacity','wire','laserLogo','productionRemarks','transporterName','transporterEmail','transporterPhone','lrNumber','trackingLink','orderRemarks','wiringBy','packingBy','testingBy'];let csv=h.join(',')+'\n';db.forEach(o=>{csv+=k.map(key=>'"'+(o[key]||'').replace(/"/g,'""')+'"').join(',')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='orders_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
+function showView(v){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));if(v==='form'){document.getElementById('formView').classList.remove('hidden');document.getElementById('dbView').classList.remove('visible');document.querySelectorAll('.tab-btn')[0].classList.add('active');}else{document.getElementById('formView').classList.add('hidden');document.getElementById('dbView').classList.add('visible');document.querySelectorAll('.tab-btn')[1].classList.add('active');renderDB();}}
+function showToast(t){const id=t==='success'?'toastSuccess':t==='error'?'toastError':t==='despatch'?'toastDespatch':'toastWarn';const el=document.getElementById(id);el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
+init();
+</script>
+</body></html>
