@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentire Technologies — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--radius:12px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.header{text-align:center;padding:40px 24px 20px;}.header h1{font-size:28px;font-weight:700;margin-bottom:8px;}.header p{color:var(--text-dim);font-size:14px;}
+.main{max-width:1000px;margin:0 auto;padding:24px;}
+.voice-section{text-align:center;margin-bottom:40px;}
+.mic-btn{width:80px;height:80px;border-radius:50%;border:3px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:32px;cursor:pointer;transition:all 0.3s;display:inline-flex;align-items:center;justify-content:center;}
+.mic-btn:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.05);}
+.mic-btn.listening{border-color:var(--red);color:var(--red);animation:mic-pulse 1.5s infinite;box-shadow:0 0 30px rgba(239,68,68,0.3);}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 10px rgba(239,68,68,0.2);}50%{box-shadow:0 0 40px rgba(239,68,68,0.5);}}
+.voice-status{margin-top:12px;font-size:13px;color:var(--text-dim);font-family:var(--mono);min-height:20px;}
+.voice-status.active{color:var(--red);}.voice-status.success{color:var(--green);}
+.transcript{margin-top:8px;font-size:16px;color:var(--text);font-weight:600;min-height:24px;}
+.cmd-hint{margin-top:16px;font-size:11px;color:var(--text-muted);font-family:var(--mono);}
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:40px;}
+.app-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;cursor:pointer;transition:all 0.3s;text-decoration:none;color:var(--text);display:block;position:relative;overflow:hidden;}
+.app-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,0.3);}
+.app-card .icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:16px;}
+.app-card h3{font-size:16px;font-weight:700;margin-bottom:6px;}
+.app-card p{font-size:12px;color:var(--text-dim);line-height:1.5;}
+.app-card .voice-cmd{margin-top:12px;padding:6px 12px;background:var(--surface-2);border-radius:6px;font-size:10px;font-family:var(--mono);color:var(--text-muted);display:inline-block;}
+.app-card .phase-tag{position:absolute;top:16px;right:16px;font-size:9px;font-family:var(--mono);color:var(--text-muted);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
+.cmds-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:40px;}
+.cmds-section h2{font-size:18px;margin-bottom:16px;}
+.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}@media(max-width:768px){.cmd-grid{grid-template-columns:1fr;}}
+.cmd-item{display:flex;gap:12px;padding:10px;background:var(--surface-2);border-radius:8px;font-size:12px;align-items:center;}
+.cmd-item .say{font-family:var(--mono);color:var(--accent);font-weight:600;min-width:140px;}
+.cmd-item .does{color:var(--text-dim);}
+.toast{position:fixed;bottom:32px;right:32px;padding:14px 24px;border-radius:10px;font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+<div class="header"><h1>Sentire Technologies</h1><p>Command Center — Tap the mic or say a command</p></div>
+<div class="main">
+<div class="voice-section">
+<button class="mic-btn" id="micBtn" onclick="toggleVoice()">🎤</button>
+<div class="voice-status" id="voiceStatus">Tap microphone to start voice commands</div>
+<div class="transcript" id="transcript"></div>
+<div class="cmd-hint">Say: "open orders" · "open marketing" · "open production" · "open inventory" · "open accounts"</div>
+</div>
+<div class="apps-grid">
+<a class="app-card" href="index.html"><span class="phase-tag">PHASE 2</span><div class="icon" style="background:var(--accent);">OS</div><h3>Order Sheet</h3><p>22-field order form, auto-fill, payment tracking, email + WhatsApp, A4 PDF print</p><span class="voice-cmd">🎤 "open orders"</span></a>
+<a class="app-card" href="marketing_crm.html"><span class="phase-tag">PHASE 1</span><div class="icon" style="background:var(--purple);">MC</div><h3>Marketing CRM</h3><p>Lead database, telecaller management, sales pipeline, call logging, follow-up tracking</p><span class="voice-cmd">🎤 "open marketing"</span></a>
+<a class="app-card" href="factory_production.html"><span class="phase-tag">PHASE 3</span><div class="icon" style="background:var(--green);">FP</div><h3>Factory Production</h3><p>Kanban board, job tracking, worker assignment, stage advancement</p><span class="voice-cmd">🎤 "open production"</span></a>
+<a class="app-card" href="inventory_management.html"><span class="phase-tag">PHASE 4</span><div class="icon" style="background:var(--orange);">IM</div><h3>Inventory Management</h3><p>Stock tracking, BOM calculator, reorder alerts, 50-day China import tracking</p><span class="voice-cmd">🎤 "open inventory"</span></a>
+<a class="app-card" href="accounts_reports.html"><span class="phase-tag">PHASE 5</span><div class="icon" style="background:var(--cyan);">AR</div><h3>Accounts & Reports</h3><p>Income/expense tracking, P&L reports, receivables, CSV export</p><span class="voice-cmd">🎤 "open accounts"</span></a>
+</div>
+<div class="cmds-section"><h2>🎤 Voice Commands Reference</h2>
+<div class="cmd-grid">
+<div class="cmd-item"><span class="say">"open orders"</span><span class="does">Opens Order Sheet</span></div>
+<div class="cmd-item"><span class="say">"open marketing"</span><span class="does">Opens Marketing CRM</span></div>
+<div class="cmd-item"><span class="say">"open production"</span><span class="does">Opens Factory Production</span></div>
+<div class="cmd-item"><span class="say">"open inventory"</span><span class="does">Opens Inventory Mgmt</span></div>
+<div class="cmd-item"><span class="say">"open accounts"</span><span class="does">Opens Accounts & Reports</span></div>
+<div class="cmd-item"><span class="say">"new order"</span><span class="does">Opens Order Sheet form</span></div>
+<div class="cmd-item"><span class="say">"add lead"</span><span class="does">Opens CRM add lead</span></div>
+<div class="cmd-item"><span class="say">"new job"</span><span class="does">Opens production new job</span></div>
+<div class="cmd-item"><span class="say">"check stock"</span><span class="does">Opens inventory items</span></div>
+<div class="cmd-item"><span class="say">"add expense"</span><span class="does">Opens accounts add entry</span></div>
+<div class="cmd-item"><span class="say">"stop listening"</span><span class="does">Turns off microphone</span></div>
+<div class="cmd-item"><span class="say">Spacebar key</span><span class="does">Quick toggle mic on/off</span></div>
+</div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let recognition=null,isListening=false;
+function initVoice(){if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){document.getElementById('voiceStatus').textContent='Voice not supported. Use Chrome.';return false;}const SR=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new SR();recognition.continuous=true;recognition.interimResults=true;recognition.lang='en-IN';recognition.onresult=function(e){let f='',i='';for(let x=e.resultIndex;x<e.results.length;x++){if(e.results[x].isFinal)f+=e.results[x][0].transcript;else i+=e.results[x][0].transcript;}document.getElementById('transcript').textContent=i||f;if(f)processCommand(f.toLowerCase().trim());};recognition.onerror=function(e){if(e.error==='no-speech')document.getElementById('voiceStatus').textContent='No speech detected. Try again.';};recognition.onend=function(){if(isListening)try{recognition.start();}catch(e){}};return true;}
+function toggleVoice(){if(!recognition&&!initVoice())return;if(isListening)stopVoice();else startVoice();}
+function startVoice(){try{recognition.start();isListening=true;document.getElementById('micBtn').classList.add('listening');document.getElementById('voiceStatus').textContent='Listening... speak a command';document.getElementById('voiceStatus').className='voice-status active';}catch(e){}}
+function stopVoice(){try{recognition.stop();}catch(e){}isListening=false;document.getElementById('micBtn').classList.remove('listening');document.getElementById('voiceStatus').textContent='Tap microphone to start';document.getElementById('voiceStatus').className='voice-status';}
+function processCommand(cmd){let ok=true;if(cmd.includes('open order')||cmd.includes('order sheet')){toast('Opening Orders...');setTimeout(()=>location.href='index.html',800);}else if(cmd.includes('new order')){toast('Opening New Order...');setTimeout(()=>location.href='index.html',800);}else if(cmd.includes('open marketing')||cmd.includes('open crm')||cmd.includes('telecaller')){toast('Opening CRM...');setTimeout(()=>location.href='marketing_crm.html',800);}else if(cmd.includes('add lead')){toast('Opening Add Lead...');setTimeout(()=>location.href='marketing_crm.html',800);}else if(cmd.includes('open production')||cmd.includes('open factory')){toast('Opening Production...');setTimeout(()=>location.href='factory_production.html',800);}else if(cmd.includes('new job')){toast('Opening New Job...');setTimeout(()=>location.href='factory_production.html',800);}else if(cmd.includes('open inventory')||cmd.includes('check stock')){toast('Opening Inventory...');setTimeout(()=>location.href='inventory_management.html',800);}else if(cmd.includes('open account')||cmd.includes('open finance')||cmd.includes('open report')){toast('Opening Accounts...');setTimeout(()=>location.href='accounts_reports.html',800);}else if(cmd.includes('add expense')){toast('Opening Expenses...');setTimeout(()=>location.href='accounts_reports.html',800);}else if(cmd.includes('dashboard')||cmd.includes('home')||cmd.includes('go back')){toast('You are on Dashboard');}else if(cmd.includes('stop listening')||cmd.includes('stop voice')){stopVoice();toast('Voice stopped');}else{ok=false;document.getElementById('voiceStatus').textContent='Not recognized: "'+cmd+'"';document.getElementById('voiceStatus').className='voice-status';}if(ok){document.getElementById('voiceStatus').textContent='Command: "'+cmd+'"';document.getElementById('voiceStatus').className='voice-status success';}}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+document.addEventListener('keydown',function(e){if(e.code==='Space'&&e.target===document.body){e.preventDefault();toggleVoice();}});
+initVoice();
+</script>
+</body></html>
