@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing CRM — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--border-focus:#3b82f6;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#3b82f6;--accent-glow:rgba(59,130,246,0.15);--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--purple);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;margin-left:4px;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;margin-left:8px;}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 14px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}.tab-btn:hover{color:var(--text);}.tab-btn.active{background:var(--purple);color:#fff;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}
+.view{display:none;}.view.active{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;transition:all 0.2s;}input:focus,select:focus,textarea:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-glow);}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%237a8599' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+textarea{resize:vertical;min-height:60px;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);transition:all 0.2s;}.btn-primary{background:var(--purple);color:#fff;border-color:var(--purple);}.btn-green{background:var(--green);color:#fff;border-color:var(--green);}.btn-ghost{background:transparent;color:var(--text-dim);}.btn-sm{padding:5px 10px;font-size:11px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}@media(max-width:768px){.form-grid{grid-template-columns:1fr;}}
+.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.tag-new{background:rgba(59,130,246,0.12);color:#60a5fa;}.tag-contacted{background:rgba(168,85,247,0.12);color:var(--purple);}.tag-interested{background:rgba(245,158,11,0.12);color:var(--orange);}.tag-quote{background:rgba(6,182,212,0.12);color:var(--cyan);}.tag-converted{background:var(--green-dim);color:var(--green);}.tag-lost{background:rgba(239,68,68,0.1);color:var(--red);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:28px;font-weight:700;font-family:var(--mono);}.stat-card .label{font-size:11px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:0.05em;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;}
+thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}tbody tr:hover{background:rgba(168,85,247,0.04);}
+.btn-row-action{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid;margin:1px;background:rgba(168,85,247,0.1);color:var(--purple);border-color:rgba(168,85,247,0.3);}
+.btn-row-del{background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.2);}
+.btn-row-call{background:rgba(34,197,94,0.1);color:var(--green);border-color:rgba(34,197,94,0.3);}
+.search-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.search-bar input{max-width:300px;}.search-bar select{max-width:180px;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.pipeline-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;}.pipeline-col{min-width:220px;flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;}.pipeline-col h3{font-size:11px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;}.pipeline-col h3 .count{background:var(--surface-2);padding:2px 8px;border-radius:10px;font-size:10px;}
+.lead-card{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;}.lead-card:hover{border-color:var(--purple);}.lead-card .name{font-weight:600;font-size:13px;margin-bottom:4px;}.lead-card .info{font-size:10px;color:var(--text-dim);font-family:var(--mono);}
+.overdue-row{background:rgba(239,68,68,0.05) !important;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(4px);}.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;}.modal h2{font-size:18px;margin-bottom:16px;}.modal .form-grid{margin-bottom:16px;}.modal .btn-row{display:flex;gap:8px;justify-content:flex-end;}
+.competitor-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}.competitor-card h3{font-size:15px;font-weight:600;margin-bottom:8px;}.competitor-card .detail{font-size:12px;color:var(--text-dim);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-brand"><div class="icon">MC</div><h1>Marketing CRM</h1><span>PHASE 1</span><div class="live-dot"></div></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showView('dashboard')">Dashboard</button>
+    <button class="tab-btn" onclick="showView('leads')">Lead Database</button>
+    <button class="tab-btn" onclick="showView('pipeline')">Pipeline</button>
+    <button class="tab-btn" onclick="showView('calls')">Call Log</button>
+    <button class="tab-btn" onclick="showView('followups')">Follow-ups</button>
+    <button class="tab-btn" onclick="showView('addlead')">+ Add Lead</button>
+    <button class="tab-btn" onclick="showView('competitors')">Competitors</button>
+  </div>
+</div>
+
+<div class="main">
+<!-- DASHBOARD -->
+<div class="view active" id="v_dashboard">
+  <h2 style="margin-bottom:16px;">Dashboard — Overview</h2>
+  <div class="stats-row">
+    <div class="stat-card"><div class="num" id="stat_total" style="color:var(--accent);">0</div><div class="label">Total Leads</div></div>
+    <div class="stat-card"><div class="num" id="stat_new" style="color:#60a5fa;">0</div><div class="label">New</div></div>
+    <div class="stat-card"><div class="num" id="stat_contacted" style="color:var(--purple);">0</div><div class="label">Contacted</div></div>
+    <div class="stat-card"><div class="num" id="stat_interested" style="color:var(--orange);">0</div><div class="label">Interested</div></div>
+    <div class="stat-card"><div class="num" id="stat_quote" style="color:var(--cyan);">0</div><div class="label">Quote Sent</div></div>
+    <div class="stat-card"><div class="num" id="stat_converted" style="color:var(--green);">0</div><div class="label">Converted</div></div>
+    <div class="stat-card"><div class="num" id="stat_lost" style="color:var(--red);">0</div><div class="label">Lost</div></div>
+    <div class="stat-card"><div class="num" id="stat_overdue" style="color:var(--red);">0</div><div class="label">Overdue Follow-ups</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card"><h3 style="font-size:14px;margin-bottom:12px;">Telecaller Performance</h3><div id="callerStats"></div></div>
+    <div class="card"><h3 style="font-size:14px;margin-bottom:12px;">Today's Follow-ups</h3><div id="todayFollowups"></div></div>
+  </div>
+</div>
+
+<!-- LEAD DATABASE -->
+<div class="view" id="v_leads">
+  <h2 style="margin-bottom:16px;">Lead Database</h2>
+  <div class="search-bar">
+    <input type="text" id="leadSearch" placeholder="Search company, contact, city..." oninput="renderLeads()">
+    <select id="leadFilterStatus" onchange="renderLeads()"><option value="">All Status</option><option value="New">New</option><option value="Contacted">Contacted</option><option value="Interested">Interested</option><option value="Quote Sent">Quote Sent</option><option value="Converted">Converted</option><option value="Lost">Lost</option></select>
+    <select id="leadFilterCaller" onchange="renderLeads()"><option value="">All Callers</option></select>
+    <button class="btn btn-primary btn-sm" onclick="exportLeadsCSV()">↓ CSV</button>
+  </div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>Actions</th><th>Status</th><th>Company</th><th>Contact</th><th>Phone</th><th>Email</th><th>City</th><th>State</th><th>Product Interest</th><th>Assigned To</th><th>Last Contact</th><th>Next Follow-up</th><th>Calls</th><th>Source</th>
+  </tr></thead><tbody id="leadsBody"></tbody></table></div>
+</div>
+
+<!-- PIPELINE -->
+<div class="view" id="v_pipeline">
+  <h2 style="margin-bottom:16px;">Sales Pipeline</h2>
+  <div class="pipeline-row" id="pipelineRow"></div>
+</div>
+
+<!-- CALL LOG -->
+<div class="view" id="v_calls">
+  <h2 style="margin-bottom:16px;">Call Log</h2>
+  <div class="search-bar">
+    <input type="text" id="callSearch" placeholder="Search..." oninput="renderCalls()">
+    <select id="callFilterCaller" onchange="renderCalls()"><option value="">All Callers</option></select>
+  </div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>Date/Time</th><th>Company</th><th>Contact</th><th>Caller</th><th>Duration</th><th>Outcome</th><th>Notes</th><th>Next Action</th>
+  </tr></thead><tbody id="callsBody"></tbody></table></div>
+</div>
+
+<!-- FOLLOW-UPS -->
+<div class="view" id="v_followups">
+  <h2 style="margin-bottom:16px;">Follow-up Schedule</h2>
+  <div class="search-bar">
+    <select id="fuFilter" onchange="renderFollowups()"><option value="pending">Pending / Overdue</option><option value="all">All</option><option value="overdue">Overdue Only</option><option value="today">Today</option></select>
+  </div>
+  <div class="table-wrap"><table><thead><tr>
+    <th>Follow-up Date</th><th>Company</th><th>Contact</th><th>Phone</th><th>Assigned To</th><th>Status</th><th>Action</th>
+  </tr></thead><tbody id="fuBody"></tbody></table></div>
+</div>
+
+<!-- ADD LEAD -->
+<div class="view" id="v_addlead">
+  <h2 style="margin-bottom:16px;" id="addLeadTitle">Add New Lead</h2>
+  <div class="card">
+    <form class="form-grid" id="leadForm" onsubmit="return saveLead(event)">
+      <div class="form-group"><label>Company Name *</label><input type="text" id="lf_company" required></div>
+      <div class="form-group"><label>Contact Person *</label><input type="text" id="lf_contact" required></div>
+      <div class="form-group"><label>Phone *</label><input type="tel" id="lf_phone" required></div>
+      <div class="form-group"><label>Email</label><input type="email" id="lf_email"></div>
+      <div class="form-group"><label>City</label><input type="text" id="lf_city"></div>
+      <div class="form-group"><label>State</label><input type="text" id="lf_state"></div>
+      <div class="form-group"><label>Product Interest</label>
+        <select id="lf_product"><option value="">— Select —</option><option value="Ball Type Loadcell">Ball Type Loadcell</option><option value="ALC">ALC</option><option value="DLC">DLC</option><option value="Weighbridge Parts">Weighbridge Parts</option><option value="Complete Weighbridge">Complete Weighbridge</option><option value="Other">Other</option></select>
+      </div>
+      <div class="form-group"><label>Lead Source</label>
+        <select id="lf_source"><option value="">— Select —</option><option value="IndiaMart">IndiaMart</option><option value="JustDial">JustDial</option><option value="Google">Google</option><option value="Referral">Referral</option><option value="Cold Call">Cold Call</option><option value="Exhibition">Exhibition</option><option value="Website">Website</option><option value="Other">Other</option></select>
+      </div>
+      <div class="form-group"><label>Assigned Telecaller</label>
+        <select id="lf_caller"><option value="">— Select —</option></select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="lf_status"><option value="New">New</option><option value="Contacted">Contacted</option><option value="Interested">Interested</option><option value="Quote Sent">Quote Sent</option><option value="Converted">Converted</option><option value="Lost">Lost</option></select>
+      </div>
+      <div class="form-group"><label>Est. Quantity (pcs)</label><input type="number" id="lf_qty" min="0"></div>
+      <div class="form-group"><label>Est. Value (₹)</label><input type="number" id="lf_value" min="0"></div>
+      <div class="form-group"><label>Next Follow-up</label><input type="date" id="lf_followup"></div>
+      <div class="form-group"><label>Priority</label>
+        <select id="lf_priority"><option value="Normal">Normal</option><option value="High">High</option><option value="Hot">Hot</option></select>
+      </div>
+      <div class="form-group full"><label>Notes</label><textarea id="lf_notes" placeholder="Any remarks..."></textarea></div>
+      <div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;">
+        <button type="button" class="btn btn-ghost" onclick="resetLeadForm()">Clear</button>
+        <button type="submit" class="btn btn-primary" id="leadSubmitBtn">+ Add Lead</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- COMPETITORS -->
+<div class="view" id="v_competitors">
+  <h2 style="margin-bottom:16px;">Competitor Intelligence</h2>
+  <p style="color:var(--text-dim);margin-bottom:16px;font-size:13px;">Track competitor info to stay ahead. Add notes about their pricing, products, and strategies.</p>
+  <button class="btn btn-primary btn-sm" onclick="addCompetitor()" style="margin-bottom:16px;">+ Add Competitor</button>
+  <div id="competitorList"></div>
+</div>
+</div>
+
+<!-- LOG CALL MODAL -->
+<div class="modal-overlay" id="callModal">
+  <div class="modal">
+    <h2>Log Call</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>Company</label><input type="text" id="cm_company" readonly></div>
+      <div class="form-group"><label>Contact</label><input type="text" id="cm_contact" readonly></div>
+      <div class="form-group"><label>Date/Time</label><input type="datetime-local" id="cm_datetime"></div>
+      <div class="form-group"><label>Duration (min)</label><input type="number" id="cm_duration" placeholder="5" min="0"></div>
+      <div class="form-group"><label>Outcome</label>
+        <select id="cm_outcome"><option value="No Answer">No Answer</option><option value="Busy">Busy</option><option value="Callback Requested">Callback Requested</option><option value="Interested">Interested</option><option value="Not Interested">Not Interested</option><option value="Quote Requested">Quote Requested</option><option value="Order Placed">Order Placed</option><option value="Wrong Number">Wrong Number</option></select>
+      </div>
+      <div class="form-group"><label>Update Lead Status</label>
+        <select id="cm_status"><option value="">— No Change —</option><option value="Contacted">Contacted</option><option value="Interested">Interested</option><option value="Quote Sent">Quote Sent</option><option value="Converted">Converted</option><option value="Lost">Lost</option></select>
+      </div>
+      <div class="form-group full"><label>Notes</label><textarea id="cm_notes" placeholder="What was discussed..."></textarea></div>
+      <div class="form-group"><label>Next Follow-up</label><input type="date" id="cm_followup"></div>
+      <div class="form-group"><label>Next Action</label><input type="text" id="cm_action" placeholder="e.g. Send quote, Visit site"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeCallModal()">Cancel</button>
+      <button class="btn btn-green" onclick="saveCall()">Save Call</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ Saved</div>
+
+<script>
+const LK='crm_leads',CLK='crm_calls',TCK='crm_telecallers',CK='crm_competitors';
+const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};
+const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+let editingLeadId=null,callingLeadId=null;
+
+// Default telecallers
+function initCallers(){let tc=g(TCK);if(!tc.length){tc=['Telecaller 1','Telecaller 2'];s(TCK,tc);}return tc;}
+function popCallerDD(){const tc=initCallers();['lf_caller','leadFilterCaller','callFilterCaller'].forEach(id=>{const sel=document.getElementById(id);if(!sel)return;const v=sel.value;while(sel.options.length>1)sel.remove(1);tc.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});sel.value=v;});}
+
+function showView(v){document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>{if(b.textContent.toLowerCase().includes(v==='addlead'?'add':v==='followups'?'follow':v))b.classList.add('active');});
+if(v==='dashboard')renderDashboard();if(v==='leads')renderLeads();if(v==='pipeline')renderPipeline();if(v==='calls')renderCalls();if(v==='followups')renderFollowups();if(v==='competitors')renderCompetitors();}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ─── LEADS ───
+function saveLead(e){e.preventDefault();
+  const leads=g(LK);
+  const lead={
+    id:editingLeadId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    company:document.getElementById('lf_company').value.trim(),
+    contact:document.getElementById('lf_contact').value.trim(),
+    phone:document.getElementById('lf_phone').value.trim(),
+    email:document.getElementById('lf_email').value.trim(),
+    city:document.getElementById('lf_city').value.trim(),
+    state:document.getElementById('lf_state').value.trim(),
+    product:document.getElementById('lf_product').value,
+    source:document.getElementById('lf_source').value,
+    caller:document.getElementById('lf_caller').value,
+    status:document.getElementById('lf_status').value,
+    qty:document.getElementById('lf_qty').value,
+    value:document.getElementById('lf_value').value,
+    followup:document.getElementById('lf_followup').value,
+    priority:document.getElementById('lf_priority').value,
+    notes:document.getElementById('lf_notes').value,
+    callCount:0,lastContact:'',createdAt:new Date().toISOString()
+  };
+  if(editingLeadId){const idx=leads.findIndex(l=>l.id===editingLeadId);if(idx>=0){lead.callCount=leads[idx].callCount;lead.lastContact=leads[idx].lastContact;lead.createdAt=leads[idx].createdAt;leads[idx]=lead;}editingLeadId=null;document.getElementById('addLeadTitle').textContent='Add New Lead';document.getElementById('leadSubmitBtn').textContent='+ Add Lead';}
+  else{leads.push(lead);}
+  s(LK,leads);resetLeadForm();showToast(editingLeadId?'✓ Lead Updated':'✓ Lead Added');showView('leads');
+}
+function resetLeadForm(){document.getElementById('leadForm').reset();editingLeadId=null;document.getElementById('addLeadTitle').textContent='Add New Lead';document.getElementById('leadSubmitBtn').textContent='+ Add Lead';}
+function editLead(id){const leads=g(LK),l=leads.find(x=>x.id===id);if(!l)return;editingLeadId=id;
+  document.getElementById('addLeadTitle').textContent='Edit Lead: '+l.company;document.getElementById('leadSubmitBtn').textContent='✓ Update Lead';
+  document.getElementById('lf_company').value=l.company||'';document.getElementById('lf_contact').value=l.contact||'';document.getElementById('lf_phone').value=l.phone||'';document.getElementById('lf_email').value=l.email||'';document.getElementById('lf_city').value=l.city||'';document.getElementById('lf_state').value=l.state||'';document.getElementById('lf_product').value=l.product||'';document.getElementById('lf_source').value=l.source||'';document.getElementById('lf_caller').value=l.caller||'';document.getElementById('lf_status').value=l.status||'New';document.getElementById('lf_qty').value=l.qty||'';document.getElementById('lf_value').value=l.value||'';document.getElementById('lf_followup').value=l.followup||'';document.getElementById('lf_priority').value=l.priority||'Normal';document.getElementById('lf_notes').value=l.notes||'';
+  showView('addlead');
+}
+function deleteLead(id){if(!confirm('Delete this lead?'))return;const leads=g(LK).filter(l=>l.id!==id);s(LK,leads);renderLeads();showToast('✓ Deleted');}
+
+function renderLeads(){const leads=g(LK),search=(document.getElementById('leadSearch')?.value||'').toLowerCase(),status=document.getElementById('leadFilterStatus')?.value||'',caller=document.getElementById('leadFilterCaller')?.value||'';
+  const filtered=leads.filter(l=>{
+    if(search&&!((l.company+l.contact+l.city+l.phone+l.email).toLowerCase().includes(search)))return false;
+    if(status&&l.status!==status)return false;
+    if(caller&&l.caller!==caller)return false;return true;
+  });
+  const tb=document.getElementById('leadsBody');if(!tb)return;
+  tb.innerHTML=filtered.slice().reverse().map(l=>{
+    const st=`<span class="tag tag-${l.status.toLowerCase().replace(' ','')}">${l.status}</span>`;
+    const phone=l.phone?`<a href="tel:${l.phone}" style="color:var(--accent);text-decoration:none;">${l.phone}</a>`:'—';
+    const overdue=l.followup&&new Date(l.followup)<new Date()&&l.status!=='Converted'&&l.status!=='Lost';
+    return `<tr class="${overdue?'overdue-row':''}"><td style="white-space:nowrap;"><button class="btn-row-action" onclick="editLead('${l.id}')">✏️</button><button class="btn-row-action btn-row-call" onclick="openCallModal('${l.id}')">📞</button><button class="btn-row-action btn-row-del" onclick="deleteLead('${l.id}')">🗑</button></td><td>${st}</td><td><strong>${l.company}</strong></td><td>${l.contact||'—'}</td><td>${phone}</td><td>${l.email||'—'}</td><td>${l.city||'—'}</td><td>${l.state||'—'}</td><td>${l.product||'—'}</td><td>${l.caller||'—'}</td><td style="font-family:var(--mono);font-size:10px;">${l.lastContact||'Never'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${l.followup||'—'}${overdue?' ⚠':''}
+</td><td>${l.callCount||0}</td><td>${l.source||'—'}</td></tr>`;
+  }).join('');
+}
+
+// ─── CALL LOG ───
+function openCallModal(id){const leads=g(LK),l=leads.find(x=>x.id===id);if(!l)return;callingLeadId=id;
+  document.getElementById('cm_company').value=l.company;document.getElementById('cm_contact').value=l.contact;
+  document.getElementById('cm_datetime').value=new Date().toISOString().slice(0,16);
+  document.getElementById('cm_duration').value='';document.getElementById('cm_outcome').value='No Answer';document.getElementById('cm_status').value='';document.getElementById('cm_notes').value='';document.getElementById('cm_followup').value='';document.getElementById('cm_action').value='';
+  document.getElementById('callModal').classList.add('open');}
+function closeCallModal(){document.getElementById('callModal').classList.remove('open');callingLeadId=null;}
+function saveCall(){
+  const calls=g(CLK);const leads=g(LK);
+  const call={id:Date.now().toString(36),leadId:callingLeadId,company:document.getElementById('cm_company').value,contact:document.getElementById('cm_contact').value,datetime:document.getElementById('cm_datetime').value,duration:document.getElementById('cm_duration').value,outcome:document.getElementById('cm_outcome').value,notes:document.getElementById('cm_notes').value,action:document.getElementById('cm_action').value,caller:''};
+  // Find lead and update
+  const li=leads.findIndex(l=>l.id===callingLeadId);
+  if(li>=0){call.caller=leads[li].caller||'';leads[li].callCount=(leads[li].callCount||0)+1;leads[li].lastContact=call.datetime.split('T')[0];
+    const newStatus=document.getElementById('cm_status').value;if(newStatus)leads[li].status=newStatus;
+    const fu=document.getElementById('cm_followup').value;if(fu)leads[li].followup=fu;
+    s(LK,leads);}
+  calls.push(call);s(CLK,calls);closeCallModal();showToast('✓ Call Logged');
+}
+function renderCalls(){const calls=g(CLK),search=(document.getElementById('callSearch')?.value||'').toLowerCase(),caller=document.getElementById('callFilterCaller')?.value||'';
+  const filtered=calls.filter(c=>{if(search&&!((c.company+c.contact+c.notes).toLowerCase().includes(search)))return false;if(caller&&c.caller!==caller)return false;return true;});
+  document.getElementById('callsBody').innerHTML=filtered.slice().reverse().map(c=>{
+    return `<tr><td style="font-family:var(--mono);font-size:10px;">${c.datetime||'—'}</td><td><strong>${c.company}</strong></td><td>${c.contact||'—'}</td><td>${c.caller||'—'}</td><td>${c.duration?c.duration+' min':'—'}</td><td>${c.outcome||'—'}</td><td style="white-space:normal;max-width:200px;">${c.notes||'—'}</td><td>${c.action||'—'}</td></tr>`;
+  }).join('');
+}
+
+// ─── PIPELINE ───
+function renderPipeline(){
+  const leads=g(LK);const stages=['New','Contacted','Interested','Quote Sent','Converted','Lost'];
+  const colors={New:'tag-new',Contacted:'tag-contacted',Interested:'tag-interested','Quote Sent':'tag-quote',Converted:'tag-converted',Lost:'tag-lost'};
+  document.getElementById('pipelineRow').innerHTML=stages.map(st=>{
+    const stLeads=leads.filter(l=>l.status===st);
+    return `<div class="pipeline-col"><h3>${st} <span class="count">${stLeads.length}</span></h3>${stLeads.map(l=>`<div class="lead-card" onclick="editLead('${l.id}')"><div class="name">${l.company}</div><div class="info">${l.contact||''} · ${l.city||''}</div><div class="info">${l.phone||''}</div>${l.priority==='Hot'?'<span class="tag tag-lost" style="margin-top:4px;">🔥 HOT</span>':l.priority==='High'?'<span class="tag tag-interested" style="margin-top:4px;">⚡ HIGH</span>':''}</div>`).join('')}</div>`;
+  }).join('');
+}
+
+// ─── FOLLOW-UPS ───
+function renderFollowups(){
+  const leads=g(LK),filter=document.getElementById('fuFilter')?.value||'pending';const today=new Date().toISOString().split('T')[0];
+  let filtered=leads.filter(l=>l.followup&&l.status!=='Converted'&&l.status!=='Lost');
+  if(filter==='overdue')filtered=filtered.filter(l=>l.followup<today);
+  else if(filter==='today')filtered=filtered.filter(l=>l.followup===today);
+  else if(filter==='pending')filtered=filtered.filter(l=>l.followup<=today||true).sort((a,b)=>a.followup.localeCompare(b.followup));
+  document.getElementById('fuBody').innerHTML=filtered.map(l=>{
+    const overdue=l.followup<today;
+    return `<tr class="${overdue?'overdue-row':''}"><td style="font-family:var(--mono);font-size:11px;${overdue?'color:var(--red);font-weight:700;':''}">${l.followup}${overdue?' ⚠ OVERDUE':l.followup===today?' 📌 TODAY':''}</td><td><strong>${l.company}</strong></td><td>${l.contact||'—'}</td><td>${l.phone?`<a href="tel:${l.phone}" style="color:var(--accent);text-decoration:none;">${l.phone}</a>`:'—'}</td><td>${l.caller||'—'}</td><td><span class="tag tag-${l.status.toLowerCase().replace(' ','')}">${l.status}</span></td><td><button class="btn-row-action btn-row-call" onclick="openCallModal('${l.id}')">📞 Call Now</button></td></tr>`;
+  }).join('');
+}
+
+// ─── DASHBOARD ───
+function renderDashboard(){
+  const leads=g(LK),calls=g(CLK),today=new Date().toISOString().split('T')[0];
+  document.getElementById('stat_total').textContent=leads.length;
+  ['new','contacted','interested','quote','converted','lost'].forEach(st=>{
+    const key=st==='quote'?'Quote Sent':st.charAt(0).toUpperCase()+st.slice(1);
+    document.getElementById('stat_'+st).textContent=leads.filter(l=>l.status===key).length;
+  });
+  document.getElementById('stat_overdue').textContent=leads.filter(l=>l.followup&&l.followup<today&&l.status!=='Converted'&&l.status!=='Lost').length;
+  // Caller stats
+  const tc=initCallers();
+  document.getElementById('callerStats').innerHTML=tc.map(c=>{
+    const assigned=leads.filter(l=>l.caller===c).length;
+    const converted=leads.filter(l=>l.caller===c&&l.status==='Converted').length;
+    const callsMade=calls.filter(cl=>cl.caller===c).length;
+    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="font-weight:600;">${c}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">${assigned} leads · ${callsMade} calls · ${converted} converted</span></div>`;
+  }).join('');
+  // Today's followups
+  const todayFU=leads.filter(l=>l.followup&&l.followup<=today&&l.status!=='Converted'&&l.status!=='Lost');
+  document.getElementById('todayFollowups').innerHTML=todayFU.length?todayFU.slice(0,8).map(l=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${l.company}</strong> · ${l.contact||''}</span><button class="btn-row-action btn-row-call" onclick="openCallModal('${l.id}')">📞</button></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No follow-ups due today</p>';
+}
+
+// ─── COMPETITORS ───
+function renderCompetitors(){
+  const comp=g(CK);
+  document.getElementById('competitorList').innerHTML=comp.length?comp.map((c,i)=>`<div class="competitor-card"><div style="display:flex;justify-content:space-between;"><h3>${c.name}</h3><div><button class="btn-row-action" onclick="editCompetitor(${i})">✏️</button><button class="btn-row-action btn-row-del" onclick="deleteCompetitor(${i})">🗑</button></div></div><div class="detail"><strong>Website:</strong> ${c.website?`<a href="${c.website}" target="_blank" style="color:var(--accent);">${c.website}</a>`:'—'}<br><strong>Products:</strong> ${c.products||'—'}<br><strong>Pricing:</strong> ${c.pricing||'—'}<br><strong>Strengths:</strong> ${c.strengths||'—'}<br><strong>Weaknesses:</strong> ${c.weaknesses||'—'}<br><strong>Notes:</strong> ${c.notes||'—'}</div></div>`).join(''):'<p style="color:var(--text-muted);">No competitors added yet.</p>';
+}
+function addCompetitor(){
+  const name=prompt('Competitor Company Name:');if(!name)return;
+  const comp=g(CK);comp.push({name,website:prompt('Website URL:')||'',products:prompt('Products they sell:')||'',pricing:prompt('Their pricing (approx):')||'',strengths:prompt('Their strengths:')||'',weaknesses:prompt('Their weaknesses:')||'',notes:prompt('Any other notes:')||''});
+  s(CK,comp);renderCompetitors();showToast('✓ Competitor Added');
+}
+function editCompetitor(i){const comp=g(CK),c=comp[i];if(!c)return;
+  c.name=prompt('Name:',c.name)||c.name;c.website=prompt('Website:',c.website)||c.website;c.products=prompt('Products:',c.products)||c.products;c.pricing=prompt('Pricing:',c.pricing)||c.pricing;c.strengths=prompt('Strengths:',c.strengths)||c.strengths;c.weaknesses=prompt('Weaknesses:',c.weaknesses)||c.weaknesses;c.notes=prompt('Notes:',c.notes)||c.notes;
+  s(CK,comp);renderCompetitors();showToast('✓ Updated');
+}
+function deleteCompetitor(i){if(!confirm('Delete?'))return;const comp=g(CK);comp.splice(i,1);s(CK,comp);renderCompetitors();showToast('✓ Deleted');}
+
+// ─── CSV EXPORT ───
+function exportLeadsCSV(){const leads=g(LK);if(!leads.length)return alert('No leads.');
+  const h=['Company','Contact','Phone','Email','City','State','Product','Source','Caller','Status','Qty','Value','Follow-up','Priority','Notes','Calls','Last Contact','Created'];
+  const k=['company','contact','phone','email','city','state','product','source','caller','status','qty','value','followup','priority','notes','callCount','lastContact','createdAt'];
+  let csv=h.join(',')+'\n';leads.forEach(l=>{csv+=k.map(key=>'"'+(l[key]||'').toString().replace(/"/g,'""')+'"').join(',')+'\n';});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='leads_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+// INIT
+popCallerDD();renderDashboard();
+</script>
+</body></html>

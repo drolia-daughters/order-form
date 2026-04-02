@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Management — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#f59e0b;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 12px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:11px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#000;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}.btn-primary{background:var(--accent);color:#000;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:26px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.low-stock{background:rgba(239,68,68,0.08) !important;}.act-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid;margin:1px;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--accent);color:#000;}.toast.show{transform:translateY(0);opacity:1;}
+.alert-banner{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:16px;margin-bottom:16px;}.alert-banner h3{color:var(--red);font-size:14px;margin-bottom:8px;}.alert-banner .item{font-size:12px;padding:4px 0;border-bottom:1px solid rgba(239,68,68,0.1);display:flex;justify-content:space-between;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><div class="icon">IM</div><h1>Inventory Mgmt</h1><span>PHASE 4</span></div>
+<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('items')">Stock Items</button><button class="tab-btn" onclick="showV('add')">+ Add Item</button><button class="tab-btn" onclick="showV('bom')">BOM</button><button class="tab-btn" onclick="showV('import')">Import Tracking</button><button class="tab-btn" onclick="showV('txn')">Transactions</button></div></div>
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="view active" id="v_dash"><h2 style="margin-bottom:16px;">Inventory Dashboard</h2>
+<div id="lowStockAlert"></div>
+<div class="stats-row" id="invStats"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+<div class="card"><h3 style="margin-bottom:12px;">Stock by Category</h3><div id="catDist"></div></div>
+<div class="card"><h3 style="margin-bottom:12px;">Pending Imports (China)</h3><div id="pendImports"></div></div>
+</div></div>
+
+<!-- STOCK ITEMS -->
+<div class="view" id="v_items"><h2 style="margin-bottom:16px;">Stock Items</h2>
+<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="iSrch" placeholder="Search..." oninput="renderItems()" style="max-width:250px;"><select id="iFilt" onchange="renderItems()" style="max-width:180px;"><option value="">All Categories</option><option>Loadcell Body</option><option>Electronics</option><option>Wire</option><option>Hardware</option><option>Packaging</option><option>Raw Material</option><option>Other</option></select><select id="iStock" onchange="renderItems()" style="max-width:150px;"><option value="">All Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>Actions</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Current Stock</th><th>Unit</th><th>Reorder Level</th><th>Status</th><th>Lead Time</th><th>Supplier</th><th>Cost/Unit (₹)</th><th>Last Updated</th></tr></thead><tbody id="iBody"></tbody></table></div></div>
+
+<!-- ADD ITEM -->
+<div class="view" id="v_add"><h2 style="margin-bottom:16px;" id="ifTitle">Add Stock Item</h2><div class="card">
+<form class="form-grid" id="iForm" onsubmit="return saveItem(event)">
+<div class="form-group"><label>Item Code *</label><input type="text" id="if_code" required placeholder="e.g. LC-BODY-ALC"></div>
+<div class="form-group"><label>Item Name *</label><input type="text" id="if_name" required></div>
+<div class="form-group"><label>Category</label><select id="if_cat"><option>Loadcell Body</option><option>Electronics</option><option>Wire</option><option>Hardware</option><option>Packaging</option><option>Raw Material</option><option>Other</option></select></div>
+<div class="form-group"><label>Unit</label><select id="if_unit"><option>Pcs</option><option>Kg</option><option>Meters</option><option>Rolls</option><option>Sets</option><option>Boxes</option><option>Liters</option></select></div>
+<div class="form-group"><label>Current Stock *</label><input type="number" id="if_stock" required min="0"></div>
+<div class="form-group"><label>Reorder Level *</label><input type="number" id="if_reorder" required min="0"></div>
+<div class="form-group"><label>Lead Time (days)</label><input type="number" id="if_lead" value="50" min="0"><p style="font-size:10px;color:var(--orange);margin-top:2px;">China import = ~50 days</p></div>
+<div class="form-group"><label>Cost per Unit (₹)</label><input type="number" id="if_cost" min="0" step="0.01"></div>
+<div class="form-group"><label>Supplier</label><input type="text" id="if_supplier" placeholder="e.g. Shenzhen XYZ"></div>
+<div class="form-group"><label>Min Order Qty (MOQ)</label><input type="number" id="if_moq" min="0"></div>
+<div class="form-group full"><label>Notes</label><textarea id="if_notes"></textarea></div>
+<div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="resetIF()">Clear</button><button type="submit" class="btn btn-primary" id="ifBtn">+ Add Item</button></div>
+</form></div></div>
+
+<!-- BOM -->
+<div class="view" id="v_bom"><h2 style="margin-bottom:16px;">Bill of Materials (BOM)</h2>
+<p style="color:var(--text-dim);margin-bottom:16px;font-size:13px;">Define how many of each item is needed to produce 1 unit of each loadcell type. Then calculate requirements for any production batch.</p>
+<div class="card" style="margin-bottom:16px;">
+<h3 style="margin-bottom:12px;">Quick BOM Calculator</h3>
+<div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+<div class="form-group" style="width:180px;"><label>Loadcell Type</label><select id="bom_type"><option>ALC</option><option>DLC</option><option>AS</option><option>DS</option><option>REG</option><option>CUT</option><option>JUMBO</option></select></div>
+<div class="form-group" style="width:120px;"><label>Quantity</label><input type="number" id="bom_qty" value="100" min="1"></div>
+<button class="btn btn-primary" onclick="calcBOM()">Calculate Requirements</button>
+</div>
+<div id="bomResult" style="margin-top:16px;"></div>
+</div>
+<h3 style="margin-bottom:12px;">BOM Templates</h3>
+<div id="bomList"></div>
+<button class="btn btn-primary" style="margin-top:12px;" onclick="addBOMEntry()">+ Add BOM Entry</button>
+</div>
+
+<!-- IMPORT TRACKING -->
+<div class="view" id="v_import"><h2 style="margin-bottom:16px;">China Import Tracking</h2>
+<button class="btn btn-primary" style="margin-bottom:16px;" onclick="addImport()">+ New Import Order</button>
+<div class="table-wrap"><table><thead><tr><th>Actions</th><th>PO#</th><th>Supplier</th><th>Items</th><th>Order Date</th><th>ETA (50d)</th><th>Days Left</th><th>Status</th><th>Value (₹)</th><th>Notes</th></tr></thead><tbody id="impBody"></tbody></table></div></div>
+
+<!-- TRANSACTIONS -->
+<div class="view" id="v_txn"><h2 style="margin-bottom:16px;">Stock Transactions</h2>
+<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+<button class="btn btn-primary" onclick="addTxn('in')">+ Stock In</button>
+<button class="btn" style="background:rgba(239,68,68,0.1);color:var(--red);border-color:rgba(239,68,68,0.3);" onclick="addTxn('out')">- Stock Out</button>
+</div>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Qty</th><th>Before</th><th>After</th><th>Reference</th><th>Notes</th></tr></thead><tbody id="txnBody"></tbody></table></div></div>
+</div>
+<div class="toast" id="toast">✓ Saved</div>
+<script>
+const IK='inv_items',TXK='inv_txns',IMPK='inv_imports',BOMK='inv_bom';let editCode=null;
+const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach((b,i)=>{const map={dash:0,items:1,add:2,bom:3,import:4,txn:5};if(i===map[v])b.classList.add('active');});
+if(v==='dash')renderDash();if(v==='items')renderItems();if(v==='bom')renderBOM();if(v==='import')renderImports();if(v==='txn')renderTxns();}
+function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ITEMS
+function saveItem(e){e.preventDefault();const items=g(IK);
+const item={code:document.getElementById('if_code').value.trim().toUpperCase(),name:document.getElementById('if_name').value.trim(),category:document.getElementById('if_cat').value,unit:document.getElementById('if_unit').value,stock:parseInt(document.getElementById('if_stock').value)||0,reorder:parseInt(document.getElementById('if_reorder').value)||0,leadTime:parseInt(document.getElementById('if_lead').value)||50,cost:parseFloat(document.getElementById('if_cost').value)||0,supplier:document.getElementById('if_supplier').value,moq:parseInt(document.getElementById('if_moq').value)||0,notes:document.getElementById('if_notes').value,updated:new Date().toISOString().split('T')[0]};
+if(editCode){const idx=items.findIndex(i=>i.code===editCode);if(idx>=0)items[idx]=item;editCode=null;}
+else{if(items.find(i=>i.code===item.code))return alert('Item code already exists!');items.push(item);}
+s(IK,items);resetIF();toast();showV('items');}
+function resetIF(){document.getElementById('iForm').reset();document.getElementById('if_lead').value='50';editCode=null;document.getElementById('ifTitle').textContent='Add Stock Item';document.getElementById('ifBtn').textContent='+ Add Item';}
+function editItem(code){const items=g(IK),it=items.find(i=>i.code===code);if(!it)return;editCode=code;
+document.getElementById('ifTitle').textContent='Edit: '+code;document.getElementById('ifBtn').textContent='✓ Update';
+document.getElementById('if_code').value=it.code;document.getElementById('if_name').value=it.name;document.getElementById('if_cat').value=it.category||'Other';document.getElementById('if_unit').value=it.unit||'Pcs';document.getElementById('if_stock').value=it.stock;document.getElementById('if_reorder').value=it.reorder;document.getElementById('if_lead').value=it.leadTime||50;document.getElementById('if_cost').value=it.cost||'';document.getElementById('if_supplier').value=it.supplier||'';document.getElementById('if_moq').value=it.moq||'';document.getElementById('if_notes').value=it.notes||'';showV('add');}
+
+function renderItems(){const items=g(IK),srch=(document.getElementById('iSrch')?.value||'').toLowerCase(),cat=document.getElementById('iFilt')?.value||'',stk=document.getElementById('iStock')?.value||'';
+const fl=items.filter(i=>{if(srch&&!((i.code+i.name+i.supplier).toLowerCase().includes(srch)))return false;if(cat&&i.category!==cat)return false;if(stk==='low'&&i.stock>i.reorder)return false;if(stk==='out'&&i.stock>0)return false;return true;});
+document.getElementById('iBody').innerHTML=fl.map(i=>{
+  const low=i.stock<=i.reorder;const out=i.stock===0;
+  const statusTag=out?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);font-weight:700;">OUT OF STOCK</span>':low?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚠ LOW</span>':'<span class="tag" style="background:var(--green-dim);color:var(--green);">OK</span>';
+  return `<tr class="${low?'low-stock':''}"><td><button class="act-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editItem('${i.code}')">✏️</button></td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${i.code}</td><td><strong>${i.name}</strong></td><td>${i.category}</td><td style="font-family:var(--mono);font-weight:700;${low?'color:var(--red);':''}">${i.stock}</td><td>${i.unit}</td><td style="font-family:var(--mono);">${i.reorder}</td><td>${statusTag}</td><td>${i.leadTime||50}d</td><td>${i.supplier||'—'}</td><td style="font-family:var(--mono);">${i.cost?'₹'+i.cost.toLocaleString():'—'}</td><td style="font-size:10px;font-family:var(--mono);">${i.updated||'—'}</td></tr>`;
+}).join('');}
+
+// TRANSACTIONS
+function addTxn(type){const items=g(IK);if(!items.length)return alert('Add items first.');
+const code=prompt('Item Code (e.g. LC-BODY-ALC):');if(!code)return;const item=items.find(i=>i.code===code.toUpperCase());if(!item)return alert('Item not found: '+code);
+const qty=parseInt(prompt((type==='in'?'Quantity received:':'Quantity used/shipped:')));if(!qty||qty<=0)return alert('Invalid quantity.');
+const ref=prompt('Reference (PO#, Order#, etc):');const note=prompt('Notes:');
+const before=item.stock;item.stock=type==='in'?item.stock+qty:Math.max(0,item.stock-qty);item.updated=new Date().toISOString().split('T')[0];
+const txns=g(TXK);txns.push({date:new Date().toISOString(),type,code:item.code,name:item.name,qty,before,after:item.stock,ref:ref||'',notes:note||''});
+s(IK,items);s(TXK,txns);toast(type==='in'?'✓ Stock In':'✓ Stock Out');renderTxns();}
+function renderTxns(){const txns=g(TXK);document.getElementById('txnBody').innerHTML=txns.slice().reverse().map(t=>`<tr><td style="font-family:var(--mono);font-size:10px;">${t.date?.split('T')[0]||'—'}</td><td><span class="tag" style="background:${t.type==='in'?'var(--green-dim)':'rgba(239,68,68,0.1)'};color:${t.type==='in'?'var(--green)':'var(--red)'};">${t.type==='in'?'▲ IN':'▼ OUT'}</span></td><td><strong>${t.code}</strong> ${t.name||''}</td><td style="font-family:var(--mono);font-weight:700;">${t.qty}</td><td style="font-family:var(--mono);">${t.before}</td><td style="font-family:var(--mono);font-weight:700;">${t.after}</td><td>${t.ref||'—'}</td><td style="white-space:normal;">${t.notes||'—'}</td></tr>`).join('');}
+
+// IMPORTS
+function addImport(){const po=prompt('PO Number:');if(!po)return;const supplier=prompt('Supplier:');const items=prompt('Items (comma separated):');const value=prompt('Total Value (₹):');const orderDate=new Date().toISOString().split('T')[0];
+const imports=g(IMPK);imports.push({po,supplier:supplier||'',items:items||'',orderDate,eta:'',status:'Ordered',value:value||'',notes:''});
+// Calc ETA = order date + 50 days
+const eta=new Date(Date.now()+50*86400000).toISOString().split('T')[0];imports[imports.length-1].eta=eta;
+s(IMPK,imports);toast('✓ Import Added');renderImports();}
+function renderImports(){const imports=g(IMPK),today=new Date().toISOString().split('T')[0];
+document.getElementById('impBody').innerHTML=imports.slice().reverse().map((imp,i)=>{
+  const ri=imports.length-1-i;const daysLeft=Math.ceil((new Date(imp.eta)-Date.now())/86400000);
+  const overdue=daysLeft<0&&imp.status!=='Received';
+  const statusOpts=['Ordered','Shipped','In Transit','At Port','Customs','Received'];
+  return `<tr style="${imp.status==='Received'?'opacity:0.5;':''}"><td><select onchange="updateImportStatus(${ri},this.value)" style="padding:4px;font-size:10px;width:90px;">${statusOpts.map(st=>`<option${st===imp.status?' selected':''}>${st}</option>`).join('')}</select></td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${imp.po}</td><td>${imp.supplier||'—'}</td><td style="white-space:normal;max-width:200px;">${imp.items||'—'}</td><td style="font-family:var(--mono);font-size:10px;">${imp.orderDate}</td><td style="font-family:var(--mono);font-size:10px;">${imp.eta}</td><td style="font-family:var(--mono);font-weight:700;${overdue?'color:var(--red);':daysLeft<=7?'color:var(--orange);':''}">${imp.status==='Received'?'✓ Done':overdue?daysLeft+'d LATE':daysLeft+'d'}</td><td><span class="tag" style="background:${imp.status==='Received'?'var(--green-dim)':'rgba(59,130,246,0.12)'};color:${imp.status==='Received'?'var(--green)':'#60a5fa'};">${imp.status}</span></td><td style="font-family:var(--mono);">${imp.value?'₹'+parseInt(imp.value).toLocaleString():'—'}</td><td>${imp.notes||'—'}</td></tr>`;
+}).join('');}
+function updateImportStatus(ri,st){const imports=g(IMPK);imports[ri].status=st;s(IMPK,imports);renderImports();toast('✓ Updated');}
+
+// BOM
+function renderBOM(){const bom=g(BOMK);
+document.getElementById('bomList').innerHTML=bom.length?bom.map((b,i)=>`<div style="display:flex;gap:12px;align-items:center;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px;"><span style="font-weight:700;min-width:80px;color:var(--accent);">${b.type}</span><span style="flex:1;">${b.itemCode} — ${b.itemName}</span><span style="font-family:var(--mono);font-weight:600;">${b.qtyPer} per unit</span><button class="act-btn" style="background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.2);" onclick="delBOM(${i})">✕</button></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No BOM entries yet. Add entries to define what materials each loadcell type needs.</p>';}
+function addBOMEntry(){const type=prompt('Loadcell Type (e.g. ALC, DLC):');if(!type)return;const itemCode=prompt('Item Code from inventory:');if(!itemCode)return;const itemName=prompt('Item Name:');const qtyPer=prompt('Quantity needed per 1 loadcell:');
+const bom=g(BOMK);bom.push({type:type.toUpperCase(),itemCode:itemCode.toUpperCase(),itemName:itemName||'',qtyPer:parseInt(qtyPer)||1});s(BOMK,bom);renderBOM();toast('✓ BOM Entry Added');}
+function delBOM(i){const bom=g(BOMK);bom.splice(i,1);s(BOMK,bom);renderBOM();}
+function calcBOM(){const type=document.getElementById('bom_type').value;const qty=parseInt(document.getElementById('bom_qty').value)||0;
+const bom=g(BOMK).filter(b=>b.type===type);const items=g(IK);
+if(!bom.length){document.getElementById('bomResult').innerHTML='<p style="color:var(--orange);">No BOM defined for '+type+'. Add BOM entries first.</p>';return;}
+let html='<table style="min-width:auto;"><thead><tr><th>Item</th><th>Per Unit</th><th>Required</th><th>In Stock</th><th>Shortage</th></tr></thead><tbody>';
+bom.forEach(b=>{const needed=b.qtyPer*qty;const inv=items.find(i=>i.code===b.itemCode);const inStock=inv?inv.stock:0;const shortage=Math.max(0,needed-inStock);
+html+=`<tr><td>${b.itemCode} - ${b.itemName}</td><td style="font-family:var(--mono);">${b.qtyPer}</td><td style="font-family:var(--mono);font-weight:700;">${needed}</td><td style="font-family:var(--mono);">${inStock}</td><td style="font-family:var(--mono);font-weight:700;${shortage>0?'color:var(--red);':'color:var(--green);'}">${shortage>0?'-'+shortage:'✓ OK'}</td></tr>`;});
+html+='</tbody></table>';document.getElementById('bomResult').innerHTML=html;}
+
+// DASHBOARD
+function renderDash(){const items=g(IK),imports=g(IMPK),today=new Date().toISOString().split('T')[0];
+const low=items.filter(i=>i.stock<=i.reorder&&i.stock>0);const out=items.filter(i=>i.stock===0);const totalValue=items.reduce((a,i)=>a+(i.stock*i.cost||0),0);
+const pendImp=imports.filter(i=>i.status!=='Received');
+// Low stock alert
+if(low.length||out.length){let html='<div class="alert-banner"><h3>⚠ Stock Alerts ('+((low.length+out.length))+' items)</h3>';
+out.forEach(i=>{html+=`<div class="item"><span><strong>${i.code}</strong> ${i.name}</span><span style="color:var(--red);font-weight:700;">OUT OF STOCK</span></div>`;});
+low.forEach(i=>{html+=`<div class="item"><span><strong>${i.code}</strong> ${i.name} — ${i.stock} ${i.unit} left</span><span style="color:var(--orange);">Below reorder (${i.reorder})</span></div>`;});
+html+='</div>';document.getElementById('lowStockAlert').innerHTML=html;}else{document.getElementById('lowStockAlert').innerHTML='';}
+document.getElementById('invStats').innerHTML=`<div class="stat-card"><div class="num" style="color:var(--blue);">${items.length}</div><div class="lab">Items</div></div><div class="stat-card"><div class="num" style="color:var(--green);">₹${(totalValue/1000).toFixed(0)}K</div><div class="lab">Stock Value</div></div><div class="stat-card"><div class="num" style="color:var(--red);">${out.length}</div><div class="lab">Out of Stock</div></div><div class="stat-card"><div class="num" style="color:var(--orange);">${low.length}</div><div class="lab">Low Stock</div></div><div class="stat-card"><div class="num" style="color:var(--cyan);">${pendImp.length}</div><div class="lab">Pending Imports</div></div>`;
+// Category distribution
+const cats={};items.forEach(i=>{cats[i.category]=(cats[i.category]||0)+1;});
+document.getElementById('catDist').innerHTML=Object.entries(cats).map(([c,n])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border);"><span>${c}</span><span style="font-family:var(--mono);font-weight:600;">${n} items</span></div>`).join('')||'<p style="color:var(--text-muted);">No items yet</p>';
+// Pending imports
+document.getElementById('pendImports').innerHTML=pendImp.length?pendImp.map(imp=>{const dl=Math.ceil((new Date(imp.eta)-Date.now())/86400000);return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border);"><span><strong>${imp.po}</strong> · ${imp.supplier}</span><span style="font-family:var(--mono);font-size:10px;${dl<0?'color:var(--red);':dl<7?'color:var(--orange);':''}">${dl<0?dl+'d LATE':dl+'d left'} · ${imp.status}</span></div>`;}).join(''):'<p style="color:var(--text-muted);">No pending imports</p>';}
+
+renderDash();
+</script>
+</body></html>

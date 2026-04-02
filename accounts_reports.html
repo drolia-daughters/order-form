@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounts & Reports — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#06b6d4;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 12px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:11px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:24px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.act-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid;margin:1px;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--accent);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.report-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}.report-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}.report-row:last-child{border-bottom:none;font-weight:700;padding-top:10px;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><div class="icon">AR</div><h1>Accounts & Reports</h1><span>PHASE 5</span></div>
+<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('income')">Income</button><button class="tab-btn" onclick="showV('expense')">Expenses</button><button class="tab-btn" onclick="showV('add')">+ Add Entry</button><button class="tab-btn" onclick="showV('report')">Reports</button><button class="tab-btn" onclick="showV('receivable')">Receivables</button></div></div>
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="view active" id="v_dash"><h2 style="margin-bottom:16px;">Financial Dashboard</h2>
+<div class="stats-row" id="finStats"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+<div class="card"><h3 style="margin-bottom:12px;">Monthly Summary</h3><div id="monthSummary"></div></div>
+<div class="card"><h3 style="margin-bottom:12px;">Top Expense Categories</h3><div id="topExpenses"></div></div>
+</div></div>
+
+<!-- INCOME -->
+<div class="view" id="v_income"><h2 style="margin-bottom:16px;">Income Entries</h2>
+<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="incSrch" placeholder="Search..." oninput="renderIncome()" style="max-width:250px;"><select id="incMonth" onchange="renderIncome()" style="max-width:150px;"><option value="">All Months</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Party</th><th>Description</th><th>Invoice#</th><th>Amount (₹)</th><th>Payment Mode</th><th>Status</th><th>Actions</th></tr></thead><tbody id="incBody"></tbody></table></div></div>
+
+<!-- EXPENSES -->
+<div class="view" id="v_expense"><h2 style="margin-bottom:16px;">Expense Entries</h2>
+<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="expSrch" placeholder="Search..." oninput="renderExpenses()" style="max-width:250px;"><select id="expCat" onchange="renderExpenses()" style="max-width:180px;"><option value="">All Categories</option><option>Raw Material</option><option>China Import</option><option>Salary</option><option>Rent</option><option>Utilities</option><option>Transport</option><option>Marketing</option><option>Equipment</option><option>Misc</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Vendor</th><th>Amount (₹)</th><th>Payment Mode</th><th>Reference</th><th>Actions</th></tr></thead><tbody id="expBody"></tbody></table></div></div>
+
+<!-- ADD ENTRY -->
+<div class="view" id="v_add"><h2 style="margin-bottom:16px;">Add Financial Entry</h2>
+<div style="display:flex;gap:12px;margin-bottom:16px;">
+<button class="btn" id="typeInc" onclick="setType('income')" style="background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.3);">▲ Income</button>
+<button class="btn" id="typeExp" onclick="setType('expense')" style="background:rgba(239,68,68,0.1);color:var(--red);border-color:rgba(239,68,68,0.3);">▼ Expense</button>
+</div>
+<div class="card"><form class="form-grid" id="entryForm" onsubmit="return saveEntry(event)">
+<input type="hidden" id="ef_type" value="income">
+<div class="form-group"><label>Date *</label><input type="date" id="ef_date" required></div>
+<div class="form-group"><label>Amount (₹) *</label><input type="number" id="ef_amount" required min="0" step="0.01"></div>
+<div class="form-group"><label>Party / Vendor *</label><input type="text" id="ef_party" required></div>
+<div class="form-group"><label>Description</label><input type="text" id="ef_desc"></div>
+<div class="form-group" id="catGroup"><label>Category</label><select id="ef_cat"><option>Raw Material</option><option>China Import</option><option>Salary</option><option>Rent</option><option>Utilities</option><option>Transport</option><option>Marketing</option><option>Equipment</option><option>Misc</option></select></div>
+<div class="form-group"><label>Payment Mode</label><select id="ef_mode"><option>Bank Transfer</option><option>Cash</option><option>UPI</option><option>Cheque</option><option>Credit</option></select></div>
+<div class="form-group"><label>Invoice / Reference#</label><input type="text" id="ef_ref"></div>
+<div class="form-group"><label>Status</label><select id="ef_status"><option>Paid</option><option>Pending</option><option>Partial</option></select></div>
+<div class="form-group full"><label>Notes</label><textarea id="ef_notes"></textarea></div>
+<div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="resetEF()">Clear</button><button type="submit" class="btn btn-primary" id="efBtn">+ Add Entry</button></div>
+</form></div></div>
+
+<!-- REPORTS -->
+<div class="view" id="v_report"><h2 style="margin-bottom:16px;">Financial Reports</h2>
+<div style="display:flex;gap:12px;margin-bottom:16px;align-items:end;flex-wrap:wrap;">
+<div class="form-group" style="width:150px;"><label>From</label><input type="date" id="rpt_from"></div>
+<div class="form-group" style="width:150px;"><label>To</label><input type="date" id="rpt_to"></div>
+<button class="btn btn-primary" onclick="genReport()">Generate Report</button>
+<button class="btn" style="background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.2);" onclick="exportReport()">↓ CSV</button>
+</div>
+<div id="reportOutput"></div></div>
+
+<!-- RECEIVABLES -->
+<div class="view" id="v_receivable"><h2 style="margin-bottom:16px;">Accounts Receivable</h2>
+<p style="color:var(--text-dim);margin-bottom:16px;font-size:13px;">Track pending payments from clients.</p>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Party</th><th>Invoice#</th><th>Amount (₹)</th><th>Status</th><th>Due Since</th><th>Action</th></tr></thead><tbody id="recBody"></tbody></table></div></div>
+</div>
+<div class="toast" id="toast">✓ Saved</div>
+<script>
+const FK='fin_entries';let editId=null;let entryType='income';
+const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach((b,i)=>{const map={dash:0,income:1,expense:2,add:3,report:4,receivable:5};if(i===map[v])b.classList.add('active');});
+if(v==='dash')renderDash();if(v==='income')renderIncome();if(v==='expense')renderExpenses();if(v==='receivable')renderReceivables();if(v==='add'){document.getElementById('ef_date').value=new Date().toISOString().split('T')[0];}}
+function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function setType(t){entryType=t;document.getElementById('ef_type').value=t;document.getElementById('typeInc').style.opacity=t==='income'?'1':'0.4';document.getElementById('typeExp').style.opacity=t==='expense'?'1':'0.4';document.getElementById('catGroup').style.display=t==='expense'?'flex':'none';}
+
+function saveEntry(e){e.preventDefault();const entries=g(FK);
+const entry={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:document.getElementById('ef_type').value,date:document.getElementById('ef_date').value,amount:parseFloat(document.getElementById('ef_amount').value)||0,party:document.getElementById('ef_party').value,desc:document.getElementById('ef_desc').value,category:entryType==='expense'?document.getElementById('ef_cat').value:'Sales',mode:document.getElementById('ef_mode').value,ref:document.getElementById('ef_ref').value,status:document.getElementById('ef_status').value,notes:document.getElementById('ef_notes').value};
+if(editId){const idx=entries.findIndex(e=>e.id===editId);if(idx>=0)entries[idx]=entry;editId=null;}else entries.push(entry);
+s(FK,entries);resetEF();toast();showV(entry.type==='income'?'income':'expense');}
+function resetEF(){document.getElementById('entryForm').reset();editId=null;document.getElementById('ef_date').value=new Date().toISOString().split('T')[0];document.getElementById('efBtn').textContent='+ Add Entry';}
+function editEntry(id){const entries=g(FK),e=entries.find(x=>x.id===id);if(!e)return;editId=id;setType(e.type);
+document.getElementById('ef_date').value=e.date;document.getElementById('ef_amount').value=e.amount;document.getElementById('ef_party').value=e.party;document.getElementById('ef_desc').value=e.desc||'';if(e.type==='expense')document.getElementById('ef_cat').value=e.category||'Misc';document.getElementById('ef_mode').value=e.mode||'Bank Transfer';document.getElementById('ef_ref').value=e.ref||'';document.getElementById('ef_status').value=e.status||'Paid';document.getElementById('ef_notes').value=e.notes||'';document.getElementById('efBtn').textContent='✓ Update';showV('add');}
+function delEntry(id){if(!confirm('Delete?'))return;s(FK,g(FK).filter(e=>e.id!==id));toast('✓ Deleted');renderIncome();renderExpenses();}
+function markPaid(id){const entries=g(FK),e=entries.find(x=>x.id===id);if(e){e.status='Paid';s(FK,entries);toast('✓ Marked Paid');renderReceivables();renderDash();}}
+
+function renderIncome(){const entries=g(FK).filter(e=>e.type==='income'),srch=(document.getElementById('incSrch')?.value||'').toLowerCase();
+const fl=entries.filter(e=>!srch||((e.party+e.desc+e.ref).toLowerCase().includes(srch)));
+document.getElementById('incBody').innerHTML=fl.slice().reverse().map(e=>`<tr><td style="font-family:var(--mono);font-size:10px;">${e.date}</td><td><strong>${e.party}</strong></td><td>${e.desc||'—'}</td><td style="font-family:var(--mono);">${e.ref||'—'}</td><td style="font-family:var(--mono);font-weight:700;color:var(--green);">₹${e.amount.toLocaleString()}</td><td>${e.mode||'—'}</td><td><span class="tag" style="background:${e.status==='Paid'?'var(--green-dim)':'rgba(245,158,11,0.12)'};color:${e.status==='Paid'?'var(--green)':'var(--orange)'};">${e.status}</span></td><td><button class="act-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editEntry('${e.id}')">✏️</button><button class="act-btn" style="background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.2);" onclick="delEntry('${e.id}')">🗑</button></td></tr>`).join('');}
+
+function renderExpenses(){const entries=g(FK).filter(e=>e.type==='expense'),srch=(document.getElementById('expSrch')?.value||'').toLowerCase(),cat=document.getElementById('expCat')?.value||'';
+const fl=entries.filter(e=>{if(srch&&!((e.party+e.desc+e.category).toLowerCase().includes(srch)))return false;if(cat&&e.category!==cat)return false;return true;});
+document.getElementById('expBody').innerHTML=fl.slice().reverse().map(e=>`<tr><td style="font-family:var(--mono);font-size:10px;">${e.date}</td><td><span class="tag" style="background:rgba(168,85,247,0.12);color:var(--purple);">${e.category}</span></td><td>${e.desc||'—'}</td><td>${e.party||'—'}</td><td style="font-family:var(--mono);font-weight:700;color:var(--red);">₹${e.amount.toLocaleString()}</td><td>${e.mode||'—'}</td><td style="font-family:var(--mono);font-size:10px;">${e.ref||'—'}</td><td><button class="act-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editEntry('${e.id}')">✏️</button><button class="act-btn" style="background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.2);" onclick="delEntry('${e.id}')">🗑</button></td></tr>`).join('');}
+
+function renderReceivables(){const entries=g(FK).filter(e=>e.type==='income'&&e.status!=='Paid');const today=new Date();
+document.getElementById('recBody').innerHTML=entries.length?entries.map(e=>{const days=Math.floor((today-new Date(e.date))/86400000);return `<tr><td style="font-family:var(--mono);font-size:10px;">${e.date}</td><td><strong>${e.party}</strong></td><td style="font-family:var(--mono);">${e.ref||'—'}</td><td style="font-family:var(--mono);font-weight:700;">₹${e.amount.toLocaleString()}</td><td><span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">${e.status}</span></td><td style="font-family:var(--mono);${days>30?'color:var(--red);font-weight:700;':''}">${days} days</td><td><button class="act-btn" style="background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.3);" onclick="markPaid('${e.id}')">✓ Mark Paid</button></td></tr>`;}).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">No pending receivables</td></tr>';}
+
+function renderDash(){const entries=g(FK);const income=entries.filter(e=>e.type==='income');const expenses=entries.filter(e=>e.type==='expense');
+const totalInc=income.reduce((a,e)=>a+e.amount,0);const totalExp=expenses.reduce((a,e)=>a+e.amount,0);const profit=totalInc-totalExp;
+const pending=income.filter(e=>e.status!=='Paid').reduce((a,e)=>a+e.amount,0);
+const thisMonth=new Date().toISOString().slice(0,7);const monthInc=income.filter(e=>e.date?.startsWith(thisMonth)).reduce((a,e)=>a+e.amount,0);const monthExp=expenses.filter(e=>e.date?.startsWith(thisMonth)).reduce((a,e)=>a+e.amount,0);
+document.getElementById('finStats').innerHTML=`<div class="stat-card"><div class="num" style="color:var(--green);">₹${(totalInc/1000).toFixed(0)}K</div><div class="lab">Total Income</div></div><div class="stat-card"><div class="num" style="color:var(--red);">₹${(totalExp/1000).toFixed(0)}K</div><div class="lab">Total Expenses</div></div><div class="stat-card"><div class="num" style="color:${profit>=0?'var(--cyan)':'var(--red)'};">₹${(profit/1000).toFixed(0)}K</div><div class="lab">Net Profit</div></div><div class="stat-card"><div class="num" style="color:var(--orange);">₹${(pending/1000).toFixed(0)}K</div><div class="lab">Receivables</div></div><div class="stat-card"><div class="num" style="color:var(--green);">₹${(monthInc/1000).toFixed(0)}K</div><div class="lab">This Month Inc</div></div><div class="stat-card"><div class="num" style="color:var(--red);">₹${(monthExp/1000).toFixed(0)}K</div><div class="lab">This Month Exp</div></div>`;
+// Monthly summary (last 6 months)
+const months=[];for(let i=0;i<6;i++){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
+document.getElementById('monthSummary').innerHTML=months.map(m=>{const mi=income.filter(e=>e.date?.startsWith(m)).reduce((a,e)=>a+e.amount,0);const me=expenses.filter(e=>e.date?.startsWith(m)).reduce((a,e)=>a+e.amount,0);return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="font-family:var(--mono);color:var(--text-dim);">${m}</span><span style="color:var(--green);">+₹${mi.toLocaleString()}</span><span style="color:var(--red);">-₹${me.toLocaleString()}</span><span style="font-weight:700;color:${mi-me>=0?'var(--cyan)':'var(--red)'};">₹${(mi-me).toLocaleString()}</span></div>`;}).join('');
+// Top expenses
+const catTotals={};expenses.forEach(e=>{catTotals[e.category||'Misc']=(catTotals[e.category||'Misc']||0)+e.amount;});const sorted=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+document.getElementById('topExpenses').innerHTML=sorted.length?sorted.map(([c,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;"><span>${c}</span><span style="font-family:var(--mono);font-weight:600;color:var(--red);">₹${v.toLocaleString()}</span></div>`).join(''):'<p style="color:var(--text-muted);">No expenses yet</p>';}
+
+function genReport(){const from=document.getElementById('rpt_from').value;const to=document.getElementById('rpt_to').value;
+const entries=g(FK).filter(e=>{if(from&&e.date<from)return false;if(to&&e.date>to)return false;return true;});
+const income=entries.filter(e=>e.type==='income');const expenses=entries.filter(e=>e.type==='expense');
+const totalInc=income.reduce((a,e)=>a+e.amount,0);const totalExp=expenses.reduce((a,e)=>a+e.amount,0);
+const catTotals={};expenses.forEach(e=>{catTotals[e.category||'Misc']=(catTotals[e.category||'Misc']||0)+e.amount;});
+let html=`<div class="report-card"><h3 style="margin-bottom:12px;">Profit & Loss Statement ${from?'('+from+' to '+(to||'today')+')':'(All Time)'}</h3>`;
+html+=`<div class="report-row"><span>Total Sales / Income</span><span style="color:var(--green);">₹${totalInc.toLocaleString()}</span></div>`;
+html+=`<div class="report-row"><span style="font-weight:700;">Less: Expenses</span><span></span></div>`;
+Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).forEach(([c,v])=>{html+=`<div class="report-row"><span style="padding-left:16px;color:var(--text-dim);">→ ${c}</span><span style="color:var(--red);">₹${v.toLocaleString()}</span></div>`;});
+html+=`<div class="report-row"><span>Total Expenses</span><span style="color:var(--red);">₹${totalExp.toLocaleString()}</span></div>`;
+const profit=totalInc-totalExp;html+=`<div class="report-row" style="font-size:16px;"><span>NET PROFIT / (LOSS)</span><span style="color:${profit>=0?'var(--green)':'var(--red)'};">₹${profit.toLocaleString()}</span></div>`;
+html+=`</div>`;
+html+=`<div class="report-card"><h3 style="margin-bottom:8px;">Summary</h3><div style="font-size:13px;line-height:2;color:var(--text-dim);">Total Transactions: ${entries.length} · Income entries: ${income.length} · Expense entries: ${expenses.length}<br>Avg Income/entry: ₹${income.length?Math.round(totalInc/income.length).toLocaleString():'0'} · Avg Expense/entry: ₹${expenses.length?Math.round(totalExp/expenses.length).toLocaleString():'0'}</div></div>`;
+document.getElementById('reportOutput').innerHTML=html;}
+
+function exportReport(){const entries=g(FK);if(!entries.length)return alert('No entries.');
+let csv='Date,Type,Party,Description,Category,Amount,Mode,Reference,Status,Notes\n';
+entries.sort((a,b)=>a.date?.localeCompare(b.date)).forEach(e=>{csv+=[e.date,e.type,e.party,e.desc,e.category,e.amount,e.mode,e.ref,e.status,e.notes].map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')+'\n';});
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='accounts_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
+
+setType('income');renderDash();
+</script>
+</body></html>

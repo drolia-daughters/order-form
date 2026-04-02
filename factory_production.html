@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Production — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#22c55e;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 14px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:28px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}.stg-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:var(--green);margin:1px;}
+.board-row{display:flex;gap:10px;overflow-x:auto;}.board-col{min-width:170px;flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;}.board-col h3{font-size:10px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;text-align:center;}.board-col .cnt{font-size:18px;font-weight:700;font-family:var(--mono);text-align:center;margin-bottom:6px;}
+.jcard{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;font-size:11px;cursor:pointer;}.jcard:hover{border-color:var(--accent);}.jcard b{display:block;margin-bottom:2px;}.jcard small{color:var(--text-dim);font-family:var(--mono);font-size:9px;}
+.pbar{height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:4px;}.pfill{height:100%;border-radius:3px;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><div class="icon">FP</div><h1>Factory Production</h1><span>PHASE 3</span></div>
+<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
+<div class="main">
+<div class="view active" id="v_dash"><h2 style="margin-bottom:16px;">Production Dashboard</h2><div class="stats-row" id="dStats"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;"><div class="card"><h3 style="margin-bottom:12px;">Stage Distribution</h3><div id="stgDist"></div></div><div class="card"><h3 style="margin-bottom:12px;">Overdue / Urgent</h3><div id="urgList"></div></div></div></div>
+<div class="view" id="v_board"><h2 style="margin-bottom:16px;">Production Board</h2><div class="board-row" id="bRow"></div></div>
+<div class="view" id="v_jobs"><h2 style="margin-bottom:16px;">All Production Jobs</h2>
+<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="jSrch" placeholder="Search..." oninput="renderJobs()" style="max-width:250px;"><select id="jFilt" onchange="renderJobs()" style="max-width:180px;"><option value="">All Stages</option><option>Received</option><option>Assembly</option><option>Wiring</option><option>Testing</option><option>Packing</option><option>Ready</option><option>Dispatched</option></select></div>
+<div class="table-wrap"><table><thead><tr><th>Actions</th><th>Job#</th><th>Order#</th><th>Party</th><th>Type</th><th>Qty</th><th>Stage</th><th>Progress</th><th>Started</th><th>Target</th><th>Worker</th><th>Priority</th><th>Remarks</th></tr></thead><tbody id="jBody"></tbody></table></div></div>
+<div class="view" id="v_add"><h2 style="margin-bottom:16px;" id="jfTitle">New Production Job</h2><div class="card">
+<form class="form-grid" id="jForm" onsubmit="return saveJob(event)">
+<div class="form-group"><label>Order Reference</label><input type="text" id="jf_order" placeholder="ORD-2026-0001"></div>
+<div class="form-group"><label>Party Name *</label><input type="text" id="jf_party" required></div>
+<div class="form-group"><label>Loadcell Type</label><select id="jf_type"><option value="">—</option><option>ALC</option><option>DLC</option><option>AS</option><option>DS</option><option>REG</option><option>CUT</option><option>JUMBO</option><option>S.E</option><option>S TYPE</option></select></div>
+<div class="form-group"><label>Quantity *</label><input type="number" id="jf_qty" required min="1"></div>
+<div class="form-group"><label>Capacity</label><input type="text" id="jf_cap" placeholder="33T"></div>
+<div class="form-group"><label>Wire</label><input type="text" id="jf_wire"></div>
+<div class="form-group"><label>Target Date</label><input type="date" id="jf_target"></div>
+<div class="form-group"><label>Priority</label><select id="jf_pri"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
+<div class="form-group"><label>Assigned Worker</label><input type="text" id="jf_worker"></div>
+<div class="form-group"><label>Initial Stage</label><select id="jf_stage"><option>Received</option><option>Assembly</option><option>Wiring</option><option>Testing</option><option>Packing</option><option>Ready</option></select></div>
+<div class="form-group full"><label>Remarks</label><textarea id="jf_rem"></textarea></div>
+<div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="resetJF()">Clear</button><button type="submit" class="btn btn-primary" id="jfBtn">+ Create Job</button></div>
+</form></div></div>
+</div>
+<div class="toast" id="toast">✓ Saved</div>
+<script>
+const JK='prod_jobs';let editId=null;
+const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+const STAGES=['Received','Assembly','Wiring','Testing','Packing','Ready','Dispatched'];
+const STAGE_IDX=Object.fromEntries(STAGES.map((s,i)=>[s,i]));
+const STAGE_CLR={Received:'#60a5fa',Assembly:'#a855f7',Wiring:'#f59e0b',Testing:'#06b6d4',Packing:'#22c55e',Ready:'#22c55e',Dispatched:'#666'};
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>{if(b.textContent.toLowerCase().includes(v==='add'?'new':v==='dash'?'dash':v))b.classList.add('active');});if(v==='dash')renderDash();if(v==='board')renderBoard();if(v==='jobs')renderJobs();}
+function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function genJobNo(){const jobs=g(JK);let mx=0;jobs.forEach(j=>{const m=j.jobNo?.match(/(\d+)$/);if(m){const n=parseInt(m[1]);if(n>mx)mx=n;}});return 'JOB-'+(mx+1).toString().padStart(4,'0');}
+
+function saveJob(e){e.preventDefault();const jobs=g(JK);
+const job={jobNo:editId?null:genJobNo(),orderRef:document.getElementById('jf_order').value,party:document.getElementById('jf_party').value,type:document.getElementById('jf_type').value,qty:document.getElementById('jf_qty').value,cap:document.getElementById('jf_cap').value,wire:document.getElementById('jf_wire').value,target:document.getElementById('jf_target').value,priority:document.getElementById('jf_pri').value,worker:document.getElementById('jf_worker').value,stage:document.getElementById('jf_stage').value,remarks:document.getElementById('jf_rem').value,startDate:new Date().toISOString().split('T')[0],history:[]};
+if(editId){const idx=jobs.findIndex(j=>j.jobNo===editId);if(idx>=0){job.jobNo=jobs[idx].jobNo;job.startDate=jobs[idx].startDate;job.history=jobs[idx].history||[];jobs[idx]=job;}editId=null;}else{job.history.push({stage:job.stage,date:new Date().toISOString(),note:'Job created'});jobs.push(job);}
+s(JK,jobs);resetJF();toast();showV('jobs');}
+function resetJF(){document.getElementById('jForm').reset();editId=null;document.getElementById('jfTitle').textContent='New Production Job';document.getElementById('jfBtn').textContent='+ Create Job';}
+
+function editJob(no){const jobs=g(JK),j=jobs.find(x=>x.jobNo===no);if(!j)return;editId=no;
+document.getElementById('jfTitle').textContent='Edit: '+no;document.getElementById('jfBtn').textContent='✓ Update';
+document.getElementById('jf_order').value=j.orderRef||'';document.getElementById('jf_party').value=j.party||'';document.getElementById('jf_type').value=j.type||'';document.getElementById('jf_qty').value=j.qty||'';document.getElementById('jf_cap').value=j.cap||'';document.getElementById('jf_wire').value=j.wire||'';document.getElementById('jf_target').value=j.target||'';document.getElementById('jf_pri').value=j.priority||'Normal';document.getElementById('jf_worker').value=j.worker||'';document.getElementById('jf_stage').value=j.stage||'Received';document.getElementById('jf_rem').value=j.remarks||'';
+showV('add');}
+
+function advanceStage(no){const jobs=g(JK),j=jobs.find(x=>x.jobNo===no);if(!j)return;
+const ci=STAGE_IDX[j.stage]||0;if(ci>=STAGES.length-1)return;
+j.stage=STAGES[ci+1];if(!j.history)j.history=[];j.history.push({stage:j.stage,date:new Date().toISOString(),note:'Advanced to '+j.stage});
+s(JK,jobs);toast('→ '+j.stage);renderJobs();renderBoard();}
+
+function renderJobs(){const jobs=g(JK),srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';
+const fl=jobs.filter(j=>{if(srch&&!((j.party+j.jobNo+j.orderRef+j.type).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});
+document.getElementById('jBody').innerHTML=fl.slice().reverse().map(j=>{
+  const si=STAGE_IDX[j.stage]||0;const pct=Math.round((si/(STAGES.length-1))*100);
+  const clr=STAGE_CLR[j.stage]||'#666';const overdue=j.target&&j.target<new Date().toISOString().split('T')[0]&&j.stage!=='Ready'&&j.stage!=='Dispatched';
+  return `<tr style="${j.stage==='Dispatched'?'opacity:0.5;':''}"><td><button class="stg-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editJob('${j.jobNo}')">✏️</button>${j.stage!=='Dispatched'?`<button class="stg-btn" onclick="advanceStage('${j.jobNo}')">→ Next</button>`:''}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${j.jobNo}</td><td style="font-family:var(--mono);font-size:10px;">${j.orderRef||'—'}</td><td><strong>${j.party}</strong></td><td>${j.type||'—'}</td><td><strong>${j.qty}</strong></td><td><span class="tag" style="background:${clr}22;color:${clr};">${j.stage}</span></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${j.startDate||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${j.target||'—'}${overdue?' ⚠':''}</td><td>${j.worker||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:150px;">${j.remarks||'—'}</td></tr>`;
+}).join('');}
+
+function renderBoard(){const jobs=g(JK);
+document.getElementById('bRow').innerHTML=STAGES.map(st=>{
+  const stJ=jobs.filter(j=>j.stage===st);const clr=STAGE_CLR[st];
+  return `<div class="board-col" style="border-top:3px solid ${clr};"><h3>${st}</h3><div class="cnt" style="color:${clr};">${stJ.length}</div>${stJ.map(j=>`<div class="jcard" onclick="editJob('${j.jobNo}')"><b>${j.party}</b><small>${j.jobNo} · ${j.type||''} · ${j.qty} pcs</small></div>`).join('')}</div>`;
+}).join('');}
+
+function renderDash(){const jobs=g(JK),today=new Date().toISOString().split('T')[0];
+const active=jobs.filter(j=>j.stage!=='Dispatched');const totalQty=active.reduce((a,j)=>a+(parseInt(j.qty)||0),0);
+const overdue=active.filter(j=>j.target&&j.target<today&&j.stage!=='Ready');
+let html=`<div class="stat-card"><div class="num" style="color:var(--blue);">${jobs.length}</div><div class="lab">Total Jobs</div></div>`;
+html+=`<div class="stat-card"><div class="num" style="color:var(--accent);">${active.length}</div><div class="lab">Active</div></div>`;
+html+=`<div class="stat-card"><div class="num" style="color:var(--cyan);">${totalQty}</div><div class="lab">Total Pcs</div></div>`;
+html+=`<div class="stat-card"><div class="num" style="color:var(--red);">${overdue.length}</div><div class="lab">Overdue</div></div>`;
+STAGES.slice(0,-1).forEach(st=>{const c=active.filter(j=>j.stage===st).length;html+=`<div class="stat-card"><div class="num" style="color:${STAGE_CLR[st]};">${c}</div><div class="lab">${st}</div></div>`;});
+document.getElementById('dStats').innerHTML=html;
+document.getElementById('stgDist').innerHTML=STAGES.slice(0,-1).map(st=>{const c=active.filter(j=>j.stage===st).length;const pct=active.length?Math.round(c/active.length*100):0;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:70px;font-size:11px;font-family:var(--mono);color:var(--text-dim);">${st}</span><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${STAGE_CLR[st]};border-radius:4px;"></div></div><span style="font-size:11px;font-family:var(--mono);font-weight:600;">${c}</span></div>`;}).join('');
+document.getElementById('urgList').innerHTML=overdue.length?overdue.map(j=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${j.party}</strong> · ${j.jobNo} · ${j.stage}</span><span style="color:var(--red);font-family:var(--mono);font-size:10px;">Due: ${j.target}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No overdue jobs</p>';}
+
+function exportJobsCSV(){const jobs=g(JK);if(!jobs.length)return alert('No jobs.');let csv='Job#,Order#,Party,Type,Qty,Capacity,Wire,Stage,Start,Target,Worker,Priority,Remarks\n';jobs.forEach(j=>{csv+=[j.jobNo,j.orderRef,j.party,j.type,j.qty,j.cap,j.wire,j.stage,j.startDate,j.target,j.worker,j.priority,j.remarks].map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='production_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
+
+renderDash();
+</script>
+</body></html>
