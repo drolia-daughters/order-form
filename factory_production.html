@@ -1,110 +1,414 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Production — Sentire Technologies</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="sentire_common.js"></script>
 <style>
-:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#22c55e;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#22c55e;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--pink:#ec4899;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
 .topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
 .tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 14px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
-.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+.main{padding:24px;max-width:1500px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
 input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
+input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 .btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:28px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);}
-.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}.stg-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:var(--green);margin:1px;}
-.board-row{display:flex;gap:10px;overflow-x:auto;}.board-col{min-width:170px;flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;}.board-col h3{font-size:10px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;text-align:center;}.board-col .cnt{font-size:18px;font-weight:700;font-family:var(--mono);text-align:center;margin-bottom:6px;}
-.jcard{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;font-size:11px;cursor:pointer;}.jcard:hover{border-color:var(--accent);}.jcard b{display:block;margin-bottom:2px;}.jcard small{color:var(--text-dim);font-family:var(--mono);font-size:9px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:24px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:28px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;min-width:1150px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.stg-btn{padding:4px 8px;border-radius:5px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:var(--green);margin:1px;white-space:nowrap;}
+.stg-btn.apv{border-color:rgba(168,85,247,.45);background:rgba(168,85,247,.14);color:#c084fc;}
+.stg-btn.wa,.wa-btn{border-color:rgba(37,211,102,0.35)!important;background:rgba(37,211,102,0.12)!important;color:#25d366!important;}
+.stg-btn.pr,.pr-btn{border-color:rgba(96,165,250,0.35)!important;background:rgba(96,165,250,0.12)!important;color:#60a5fa!important;}
+.stg-btn.ed{border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:var(--orange);}
+.stg-btn.bk{border-color:rgba(122,133,153,.35);background:transparent;color:var(--text-dim);}
+.stg-btn.bill{border-color:rgba(6,182,212,.4);background:rgba(6,182,212,.12);color:var(--cyan);}
+.stg-btn.lr{border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.14);color:#60a5fa;}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}.toolbar .sp{flex:1;}
+.board-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;}.board-col{min-width:180px;flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;}.board-col h3{font-size:10px;font-family:var(--mono);color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;text-align:center;}.board-col .cnt{font-size:18px;font-weight:700;font-family:var(--mono);text-align:center;margin-bottom:6px;}
+.jcard{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:8px;margin-bottom:6px;font-size:11px;}.jcard:hover{border-color:var(--accent);}.jcard b{display:block;margin-bottom:2px;}.jcard small{color:var(--text-dim);font-family:var(--mono);font-size:9px;display:block;}
+.jcard .acts{margin-top:6px;display:flex;flex-wrap:wrap;gap:2px;}
+.flag{display:inline-block;font-size:9px;font-family:var(--mono);padding:1px 6px;border-radius:3px;margin-top:3px;margin-right:2px;}
+.flag.wait{background:rgba(168,85,247,.16);color:#c084fc;}.flag.ok{background:var(--green-dim);color:var(--green);}.flag.warn{background:rgba(245,158,11,.14);color:var(--orange);}.flag.bad{background:rgba(239,68,68,.14);color:#f87171;}
 .pbar{height:5px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:4px;}.pfill{height:100%;border-radius:3px;}
-.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--green);color:#fff;max-width:420px;}.toast.show{transform:translateY(0);opacity:1;}
+.banner{display:none;background:linear-gradient(90deg,rgba(37,211,102,.12),rgba(37,211,102,.04));border:1px solid rgba(37,211,102,.35);border-radius:10px;padding:12px 14px;margin-bottom:16px;}
+.banner.show{display:block;}.banner.late{background:linear-gradient(90deg,rgba(245,158,11,.14),rgba(245,158,11,.04));border-color:rgba(245,158,11,.4);}
+.banner.urgent{animation:pulseB 1.6s infinite;}@keyframes pulseB{0%,100%{box-shadow:0 0 0 rgba(37,211,102,0)}50%{box-shadow:0 0 18px rgba(37,211,102,.35)}}
+.banner h4{font-size:14px;margin-bottom:6px;}.banner .rowp{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0;flex-wrap:wrap;}
+.apv-banner{display:none;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.35);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:13px;}
+.apv-banner.show{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.flow{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.7;}
+.flow b{color:var(--text);font-weight:600;}.flow i{font-style:normal;color:#c084fc;}
+.note{font-size:11px;color:var(--orange);font-family:var(--mono);}
+.bill-tbl{width:100%;min-width:0;border-collapse:collapse;font-size:12px;margin-top:6px;}
+.bill-tbl th{background:#1a1f2b;font-size:10px;text-transform:uppercase;color:#7a8599;padding:6px;text-align:left;font-family:var(--mono);}
+.bill-tbl td{padding:4px;border-bottom:1px solid #262d3a;}
+.bill-tbl input{padding:7px 8px!important;font-size:13px!important;}
+.bill-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0 12px;}
+.bill-tot{display:flex;justify-content:flex-end;gap:18px;font-family:var(--mono);font-size:13px;margin-top:10px;flex-wrap:wrap;}
+.bill-tot b{color:#22c55e;font-size:15px;}
+.bill-warn{font-size:11px;color:#f59e0b;margin-top:8px;line-height:1.6;}
+@media (max-width:760px){.bill-grid{grid-template-columns:1fr 1fr;}.form-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><div class="icon">FP</div><h1>Factory Production</h1><span>PHASE 3</span></div>
 <div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
 <div class="main">
+<div class="flow">Flow: <b>Received → Assembly → Wiring → Testing</b> → <i>🔐 Laser approval</i> → <b>Laser</b> → <b>Packing</b> (boxes &amp; weight) → <i>🔐 Packing approval</i> → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → <i>🔐 Bill approval</i> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
+<div class="banner" id="pickupBanner"></div>
+<div class="apv-banner" id="apvBanner"></div>
+
 <div class="view active" id="v_dash"><h2 style="margin-bottom:16px;">Production Dashboard</h2><div class="stats-row" id="dStats"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;"><div class="card"><h3 style="margin-bottom:12px;">Stage Distribution</h3><div id="stgDist"></div></div><div class="card"><h3 style="margin-bottom:12px;">Overdue / Urgent</h3><div id="urgList"></div></div></div></div>
-<div class="view" id="v_board"><h2 style="margin-bottom:16px;">Production Board</h2><div class="board-row" id="bRow"></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;"><div class="card"><h3 style="margin-bottom:12px;">Stage Distribution</h3><div id="stgDist"></div></div><div class="card"><h3 style="margin-bottom:12px;">Waiting for approval / action</h3><div id="waitList"></div><h3 style="margin:16px 0 12px;">Overdue / Urgent</h3><div id="urgList"></div></div></div></div>
+
+<div class="view" id="v_board"><div class="toolbar"><h2>Production Board</h2><span class="sp"></span><button class="btn pr-btn" onclick="printJobList(true)">🖨️ Print Board</button><button class="btn wa-btn" onclick="waJobList(true)">💬 WhatsApp Summary</button></div><div class="board-row" id="bRow"></div></div>
+
 <div class="view" id="v_jobs"><h2 style="margin-bottom:16px;">All Production Jobs</h2>
-<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="jSrch" placeholder="Search..." oninput="renderJobs()" style="max-width:250px;"><select id="jFilt" onchange="renderJobs()" style="max-width:180px;"><option value="">All Stages</option><option>Received</option><option>Assembly</option><option>Wiring</option><option>Testing</option><option>Packing</option><option>Ready</option><option>Dispatched</option></select></div>
-<div class="table-wrap"><table><thead><tr><th>Actions</th><th>Job#</th><th>Order#</th><th>Party</th><th>Type</th><th>Qty</th><th>Stage</th><th>Progress</th><th>Started</th><th>Target</th><th>Worker</th><th>Priority</th><th>Remarks</th></tr></thead><tbody id="jBody"></tbody></table></div></div>
+<div class="toolbar"><input type="text" id="jSrch" placeholder="Search party, job, order, type..." oninput="renderJobs()" style="max-width:260px;"><select id="jFilt" onchange="renderJobs()" style="max-width:180px;"><option value="">All Stages</option></select><span class="sp"></span><button class="btn pr-btn" data-tip="Print the jobs shown below" onclick="printJobList()">🖨️ Print List</button><button class="btn wa-btn" data-tip="Send the jobs shown below on WhatsApp" onclick="waJobList()">💬 WhatsApp List</button><button class="btn btn-ghost" onclick="exportJobsCSV()">↓ CSV</button></div>
+<div class="table-wrap"><table><thead><tr><th>Actions</th><th>Job#</th><th>Order#</th><th>Party</th><th>Items</th><th>Qty</th><th>Stage</th><th>Progress</th><th>Started</th><th>Delivery</th><th>Boxes / Wt</th><th>Worker</th><th>Priority</th><th>Remarks</th></tr></thead><tbody id="jBody"></tbody></table></div></div>
+
 <div class="view" id="v_add"><h2 style="margin-bottom:16px;" id="jfTitle">New Production Job</h2><div class="card">
 <form class="form-grid" id="jForm" onsubmit="return saveJob(event)">
 <div class="form-group"><label>Order Reference</label><input type="text" id="jf_order" placeholder="ORD-2026-0001"></div>
 <div class="form-group"><label>Party Name *</label><input type="text" id="jf_party" required></div>
-<div class="form-group"><label>Loadcell Type</label><select id="jf_type"><option value="">—</option><option>ALC</option><option>DLC</option><option>AS</option><option>DS</option><option>REG</option><option>CUT</option><option>JUMBO</option><option>S.E</option><option>S TYPE</option></select></div>
+<div class="form-group full" id="jf_itemsNote" style="display:none;"><div class="note"></div></div>
+<div class="form-group"><label>Loadcell Type</label><input type="text" id="jf_type" list="jfTypes" placeholder="DLC"><datalist id="jfTypes"><option>ALC</option><option>DLC</option><option>AS</option><option>DS</option><option>REG</option><option>CUT</option><option>JUMBO</option><option>S.E</option><option>S TYPE</option></datalist></div>
 <div class="form-group"><label>Quantity *</label><input type="number" id="jf_qty" required min="1"></div>
 <div class="form-group"><label>Capacity</label><input type="text" id="jf_cap" placeholder="33T"></div>
 <div class="form-group"><label>Wire</label><input type="text" id="jf_wire"></div>
-<div class="form-group"><label>Target Date</label><input type="date" id="jf_target"></div>
+<div class="form-group"><label>Delivery / Target Date</label><input type="date" id="jf_target"></div>
 <div class="form-group"><label>Priority</label><select id="jf_pri"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
 <div class="form-group"><label>Assigned Worker</label><input type="text" id="jf_worker"></div>
-<div class="form-group"><label>Initial Stage</label><select id="jf_stage"><option>Received</option><option>Assembly</option><option>Wiring</option><option>Testing</option><option>Packing</option><option>Ready</option></select></div>
+<div class="form-group"><label>Stage</label><select id="jf_stage"><option>Received</option><option>Assembly</option><option>Wiring</option><option>Testing</option></select><div class="note" id="jf_stageNote" style="display:none;">Stage changes only through the flow buttons (approvals cannot be skipped).</div></div>
 <div class="form-group full"><label>Remarks</label><textarea id="jf_rem"></textarea></div>
-<div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="resetJF()">Clear</button><button type="submit" class="btn btn-primary" id="jfBtn">+ Create Job</button></div>
+<div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;flex-wrap:wrap;"><button type="button" class="btn pr-btn" id="jfPrint" style="display:none;" onclick="printJob(editId)">🖨️ Print Job Card</button><button type="button" class="btn wa-btn" id="jfWa" style="display:none;" onclick="waJob(editId)">💬 WhatsApp</button><button type="button" class="btn btn-ghost" onclick="resetJF()">Clear</button><button type="submit" class="btn btn-primary" id="jfBtn">+ Create Job</button></div>
 </form></div></div>
 </div>
 <div class="toast" id="toast">✓ Saved</div>
 <script>
 const JK='prod_jobs';let editId=null;
 const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
-const STAGES=['Received','Assembly','Wiring','Testing','Packing','Ready','Dispatched'];
-const STAGE_IDX=Object.fromEntries(STAGES.map((s,i)=>[s,i]));
-const STAGE_CLR={Received:'#60a5fa',Assembly:'#a855f7',Wiring:'#f59e0b',Testing:'#06b6d4',Packing:'#22c55e',Ready:'#22c55e',Dispatched:'#666'};
-function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>{if(b.textContent.toLowerCase().includes(v==='add'?'new':v==='dash'?'dash':v))b.classList.add('active');});if(v==='dash')renderDash();if(v==='board')renderBoard();if(v==='jobs')renderJobs();}
-function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+const E=v=>ST.esc(v);
+const STAGES=['Received','Assembly','Wiring','Testing','Laser','Packing','Ready','Dispatched'];
+const STAGE_IDX=Object.fromEntries(STAGES.map((x,i)=>[x,i]));
+const STAGE_CLR={Received:'#60a5fa',Assembly:'#a855f7',Wiring:'#f59e0b',Testing:'#06b6d4',Laser:'#ec4899',Packing:'#22c55e',Ready:'#10b981',Dispatched:'#666'};
+document.getElementById('jFilt').innerHTML='<option value="">All Stages</option>'+STAGES.map(x=>`<option>${x}</option>`).join('');
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');const map={dash:0,board:1,jobs:2,add:3};document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===map[v]));if(v==='dash')renderDash();if(v==='board')renderBoard();if(v==='jobs')renderJobs();}
+function toast(m,ms){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms||2600);}
 function genJobNo(){const jobs=g(JK);let mx=0;jobs.forEach(j=>{const m=j.jobNo?.match(/(\d+)$/);if(m){const n=parseInt(m[1]);if(n>mx)mx=n;}});return 'JOB-'+(mx+1).toString().padStart(4,'0');}
+const getJob=no=>g(JK).find(j=>j.jobNo===no);
+function mutate(no,fn){const jobs=g(JK);const j=jobs.find(x=>x.jobNo===no);if(!j)return null;fn(j);s(JK,jobs);return j;}
+const hist=(j,stage,note)=>{(j.history=j.history||[]).push({stage,date:new Date().toISOString(),note});};
+const orderOf=j=>j.orderRef?ST.findOrder(j.orderRef):null;
+const itemsOf=j=>{const o=orderOf(j);return ST.items(o||{items:j.items,type:j.type,qty:j.qty,cap:j.cap,wire:j.wire});};
+const trOf=j=>{const o=orderOf(j);return (o&&o.transporterName)||j.transporter||'';};
+const refreshAll=()=>{renderDash();renderBoard();renderJobs();renderBanners();};
 
-function saveJob(e){e.preventDefault();const jobs=g(JK);
-const job={jobNo:editId?null:genJobNo(),orderRef:document.getElementById('jf_order').value,party:document.getElementById('jf_party').value,type:document.getElementById('jf_type').value,qty:document.getElementById('jf_qty').value,cap:document.getElementById('jf_cap').value,wire:document.getElementById('jf_wire').value,target:document.getElementById('jf_target').value,priority:document.getElementById('jf_pri').value,worker:document.getElementById('jf_worker').value,stage:document.getElementById('jf_stage').value,remarks:document.getElementById('jf_rem').value,startDate:new Date().toISOString().split('T')[0],history:[]};
-if(editId){const idx=jobs.findIndex(j=>j.jobNo===editId);if(idx>=0){job.jobNo=jobs[idx].jobNo;job.startDate=jobs[idx].startDate;job.history=jobs[idx].history||[];jobs[idx]=job;}editId=null;}else{job.history.push({stage:job.stage,date:new Date().toISOString(),note:'Job created'});jobs.push(job);}
-s(JK,jobs);resetJF();toast();showV('jobs');}
-function resetJF(){document.getElementById('jForm').reset();editId=null;document.getElementById('jfTitle').textContent='New Production Job';document.getElementById('jfBtn').textContent='+ Create Job';}
+/* ═══════════ JOB FORM (manual jobs) ═══════════ */
+function saveJob(e){e.preventDefault();const jobs=g(JK);const v=id=>document.getElementById(id).value;
+  const f={orderRef:v('jf_order'),party:v('jf_party'),type:v('jf_type'),qty:v('jf_qty'),cap:v('jf_cap'),wire:v('jf_wire'),target:v('jf_target'),priority:v('jf_pri'),worker:v('jf_worker'),remarks:v('jf_rem')};
+  if(editId){const j=jobs.find(x=>x.jobNo===editId);if(j){const multi=(j.items||[]).length>1;
+      if(multi){delete f.type;delete f.qty;delete f.cap;delete f.wire;}
+      Object.assign(j,f);if(!multi&&j.items&&j.items.length===1)j.items=[{type:j.type,qty:j.qty,capacity:j.cap,wire:j.wire}];hist(j,j.stage,'Job details edited');}
+    editId=null;}
+  else{const st=v('jf_stage');const now=new Date().toISOString();jobs.push(Object.assign(f,{jobNo:genJobNo(),stage:STAGE_IDX[st]<=3?st:'Received',startDate:ST.today(),history:[{stage:st,date:now,note:'Job created'}],approvals:{}}));}
+  s(JK,jobs);resetJF();toast();showV('jobs');renderBanners();}
+function resetJF(){document.getElementById('jForm').reset();editId=null;document.getElementById('jfTitle').textContent='New Production Job';document.getElementById('jfBtn').textContent='+ Create Job';
+  ['jfPrint','jfWa'].forEach(id=>document.getElementById(id).style.display='none');['jf_type','jf_qty','jf_cap','jf_wire','jf_stage'].forEach(id=>document.getElementById(id).disabled=false);
+  document.getElementById('jf_stage').innerHTML=['Received','Assembly','Wiring','Testing'].map(x=>`<option>${x}</option>`).join('');
+  document.getElementById('jf_qty').required=true;document.getElementById('jf_itemsNote').style.display='none';document.getElementById('jf_stageNote').style.display='none';
+  const t=document.getElementById('jf_target');if(t._stCheck)t._stCheck();}
+function editJob(no){const j=getJob(no);if(!j)return;resetJF();editId=no;
+  document.getElementById('jfTitle').textContent='Edit: '+no;document.getElementById('jfBtn').textContent='✓ Update';
+  const set=(id,val)=>document.getElementById(id).value=val||'';
+  set('jf_order',j.orderRef);set('jf_party',j.party);set('jf_type',j.type);set('jf_qty',j.qty);set('jf_cap',j.cap);set('jf_wire',j.wire);set('jf_target',j.target);set('jf_pri',j.priority||'Normal');set('jf_worker',j.worker);set('jf_rem',j.remarks);
+  const sel=document.getElementById('jf_stage');sel.innerHTML=STAGES.map(x=>`<option>${x}</option>`).join('');sel.value=j.stage||'Received';sel.disabled=true;document.getElementById('jf_stageNote').style.display='block';
+  if((j.items||[]).length>1){['jf_type','jf_qty','jf_cap','jf_wire'].forEach(id=>document.getElementById(id).disabled=true);document.getElementById('jf_qty').required=false;
+    const n=document.getElementById('jf_itemsNote');n.style.display='block';n.querySelector('.note').textContent='This job has '+j.items.length+' items ('+ST.itemsShort(j.items)+'). Change items in the Order Sheet → edit '+(j.orderRef||'the order')+'.';}
+  ['jfPrint','jfWa'].forEach(id=>document.getElementById(id).style.display='');
+  const t=document.getElementById('jf_target');if(t._stCheck)t._stCheck();showV('add');}
 
-function editJob(no){const jobs=g(JK),j=jobs.find(x=>x.jobNo===no);if(!j)return;editId=no;
-document.getElementById('jfTitle').textContent='Edit: '+no;document.getElementById('jfBtn').textContent='✓ Update';
-document.getElementById('jf_order').value=j.orderRef||'';document.getElementById('jf_party').value=j.party||'';document.getElementById('jf_type').value=j.type||'';document.getElementById('jf_qty').value=j.qty||'';document.getElementById('jf_cap').value=j.cap||'';document.getElementById('jf_wire').value=j.wire||'';document.getElementById('jf_target').value=j.target||'';document.getElementById('jf_pri').value=j.priority||'Normal';document.getElementById('jf_worker').value=j.worker||'';document.getElementById('jf_stage').value=j.stage||'Received';document.getElementById('jf_rem').value=j.remarks||'';
-showV('add');}
+/* ═══════════ FLOW ACTIONS ═══════════ */
+// Simple steps (no approval): Received → Assembly → Wiring → Testing
+function advance(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]||0;if(i>=3)return;
+  mutate(no,x=>{x.stage=STAGES[i+1];hist(x,x.stage,'Moved to '+x.stage);});toast('→ '+STAGES[i+1]);refreshAll();}
+const lines=(j,extra)=>{const o=orderOf(j);const its=itemsOf(j);return [j.jobNo+(j.orderRef?' · '+j.orderRef:''),'Party: '+j.party,'Items: '+ST.itemsShort(its)+(its.length>1?' (total '+its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)+' pcs)':'')].concat(extra||[]);};
+// Testing → Laser needs approval
+async function approveLaser(no){const j=getJob(no);if(!j||j.stage!=='Testing')return;const o=orderOf(j);
+  const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete.'])});
+  if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.laser=r;x.stage='Laser';hist(x,'Laser','Laser approved by '+r.by+' ('+r.role+')');});toast('🔐 Laser approved by '+r.by);refreshAll();}
+function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!confirm('Laser marking done for '+no+' ('+j.party+')?\nIt moves to Packing.'))return;
+  mutate(no,x=>{x.stage='Packing';hist(x,'Packing','Laser done → Packing');});toast('→ Packing');refreshAll();}
+// Packing: enter boxes + weight, then approval
+async function packDetails(no){const j=getJob(no);if(!j||j.stage!=='Packing')return;
+  const r=await ST.modal({title:'📦 Packing — '+no,sub:j.party+' · '+ST.itemsShort(itemsOf(j)),html:`<label>No. of boxes</label><input id="pk_b" type="number" min="1" value="${E(j.boxes||'')}"><label>Approx. weight (kg)</label><input id="pk_w" type="number" min="0" step="0.1" value="${E(j.weight||'')}"><label>Packed by</label><input id="pk_by" value="${E(j.packedBy||'')}" placeholder="name">`,
+    buttons:[{label:'Cancel',value:null},{label:'Save — ask for approval',cls:'pri',onClick:(ov,err)=>{const b=ov.querySelector('#pk_b').value,w=ov.querySelector('#pk_w').value;if(!(parseFloat(b)>0)){err.textContent='Enter the number of boxes.';return false;}if(!(parseFloat(w)>0)){err.textContent='Enter the approximate weight.';return false;}return {b,w,by:ov.querySelector('#pk_by').value.trim()};}}]});
+  if(!r)return;mutate(no,x=>{x.boxes=r.b;x.weight=r.w;x.packedBy=r.by;x.packedAt=new Date().toISOString();if(x.approvals)delete x.approvals.packing;hist(x,'Packing','Packed: '+r.b+' boxes, '+r.w+' kg — waiting for approval');});
+  if(j.orderRef)ST.updateOrder(j.orderRef,o=>{o.boxes=r.b;o.weight=r.w;if(r.by)o.packingBy=r.by;});
+  toast('📦 Saved — waiting for packing approval');refreshAll();}
+async function approvePacking(no){const j=getJob(no);if(!j||j.stage!=='Packing'||!j.packedAt)return;
+  const r=await ST.approve({title:'Approve PACKING — '+no,action:'Packing approval',ref:no,lines:lines(j,['Boxes: '+j.boxes+'   ·   Approx. weight: '+j.weight+' kg','Transporter: '+(trOf(j)||'— (choose on next screen)'),'After approval the pickup WhatsApp goes to the transporter.'])});
+  if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.packing=r;x.stage='Ready';hist(x,'Ready','Packing approved by '+r.by+' ('+r.role+')');});
+  refreshAll();sendPickup(no);}
 
-function advanceStage(no){const jobs=g(JK),j=jobs.find(x=>x.jobNo===no);if(!j)return;
-const ci=STAGE_IDX[j.stage]||0;if(ci>=STAGES.length-1)return;
-j.stage=STAGES[ci+1];if(!j.history)j.history=[];j.history.push({stage:j.stage,date:new Date().toISOString(),note:'Advanced to '+j.stage});
-s(JK,jobs);toast('→ '+j.stage);renderJobs();renderBoard();}
+// Pickup WhatsApp to transporter — before the cut-off time (default 2 PM) it asks for today, after it for the next working day
+function pickupWhen(){const c=ST.company();const [h,m]=(c.cutoff||'14:00').split(':').map(Number);const now=new Date();const t=ST.today();
+  const before=now.getHours()*60+now.getMinutes()<h*60+(m||0);const todayOff=ST.holidayName(t);
+  if(before&&!todayOff)return {date:t,text:'TODAY ('+ST.fmtDate(t)+')',late:false,cut:c.cutoff||'14:00'};
+  const d=ST.nextWorkingDay(t);return {date:d,text:'on '+new Date(ST.parseISO(d)).toLocaleDateString('en-IN',{weekday:'long'})+' '+ST.fmtDate(d),late:true,cut:c.cutoff||'14:00',why:todayOff?'Today is a holiday ('+todayOff+')':'It is past '+(c.cutoff||'14:00')};}
+async function sendPickup(no){const j=getJob(no);if(!j)return;const o=orderOf(j);const w=pickupWhen();
+  const trs=ST.get(ST.K.transporters,[]).slice().sort();let tr=trOf(j);
+  const msgFor=name=>ST.pickupMessage(Object.assign({},j),Object.assign({},o||{},{transporterName:name}),w.text);
+  const r=await ST.modal({title:'📲 Pickup request — '+no,wide:false,sub:w.late?'⚠ '+w.why+' — the message asks for pickup '+w.text+'.':'Send before '+w.cut+' so the transporter can plan the vehicle today.',
+    html:`<label>Transporter</label><select id="pu_tr"><option value="">— Select —</option>${trs.map(x=>`<option ${x===tr?'selected':''}>${E(x)}</option>`).join('')}</select><label>Message</label><div class="st-lines" id="pu_msg">${E(msgFor(tr))}</div>`,
+    buttons:[{label:'Later',value:null},{label:'💬 Send to transporter',cls:'ok',onClick:(ov,err)=>{const name=ov.querySelector('#pu_tr').value;if(!name){err.textContent='Choose the transporter.';return false;}
+      const t=ST.transporter(name);const ph=t.phone||((o&&o.transporterName===name)?o.transporterPhone:'');if(!ph){err.textContent='No WhatsApp number for '+name+'. Add it in Masters → Transporters.';return false;}
+      ST.openWA(ph,msgFor(name));return name;}}]});
+  // live preview when transporter changes
+  if(!r)return;mutate(no,x=>{x.transporter=r;x.pickupMsgAt=new Date().toISOString();x.pickupFor=w.date;hist(x,x.stage,'Pickup WhatsApp sent to '+r+' for '+ST.fmtDate(w.date));});
+  if(j.orderRef)ST.updateOrder(j.orderRef,o2=>{if(!o2.transporterName)o2.transporterName=r;});toast('📲 Pickup request sent to '+r);refreshAll();}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='pu_tr'){const md=e.target.closest('.st-md');const no=(md.querySelector('h3').textContent.match(/JOB-\d+/)||[])[0];const j=no&&getJob(no);if(!j)return;
+  md.querySelector('#pu_msg').textContent=ST.pickupMessage(j,Object.assign({},orderOf(j)||{},{transporterName:e.target.value}),pickupWhen().text);}});
 
-function renderJobs(){const jobs=g(JK),srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';
-const fl=jobs.filter(j=>{if(srch&&!((j.party+j.jobNo+j.orderRef+j.type).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});
-document.getElementById('jBody').innerHTML=fl.slice().reverse().map(j=>{
-  const si=STAGE_IDX[j.stage]||0;const pct=Math.round((si/(STAGES.length-1))*100);
-  const clr=STAGE_CLR[j.stage]||'#666';const overdue=j.target&&j.target<new Date().toISOString().split('T')[0]&&j.stage!=='Ready'&&j.stage!=='Dispatched';
-  return `<tr style="${j.stage==='Dispatched'?'opacity:0.5;':''}"><td><button class="stg-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editJob('${j.jobNo}')">✏️</button>${j.stage!=='Dispatched'?`<button class="stg-btn" onclick="advanceStage('${j.jobNo}')">→ Next</button>`:''}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${j.jobNo}</td><td style="font-family:var(--mono);font-size:10px;">${j.orderRef||'—'}</td><td><strong>${j.party}</strong></td><td>${j.type||'—'}</td><td><strong>${j.qty}</strong></td><td><span class="tag" style="background:${clr}22;color:${clr};">${j.stage}</span></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${j.startDate||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${j.target||'—'}${overdue?' ⚠':''}</td><td>${j.worker||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:150px;">${j.remarks||'—'}</td></tr>`;
-}).join('');}
+// Ready → Bill approval → Bill & E-way bill
+async function approveBill(no){const j=getJob(no);if(!j||j.stage!=='Ready')return;
+  const r=await ST.approve({title:'Approve BILL — '+no,action:'Bill approval',ref:no,lines:lines(j,['Boxes: '+(j.boxes||'—')+' · Weight: '+(j.weight||'—')+' kg','Transporter: '+(trOf(j)||'—'),'Goods are ready. After approval the bill and e-way bill can be made.'])});
+  if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.bill=r;hist(x,x.stage,'Bill approved by '+r.by+' ('+r.role+')');});refreshAll();openBill(no);}
 
+/* ═══════════ BILL (Tax Invoice) + E-WAY BILL ═══════════ */
+const r2=n=>Math.round((+n||0)*100)/100;
+function nextInvNo(){const c=ST.company();const pre=c.invoicePrefix||'';let mx=0;ST.get(ST.K.bills,[]).forEach(b=>{if(String(b.no).startsWith(pre)){const m=String(b.no).slice(pre.length).match(/(\d+)/);if(m)mx=Math.max(mx,+m[1]);}});return pre+String(mx+1).padStart(4,'0');}
+function calcBill(b){const c=ST.company();const intra=String(b.buyer.stateCode||c.stateCode)===String(c.stateCode);let taxable=0,tax=0;
+  b.items.forEach(i=>{i.taxable=r2((+i.qty||0)*(+i.rate||0));i.tax=r2(i.taxable*(+i.gst||0)/100);taxable+=i.taxable;tax+=i.tax;});
+  b.intra=intra;b.taxable=r2(taxable);b.cgst=intra?r2(tax/2):0;b.sgst=intra?r2(tax/2):0;b.igst=intra?0:r2(tax);const raw=b.taxable+b.cgst+b.sgst+b.igst;b.total=Math.round(raw);b.roundOff=r2(b.total-raw);return b;}
+function billFromJob(j){const bills=ST.get(ST.K.bills,[]);const ex=bills.find(b=>b.jobNo===j.jobNo);if(ex)return JSON.parse(JSON.stringify(ex));
+  const c=ST.company();const o=orderOf(j)||{};const cl=ST.client(j.party);const tname=trOf(j);const t=ST.transporter(tname);
+  const gstin=(cl.gstin||'').toUpperCase();const sc=gstin?gstin.slice(0,2):(cl.stateCode||c.stateCode);
+  return {no:nextInvNo(),date:ST.today(),jobNo:j.jobNo,orderNo:j.orderRef||'',
+    buyer:{name:j.party,gstin,address:cl.address||'',place:o.location||cl.location||'',pincode:cl.pincode||'',stateCode:sc,phone:o.clientPhone||cl.phone||''},
+    items:itemsOf(j).map(i=>({desc:'Load Cell '+(i.type||'')+(i.capacity?' '+i.capacity:''),hsn:c.hsn||'',qty:i.qty||'',unit:'NOS',rate:'',gst:c.gst==null?18:c.gst})),
+    transport:{name:tname,id:t.transporterId||'',vehicle:'',distance:'',boxes:j.boxes||'',weight:j.weight||''}};}
+async function openBill(no){const j=getJob(no);if(!j)return;if(!(j.approvals&&j.approvals.bill)){alert('The bill must be approved first (🔐 Bill approval).');return;}
+  let b=billFromJob(j);const c=ST.company();
+  const itemRows=()=>b.items.map((i,k)=>`<tr><td><input data-k="${k}" data-f="desc" value="${E(i.desc)}"></td><td style="width:100px"><input data-k="${k}" data-f="hsn" value="${E(i.hsn)}" placeholder="HSN"></td><td style="width:70px"><input data-k="${k}" data-f="qty" type="number" value="${E(i.qty)}"></td><td style="width:110px"><input data-k="${k}" data-f="rate" type="number" step="0.01" value="${E(i.rate)}" placeholder="Rate ₹"></td><td style="width:70px"><input data-k="${k}" data-f="gst" type="number" step="0.01" value="${E(i.gst)}"></td><td style="width:110px;text-align:right;font-family:var(--mono)" class="amt">—</td></tr>`).join('');
+  const html=`<div class="bill-grid">
+   <div><label>Invoice No.</label><input id="b_no" value="${E(b.no)}"></div><div><label>Invoice Date</label><input id="b_date" type="date" value="${E(b.date)}"></div><div><label>Order / Job</label><input value="${E((b.orderNo||'—')+' / '+b.jobNo)}" disabled></div><div><label>Supply</label><input id="b_sup" disabled></div>
+   <div style="grid-column:span 2"><label>Buyer</label><input id="b_bn" value="${E(b.buyer.name)}"></div><div><label>Buyer GSTIN</label><input id="b_bg" value="${E(b.buyer.gstin)}" placeholder="24ABCDE1234F1Z5 or blank"></div><div><label>Buyer State Code</label><input id="b_bs" value="${E(b.buyer.stateCode)}" placeholder="24 = Gujarat"></div>
+   <div style="grid-column:span 2"><label>Buyer Address</label><input id="b_ba" value="${E(b.buyer.address)}"></div><div><label>Place</label><input id="b_bp" value="${E(b.buyer.place)}"></div><div><label>Pincode</label><input id="b_bpin" value="${E(b.buyer.pincode)}"></div></div>
+   <table class="bill-tbl"><thead><tr><th>Description</th><th>HSN</th><th>Qty</th><th>Rate (₹)</th><th>GST %</th><th style="text-align:right">Taxable</th></tr></thead><tbody id="b_items">${itemRows()}</tbody></table>
+   <div class="bill-grid" style="margin-top:6px;"><div><label>Transporter</label><input id="b_tn" value="${E(b.transport.name)}"></div><div><label>Transporter ID / GSTIN</label><input id="b_ti" value="${E(b.transport.id)}"></div><div><label>Vehicle No.</label><input id="b_tv" value="${E(b.transport.vehicle)}" placeholder="GJ06AB1234 (optional)"></div><div><label>Distance (km)</label><input id="b_td" type="number" value="${E(b.transport.distance)}"></div>
+   <div><label>No. of boxes</label><input id="b_tb" value="${E(b.transport.boxes)}"></div><div><label>Weight (kg)</label><input id="b_tw" value="${E(b.transport.weight)}"></div></div>
+   <div class="bill-tot" id="b_tot"></div><div class="bill-warn" id="b_warn"></div>`;
+  const read=ov=>{const q=id=>ov.querySelector('#'+id).value.trim();b.no=q('b_no');b.date=q('b_date');
+    b.buyer={name:q('b_bn'),gstin:q('b_bg').toUpperCase(),stateCode:q('b_bs')||(q('b_bg')?q('b_bg').slice(0,2):''),address:q('b_ba'),place:q('b_bp'),pincode:q('b_bpin'),phone:b.buyer.phone};
+    ov.querySelectorAll('#b_items input').forEach(inp=>{b.items[+inp.dataset.k][inp.dataset.f]=inp.value.trim();});
+    b.transport={name:q('b_tn'),id:q('b_ti').toUpperCase(),vehicle:q('b_tv').toUpperCase().replace(/\s/g,''),distance:q('b_td'),boxes:q('b_tb'),weight:q('b_tw')};calcBill(b);};
+  const paint=ov=>{read(ov);ov.querySelectorAll('#b_items tr').forEach((tr,k)=>tr.querySelector('.amt').textContent=ST.inr(b.items[k].taxable));
+    ov.querySelector('#b_sup').value=b.intra?'Intra-state (CGST+SGST)':'Inter-state (IGST)';
+    ov.querySelector('#b_tot').innerHTML=`<span>Taxable ${ST.inr(b.taxable)}</span>${b.intra?`<span>CGST ${ST.inr(b.cgst)}</span><span>SGST ${ST.inr(b.sgst)}</span>`:`<span>IGST ${ST.inr(b.igst)}</span>`}<span>Round off ${b.roundOff}</span><b>Total ${ST.inr(b.total)}</b>`;
+    ov.querySelector('#b_warn').innerHTML=billWarnings(b).map(w=>'⚠ '+E(w)).join('<br>');};
+  const p=ST.modal({title:'🧾 Bill & E-way bill — '+no,sub:'Approved by '+j.approvals.bill.by+' ('+j.approvals.bill.role+'). Fill rates now; missing details can be added later in Masters.',wide:true,html,
+    buttons:[{label:'Close',value:null},
+      {label:'📋 Copy e-way details',onClick:ov=>{read(ov);copyText(ewbText(b));return false;}},
+      {label:'⬇ E-way bill JSON',onClick:(ov,err)=>{read(ov);const e=saveBill(b,no);err.style.color=e?'':'#22c55e';if(e){err.textContent=e;return false;}downloadEWB(b);err.textContent='✓ E-way bill JSON downloaded. Upload it on ewaybillgst.gov.in → Generate Bulk.';return false;}},
+      {label:'💾 Save & Print Bill',cls:'ok',onClick:(ov,err)=>{read(ov);const e=saveBill(b,no);err.style.color=e?'':'#22c55e';if(e){err.textContent=e;return false;}printBill(b);err.textContent='✓ Saved as '+b.no+' — printing…';refreshAll();return false;}}]});
+  const ov=[...document.querySelectorAll('.st-ov')].pop();paint(ov);ov.addEventListener('input',()=>paint(ov));await p;refreshAll();}
+function billWarnings(b){const c=ST.company();const w=[];if(!c.gstin)w.push('Your company GSTIN is missing (Masters → Company).');if(!c.pincode)w.push('Your factory pincode is missing (Masters → Company).');
+  if(!b.buyer.gstin)w.push('Buyer GSTIN is blank — e-way bill will use URP (unregistered).');if(!b.buyer.pincode)w.push('Buyer pincode is needed for the e-way bill.');
+  if(b.items.some(i=>!i.hsn))w.push('HSN code missing on an item.');if(!b.transport.distance)w.push('Distance (km) is needed for the e-way bill.');if(!b.transport.id&&!b.transport.vehicle)w.push('E-way bill needs the Transporter ID or the Vehicle No.');
+  if(b.total>0&&b.total<50000)w.push('Invoice value is below ₹50,000 — an e-way bill may not be required.');return w;}
+function saveBill(b,no){if(!b.no)return 'Enter the invoice number.';if(b.items.some(i=>!(+i.rate>0)))return 'Enter a rate for every item first.';if(b.items.some(i=>!(+i.qty>0)))return 'Every item needs a quantity.';
+  const bills=ST.get(ST.K.bills,[]);const dup=bills.find(x=>x.no===b.no&&x.jobNo!==b.jobNo);if(dup)return 'Invoice number '+b.no+' is already used for '+dup.jobNo+'.';
+  calcBill(b);b.savedAt=new Date().toISOString();const k=bills.findIndex(x=>x.jobNo===b.jobNo);const prevNo=k>=0?bills[k].no:null;if(k>=0)bills[k]=b;else bills.push(b);ST.set(ST.K.bills,bills);
+  mutate(no,x=>{x.billNo=b.no;x.billDate=b.date;x.billTotal=b.total;if(b.transport.boxes)x.boxes=b.transport.boxes;if(b.transport.weight)x.weight=b.transport.weight;if(b.transport.name)x.transporter=b.transport.name;hist(x,x.stage,'Bill '+b.no+' saved ('+ST.inr(b.total)+')');});
+  if(b.orderNo)ST.updateOrder(b.orderNo,o=>{o.billNo=b.no;o.billDate=b.date;o.billTotal=b.total;});
+  // Remember buyer details in the client master
+  const cc=ST.get(ST.K.clients,{});const cl=cc[b.buyer.name]=cc[b.buyer.name]||{};['gstin','address','pincode','stateCode'].forEach(f=>{if(b.buyer[f])cl[f]=b.buyer[f];});ST.set(ST.K.clients,cc);
+  if(b.transport.name&&b.transport.id){const tc=ST.get(ST.K.trContacts,{});(tc[b.transport.name]=tc[b.transport.name]||{}).transporterId=b.transport.id;ST.set(ST.K.trContacts,tc);}
+  // Sales entry in Accounts (pending until paid)
+  const fin=ST.get(ST.K.fin,[]);let e=fin.find(x=>x.source==='bill'&&(x.ref===b.no||x.ref===prevNo));
+  if(!e){e={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:'income',source:'bill',status:'Pending',mode:'Credit'};fin.push(e);}
+  Object.assign(e,{date:b.date,amount:b.total,party:b.buyer.name,desc:'Invoice '+b.no+' · '+b.items.map(i=>i.desc+' × '+i.qty).join(', '),category:'Sales',ref:b.no,orderNo:b.orderNo,notes:'From Factory Production bill'});
+  ST.set(ST.K.fin,fin);return '';}
+function printBill(b){if(!window.jspdf){alert('PDF tool not loaded — connect to the internet once and reload.');return;}
+  const c=ST.company();const{jsPDF}=window.jspdf;const d=new jsPDF('p','mm','a4');const M=12,W=210;let y=12;
+  d.setFont('helvetica','bold');d.setFontSize(16);d.text(c.name||'',M,y+6);d.setFontSize(12);d.text('TAX INVOICE',W-M,y+6,{align:'right'});
+  d.setFont('helvetica','normal');d.setFontSize(9);const ca=[c.address,[c.city,c.state,c.pincode].filter(Boolean).join(', '),(c.gstin?'GSTIN: '+c.gstin:'GSTIN: ________')+'   State code: '+c.stateCode,[c.phone,c.email].filter(Boolean).join(' · ')].filter(Boolean);
+  ca.forEach((l,i)=>d.text(l,M,y+12+i*4.4));y+=12+ca.length*4.4+3;d.setDrawColor(120);d.line(M,y,W-M,y);y+=6;
+  d.setFont('helvetica','bold');d.text('Bill To',M,y);d.text('Invoice No: '+b.no,W-M,y,{align:'right'});d.setFont('helvetica','normal');
+  d.text('Date: '+ST.fmtDate(b.date),W-M,y+5,{align:'right'});d.text('Order: '+(b.orderNo||'—'),W-M,y+10,{align:'right'});
+  const bl=[b.buyer.name,b.buyer.address,[b.buyer.place,b.buyer.pincode].filter(Boolean).join(' - '),'GSTIN: '+(b.buyer.gstin||'URP')+'   State code: '+(b.buyer.stateCode||'—')];
+  bl.forEach((l,i)=>{d.setFont('helvetica',i?'normal':'bold');d.text(String(l||''),M,y+5+i*4.6);});y+=5+bl.length*4.6+4;
+  const cols=[['#',8],['Description',72],['HSN',22],['Qty',14],['Unit',12],['Rate',22],['GST%',14],['Taxable',22]];const tw=cols.reduce((a,c2)=>a+c2[1],0);
+  d.setFillColor(230,234,240);d.rect(M,y,tw,7,'F');let x=M;d.setFont('helvetica','bold');cols.forEach(c2=>{d.text(c2[0],x+1.5,y+4.8);x+=c2[1];});y+=7;d.setFont('helvetica','normal');
+  b.items.forEach((it,k)=>{x=M;const vals=[k+1,it.desc,it.hsn,it.qty,it.unit,(+it.rate).toFixed(2),it.gst,(+it.taxable).toFixed(2)];
+    vals.forEach((v,ci)=>{const al=ci>=3;d.text(String(v==null?'':v).slice(0,ci===1?48:16),al?x+cols[ci][1]-1.5:x+1.5,y+5,al?{align:'right'}:undefined);x+=cols[ci][1];});d.setDrawColor(210);d.line(M,y+7,M+tw,y+7);y+=7;});
+  y+=3;const tot=[['Taxable value',b.taxable]].concat(b.intra?[['CGST',b.cgst],['SGST',b.sgst]]:[['IGST',b.igst]]).concat([['Round off',b.roundOff],['TOTAL',b.total]]);
+  tot.forEach(([l,v],i)=>{d.setFont('helvetica',l==='TOTAL'?'bold':'normal');d.text(l,M+tw-40,y+5+i*5.5,{align:'right'});d.text('Rs. '+(+v).toFixed(2),M+tw-1.5,y+5+i*5.5,{align:'right'});});y+=tot.length*5.5+6;
+  d.setFont('helvetica','bold');d.text(ST.words(b.total),M,y);y+=8;d.setFont('helvetica','normal');
+  const tl=['Transporter: '+(b.transport.name||'—')+(b.transport.id?' ('+b.transport.id+')':''),'Vehicle: '+(b.transport.vehicle||'—')+'   Boxes: '+(b.transport.boxes||'—')+'   Weight: '+(b.transport.weight||'—')+' kg'];
+  tl.forEach((l,i)=>d.text(l,M,y+i*5));y+=14;if(c.bankDetails){d.text(d.splitTextToSize('Bank: '+c.bankDetails,120),M,y);}
+  d.text('For '+(c.name||''),W-M,y,{align:'right'});d.text('Authorised Signatory',W-M,y+18,{align:'right'});
+  d.setFontSize(7);d.setTextColor(140);d.text('Draft generated by Sentire Command Center — verify before use. Printed '+new Date().toLocaleString('en-IN'),W/2,290,{align:'center'});
+  ST.printDoc(d,'Invoice_'+b.no.replace(/\W+/g,'_'));}
+function ewbJSON(b){const c=ST.company();const dd=s2=>{const m=String(s2).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:'';};const n=v=>parseInt(String(v||'').replace(/\D/g,''))||0;
+  return {version:'1.0.0621',billLists:[{userGstin:c.gstin,supplyType:'O',subSupplyType:1,subSupplyDesc:'',docType:'INV',docNo:b.no,docDate:dd(b.date),
+    fromGstin:c.gstin,fromTrdName:c.name,fromAddr1:c.address,fromAddr2:'',fromPlace:c.city,fromPincode:n(c.pincode),fromStateCode:n(c.stateCode),actualFromStateCode:n(c.stateCode),
+    toGstin:b.buyer.gstin||'URP',toTrdName:b.buyer.name,toAddr1:b.buyer.address,toAddr2:'',toPlace:b.buyer.place,toPincode:n(b.buyer.pincode),toStateCode:n(b.buyer.stateCode||c.stateCode),actualToStateCode:n(b.buyer.stateCode||c.stateCode),
+    transactionType:1,otherValue:b.roundOff,totalValue:b.taxable,cgstValue:b.cgst,sgstValue:b.sgst,igstValue:b.igst,cessValue:0,cessNonAdvolValue:0,totInvValue:b.total,
+    transMode:1,transDistance:String(n(b.transport.distance)),transporterName:b.transport.name,transporterId:b.transport.id,transDocNo:'',transDocDate:'',vehicleNo:b.transport.vehicle,vehicleType:'R',
+    mainHsnCode:n(b.items[0]&&b.items[0].hsn),
+    itemList:b.items.map((i,k)=>({itemNo:k+1,productName:i.desc,productDesc:i.desc,hsnCode:n(i.hsn),quantity:+i.qty||0,qtyUnit:'NOS',taxableAmount:i.taxable,
+      sgstRate:b.intra?(+i.gst)/2:0,cgstRate:b.intra?(+i.gst)/2:0,igstRate:b.intra?0:+i.gst,cessRate:0,cessNonAdvol:0}))}]};}
+function downloadEWB(b){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ewbJSON(b),null,2)],{type:'application/json'}));a.download='EWB_'+b.no.replace(/\W+/g,'_')+'.json';a.click();
+  mutate(b.jobNo,x=>{x.ewbAt=new Date().toISOString();hist(x,x.stage,'E-way bill JSON made for '+b.no);});}
+function ewbText(b){const c=ST.company();return ['E-WAY BILL DETAILS','Supplier: '+c.name+' | GSTIN '+(c.gstin||'—')+' | '+c.city+' '+(c.pincode||''),'Invoice: '+b.no+' dated '+ST.fmtDate(b.date),
+  'Buyer: '+b.buyer.name+' | GSTIN '+(b.buyer.gstin||'URP')+' | '+(b.buyer.place||'')+' '+(b.buyer.pincode||'')+' | State '+(b.buyer.stateCode||''),
+  ...b.items.map(i=>'Item: '+i.desc+' | HSN '+i.hsn+' | Qty '+i.qty+' NOS | Taxable '+i.taxable+' | GST '+i.gst+'%'),
+  'Taxable '+b.taxable+' | CGST '+b.cgst+' | SGST '+b.sgst+' | IGST '+b.igst+' | Total '+b.total,'Transporter: '+(b.transport.name||'—')+' | ID '+(b.transport.id||'—')+' | Vehicle '+(b.transport.vehicle||'—')+' | Distance '+(b.transport.distance||'—')+' km'].join('\n');}
+function copyText(t){if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('📋 E-way bill details copied')).catch(()=>prompt('Copy:',t));else prompt('Copy:',t);}
+
+/* ═══════════ L.R. & DESPATCH ═══════════ */
+async function enterLR(no){const j=getJob(no);if(!j||j.stage!=='Ready')return;
+  if(!j.billNo&&!confirm('No bill has been made for '+no+' yet.\nDespatch without a bill?'))return;
+  const o=orderOf(j);const trs=ST.get(ST.K.transporters,[]).slice().sort();const tr=trOf(j);
+  const r=await ST.modal({title:'🚚 L.R. & Despatch — '+no,sub:j.party+' · '+ST.itemsShort(itemsOf(j))+(j.billNo?' · Bill '+j.billNo:''),
+    html:`<label>L.R. Number *</label><input id="lr_no" placeholder="LR-123456"><label>Despatch Date</label><input id="lr_d" type="date" value="${ST.today()}"><label>Transporter</label><select id="lr_tr"><option value="">— Select —</option>${trs.map(x=>`<option ${x===tr?'selected':''}>${E(x)}</option>`).join('')}</select><label>No. of boxes</label><input id="lr_b" value="${E(j.boxes||'')}"><label>Weight (kg)</label><input id="lr_w" value="${E(j.weight||'')}"><label>Tracking link (optional)</label><input id="lr_t" value="${E((o&&o.trackingLink)||ST.transporter(tr).trackingBase||'')}">`,
+    buttons:[{label:'Cancel',value:null},{label:'✓ Save — Despatched',cls:'ok',onClick:(ov,err)=>{const q=id=>ov.querySelector('#'+id).value.trim();if(!q('lr_no')){err.textContent='Enter the L.R. number.';return false;}if(!q('lr_d')){err.textContent='Enter the despatch date.';return false;}
+      return {lr:q('lr_no'),dod:q('lr_d'),transporter:q('lr_tr'),boxes:q('lr_b'),weight:q('lr_w'),tracking:q('lr_t')};}}]});
+  if(!r)return;
+  if(j.orderRef&&ST.findOrder(j.orderRef)){ST.recordDespatch(j.orderRef,r);refreshAll();toast('📦 Despatched — L.R. '+r.lr);ST.offerDespatch(j.orderRef);}
+  else{mutate(no,x=>{Object.assign(x,{lrNumber:r.lr,dod:r.dod,boxes:r.boxes||x.boxes,weight:r.weight||x.weight,transporter:r.transporter||x.transporter,stage:'Dispatched'});hist(x,'Dispatched','Despatched · L.R. '+r.lr);});refreshAll();toast('📦 Despatched — L.R. '+r.lr);offerJobDespatch(no);}}
+async function offerJobDespatch(no){const j=getJob(no);const cl=ST.client(j.party);const o={orderNo:j.orderRef||j.jobNo,partyName:j.party,items:itemsOf(j),transporterName:j.transporter,lrNumber:j.lrNumber,dod:j.dod,billNo:j.billNo,boxes:j.boxes,weight:j.weight};
+  const msg=ST.despatchMessage(o,j);await ST.modal({title:'📦 Despatched — inform the customer',sub:cl.phone?'WhatsApp to '+j.party+' ('+cl.phone+')':'No WhatsApp number for '+j.party+' — add it in Masters → Clients.',html:`<div class="st-lines">${E(msg)}</div>`,
+    buttons:[{label:'Later',value:null},{label:'💬 Send WhatsApp',cls:'ok',onClick:(ov,err)=>{if(!cl.phone){err.textContent='No number saved.';return false;}ST.openWA(cl.phone,msg);return true;}}]});}
+function resendDespatch(no){const j=getJob(no);if(!j)return;if(j.orderRef&&ST.findOrder(j.orderRef))ST.offerDespatch(j.orderRef);else offerJobDespatch(no);}
+
+/* Step back one stage (needs approval) — for mistakes */
+async function stepBack(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]||0;if(i<1||j.stage==='Dispatched')return;const prev=STAGES[i-1];
+  const r=await ST.approve({title:'Move '+no+' back to '+prev,action:'Step back',ref:no,lines:lines(j,['From '+j.stage+' back to '+prev+'.',i>=4?'Approvals given after '+prev+' will be cleared.':''])});if(!r)return;
+  mutate(no,x=>{x.approvals=x.approvals||{};if(x.stage==='Laser')delete x.approvals.laser;if(x.stage==='Packing'){delete x.approvals.packing;delete x.packedAt;}if(x.stage==='Ready'){delete x.approvals.packing;delete x.approvals.bill;delete x.pickupMsgAt;delete x.packedAt;}
+    x.stage=prev;hist(x,prev,'Moved back to '+prev+' by '+r.by+' ('+r.role+')');});toast('↩ Back to '+prev);refreshAll();}
+
+/* Which buttons a job shows, by stage */
+function flags(j){const a=j.approvals||{};const f=[];
+  if(j.stage==='Testing')f.push('<span class="flag wait">🔐 needs laser approval</span>');
+  if(a.laser&&STAGE_IDX[j.stage]>=4)f.push('<span class="flag ok" title="'+E(a.laser.by+' · '+new Date(a.laser.at).toLocaleString('en-IN'))+'">✓ laser: '+E(a.laser.by)+'</span>');
+  if(j.stage==='Packing'&&!j.packedAt)f.push('<span class="flag warn">enter boxes & weight</span>');
+  if(j.stage==='Packing'&&j.packedAt)f.push('<span class="flag wait">🔐 needs packing approval</span>');
+  if(a.packing&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packing: '+E(a.packing.by)+'</span>');
+  if(j.stage==='Ready'&&!j.pickupMsgAt)f.push('<span class="flag bad">📲 pickup msg not sent</span>');
+  if(j.pickupMsgAt&&j.stage==='Ready')f.push('<span class="flag ok">📲 pickup '+ST.fmtDate(j.pickupFor)+'</span>');
+  if(j.stage==='Ready'&&!a.bill)f.push('<span class="flag wait">🔐 needs bill approval</span>');
+  if(j.billNo)f.push('<span class="flag ok">🧾 '+E(j.billNo)+'</span>');
+  if(j.lrNumber)f.push('<span class="flag ok">L.R. '+E(j.lrNumber)+'</span>');
+  return f.join('');}
+function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h='';
+  const B=(cls,fn,label,tip)=>`<button class="stg-btn ${cls}" title="${E(tip||'')}" onclick="event.stopPropagation();${fn}('${no}')">${label}</button>`;
+  if(STAGE_IDX[j.stage]<3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
+  if(j.stage==='Testing')h+=B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
+  if(j.stage==='Laser')h+=B('','laserDone','✓ Laser done','Move to Packing');
+  if(j.stage==='Packing')h+=j.packedAt?B('apv','approvePacking','🔐 Approve packing','Approve, then WhatsApp the transporter')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
+  if(j.stage==='Ready'){h+=B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight');
+    h+=a.bill?B('bill','openBill','🧾 Bill / E-way','Bill and e-way bill'):B('apv','approveBill','🔐 Bill approval','Approve before making the bill');
+    h+=B('lr','enterLR','🚚 L.R. & Despatch','Enter L.R. — customer gets a WhatsApp');}
+  if(j.stage==='Dispatched'){h+=B('wa','resendDespatch','💬 Customer','Resend despatch WhatsApp');if(j.billNo)h+=B('bill','openBill','🧾','Bill / e-way bill');}
+  if(!compact){h+=B('pr','printJob','🖨️','Print job card (same as order sheet)')+B('wa','waJob','💬','Send job details on WhatsApp')+B('ed','editJob','✏️','Edit job details');
+    if(STAGE_IDX[j.stage]>=1&&j.stage!=='Dispatched')h+=B('bk','stepBack','↩','Move back one stage (needs approval)');}
+  else h+=B('pr','printJob','🖨️','Print job card');
+  return h;}
+
+/* ═══════════ RENDER ═══════════ */
+function renderJobs(){const jobs=g(JK),srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';const today=ST.today();
+  const fl=jobs.filter(j=>{const its=itemsOf(j);if(srch&&!((j.party+' '+j.jobNo+' '+(j.orderRef||'')+' '+ST.itemsShort(its)).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});
+  document.getElementById('jBody').innerHTML=fl.slice().reverse().map(j=>{const si=STAGE_IDX[j.stage]||0;const pct=Math.round((si/(STAGES.length-1))*100);const clr=STAGE_CLR[j.stage]||'#666';
+    const overdue=j.target&&j.target<today&&STAGE_IDX[j.stage]<6;const its=itemsOf(j);const tot=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);
+    return `<tr style="${j.stage==='Dispatched'?'opacity:0.55;':''}"><td style="min-width:200px;">${actions(j)}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${E(j.jobNo)}</td><td style="font-family:var(--mono);font-size:10px;">${E(j.orderRef)||'—'}</td><td><strong>${E(j.party)}</strong></td><td>${its.map(i=>E(i.type||'—')+(i.capacity?' <span style="color:var(--text-dim)">'+E(i.capacity)+'</span>':'')).join('<br>')}</td><td>${its.length>1?its.map(i=>E(i.qty)).join('<br>')+'<div style="font-size:10px;color:var(--green);font-family:var(--mono);">= '+tot+'</div>':'<strong>'+E(its[0].qty)+'</strong>'}</td><td><span class="tag" style="background:${clr}22;color:${clr};">${j.stage}</span><div>${flags(j)}</div></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(j.startDate)||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${ST.fmtDate(j.target)||'—'}${overdue?' ⚠':''}</td><td style="font-family:var(--mono);font-size:10px;">${j.boxes?E(j.boxes)+' box':'—'}${j.weight?'<br>'+E(j.weight)+' kg':''}</td><td>${E(j.worker)||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:160px;">${E(j.remarks)||'—'}</td></tr>`;}).join('');}
 function renderBoard(){const jobs=g(JK);
-document.getElementById('bRow').innerHTML=STAGES.map(st=>{
-  const stJ=jobs.filter(j=>j.stage===st);const clr=STAGE_CLR[st];
-  return `<div class="board-col" style="border-top:3px solid ${clr};"><h3>${st}</h3><div class="cnt" style="color:${clr};">${stJ.length}</div>${stJ.map(j=>`<div class="jcard" onclick="editJob('${j.jobNo}')"><b>${j.party}</b><small>${j.jobNo} · ${j.type||''} · ${j.qty} pcs</small></div>`).join('')}</div>`;
-}).join('');}
+  document.getElementById('bRow').innerHTML=STAGES.map(st=>{const stJ=jobs.filter(j=>j.stage===st);const clr=STAGE_CLR[st];
+    return `<div class="board-col" style="border-top:3px solid ${clr};"><h3>${st}</h3><div class="cnt" style="color:${clr};">${stJ.length}</div>${stJ.map(j=>`<div class="jcard"><b>${E(j.party)}</b><small>${E(j.jobNo)}${j.orderRef?' · '+E(j.orderRef):''}</small><small>${E(ST.itemsShort(itemsOf(j)))}</small>${j.boxes?'<small>'+E(j.boxes)+' box · '+E(j.weight||'—')+' kg</small>':''}<div>${flags(j)}</div><div class="acts">${actions(j,true)}</div></div>`).join('')}</div>`;}).join('');}
+function renderDash(){const jobs=g(JK),today=ST.today();const active=jobs.filter(j=>j.stage!=='Dispatched');
+  const totalQty=active.reduce((a,j)=>a+itemsOf(j).reduce((x,i)=>x+(parseFloat(i.qty)||0),0),0);const overdue=active.filter(j=>j.target&&j.target<today&&STAGE_IDX[j.stage]<6);
+  let html=`<div class="stat-card"><div class="num" style="color:var(--blue);">${jobs.length}</div><div class="lab">Total Jobs</div></div><div class="stat-card"><div class="num" style="color:var(--accent);">${active.length}</div><div class="lab">Active</div></div><div class="stat-card"><div class="num" style="color:var(--cyan);">${totalQty}</div><div class="lab">Total Pcs</div></div><div class="stat-card"><div class="num" style="color:var(--red);">${overdue.length}</div><div class="lab">Overdue</div></div>`;
+  STAGES.slice(0,-1).forEach(st=>{html+=`<div class="stat-card"><div class="num" style="color:${STAGE_CLR[st]};">${active.filter(j=>j.stage===st).length}</div><div class="lab">${st}</div></div>`;});
+  document.getElementById('dStats').innerHTML=html;
+  document.getElementById('stgDist').innerHTML=STAGES.slice(0,-1).map(st=>{const c=active.filter(j=>j.stage===st).length;const pct=active.length?Math.round(c/active.length*100):0;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:76px;font-size:11px;font-family:var(--mono);color:var(--text-dim);">${st}</span><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${STAGE_CLR[st]};border-radius:4px;"></div></div><span style="font-size:11px;font-family:var(--mono);font-weight:600;">${c}</span></div>`;}).join('');
+  const wait=pendingActions(jobs);
+  document.getElementById('waitList').innerHTML=wait.length?wait.map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${E(w.j.party)}</strong> · ${E(w.j.jobNo)} · <span style="color:#c084fc">${w.what}</span></span><span>${actions(w.j,true)}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">Nothing waiting ✓</p>';
+  document.getElementById('urgList').innerHTML=overdue.length?overdue.map(j=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${E(j.party)}</strong> · ${E(j.jobNo)} · ${j.stage}</span><span style="color:var(--red);font-family:var(--mono);font-size:10px;">Due: ${ST.fmtDate(j.target)}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No overdue jobs</p>';}
+function pendingActions(jobs){const out=[];jobs.forEach(j=>{const a=j.approvals||{};
+  if(j.stage==='Testing')out.push({j,what:'🔐 Laser approval'});
+  if(j.stage==='Packing'&&j.packedAt)out.push({j,what:'🔐 Packing approval'});
+  if(j.stage==='Ready'&&!j.pickupMsgAt)out.push({j,what:'📲 Pickup WhatsApp'});
+  if(j.stage==='Ready'&&!a.bill)out.push({j,what:'🔐 Bill approval'});});return out;}
+// Banners: pickup messages before the cut-off (2 PM) and approvals waiting
+let alertedFor='';
+function renderBanners(){const jobs=g(JK);const pend=jobs.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt);const b=document.getElementById('pickupBanner');
+  if(!pend.length){b.className='banner';b.innerHTML='';}
+  else{const w=pickupWhen();const now=new Date();const [h,m]=w.cut.split(':').map(Number);const left=h*60+(m||0)-(now.getHours()*60+now.getMinutes());
+    b.className='banner show'+(w.late?' late':'')+(!w.late&&left<=60?' urgent':'');
+    b.innerHTML=`<h4>🚚 ${pend.length} pickup WhatsApp${pend.length>1?'s':''} to send ${w.late?'— '+E(w.why)+', pickup will be asked '+E(w.text):'— send before '+w.cut+' ('+Math.floor(left/60)+' h '+(left%60)+' min left)'}</h4>`+
+      pend.map(j=>`<div class="rowp"><b>${E(j.party)}</b> · ${E(j.jobNo)} · ${E(j.boxes||'—')} box · ${E(j.weight||'—')} kg · ${E(trOf(j)||'no transporter yet')} <button class="stg-btn wa" onclick="sendPickup('${E(j.jobNo)}')">📲 Send now</button></div>`).join('');
+    // one reminder 30 minutes before the cut-off
+    if(!w.late&&left<=30&&left>0&&alertedFor!==ST.today()){alertedFor=ST.today();toast('⏰ '+pend.length+' pickup message(s) must go before '+w.cut+'!',8000);}}
+  const ap=pendingActions(jobs).filter(x=>x.what.startsWith('🔐'));const a=document.getElementById('apvBanner');
+  a.className='apv-banner'+(ap.length?' show':'');a.innerHTML=ap.length?`<b>🔐 ${ap.length} approval${ap.length>1?'s':''} waiting:</b> ${ap.map(x=>E(x.j.jobNo)+' '+x.what.replace('🔐 ','')).join(' · ')} <button class="stg-btn apv" onclick="showV('dash')">Open</button>`:'';}
+setInterval(renderBanners,60000);
+window.addEventListener('storage',()=>refreshAll());
 
-function renderDash(){const jobs=g(JK),today=new Date().toISOString().split('T')[0];
-const active=jobs.filter(j=>j.stage!=='Dispatched');const totalQty=active.reduce((a,j)=>a+(parseInt(j.qty)||0),0);
-const overdue=active.filter(j=>j.target&&j.target<today&&j.stage!=='Ready');
-let html=`<div class="stat-card"><div class="num" style="color:var(--blue);">${jobs.length}</div><div class="lab">Total Jobs</div></div>`;
-html+=`<div class="stat-card"><div class="num" style="color:var(--accent);">${active.length}</div><div class="lab">Active</div></div>`;
-html+=`<div class="stat-card"><div class="num" style="color:var(--cyan);">${totalQty}</div><div class="lab">Total Pcs</div></div>`;
-html+=`<div class="stat-card"><div class="num" style="color:var(--red);">${overdue.length}</div><div class="lab">Overdue</div></div>`;
-STAGES.slice(0,-1).forEach(st=>{const c=active.filter(j=>j.stage===st).length;html+=`<div class="stat-card"><div class="num" style="color:${STAGE_CLR[st]};">${c}</div><div class="lab">${st}</div></div>`;});
-document.getElementById('dStats').innerHTML=html;
-document.getElementById('stgDist').innerHTML=STAGES.slice(0,-1).map(st=>{const c=active.filter(j=>j.stage===st).length;const pct=active.length?Math.round(c/active.length*100):0;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:70px;font-size:11px;font-family:var(--mono);color:var(--text-dim);">${st}</span><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${STAGE_CLR[st]};border-radius:4px;"></div></div><span style="font-size:11px;font-family:var(--mono);font-weight:600;">${c}</span></div>`;}).join('');
-document.getElementById('urgList').innerHTML=overdue.length?overdue.map(j=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${j.party}</strong> · ${j.jobNo} · ${j.stage}</span><span style="color:var(--red);font-family:var(--mono);font-size:10px;">Due: ${j.target}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No overdue jobs</p>';}
+/* ═══════════ PRINT & WHATSAPP ═══════════ */
+// Job card = the same half-A4 layout as the Order Sheet print, opened straight in the printer dialog
+function printJob(no){const j=getJob(no);if(!j)return alert('Job not found');ST.printOrderSheets([{order:ST.orderForJob(j),opt:{jobNo:j.jobNo,stage:j.stage}}],{name:'JobCard_'+j.jobNo});}
+const fmtD=d=>{if(!d)return '—';const x=new Date(d);return isNaN(x)?d:x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});};
+function shownJobs(all){const jobs=g(JK);if(all)return jobs.filter(j=>j.stage!=='Dispatched');const srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';return jobs.filter(j=>{if(srch&&!((j.party+' '+j.jobNo+' '+(j.orderRef||'')+' '+ST.itemsShort(itemsOf(j))).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});}
+function openPrint(title,body){const w=window.open('','_blank');if(!w){alert('Please allow pop-ups for this page to print.');return;}
+w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${E(title)}</title><style>
+*{box-sizing:border-box;}body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;font-size:13px;}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:8px;margin-bottom:14px;}
+.hd h1{margin:0;font-size:20px;}.hd .co{font-size:12px;color:#444;}.hd .r{text-align:right;font-size:12px;}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;}th,td{border:1px solid #999;padding:6px 8px;text-align:left;vertical-align:top;}th{background:#eee;font-size:11px;text-transform:uppercase;}.urg{color:#c00;font-weight:bold;}
+@media print{body{margin:10mm;}}
+</style></head><body>${body}<script>window.onload=()=>{window.print();}<\/script></body></html>`);w.document.close();}
+const pHead=(t,sub)=>`<div class="hd"><div><h1>${E(t)}</h1><div class="co">${E(ST.company().name)} · Factory Production</div></div><div class="r">${sub||''}<br>Printed: ${fmtD(new Date())}</div></div>`;
+function printJobList(all){const fl=shownJobs(all);if(!fl.length)return alert('No jobs to print.');let tq=0;
+const rows=fl.map((j,i)=>{const its=itemsOf(j);const q=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);tq+=q;return `<tr><td>${i+1}</td><td>${E(j.jobNo)}</td><td>${E(j.orderRef)||'—'}</td><td><b>${E(j.party)}</b></td><td>${its.map(x=>E(x.type)+' × '+E(x.qty)+(x.capacity?' ('+E(x.capacity)+')':'')).join('<br>')}</td><td>${q}</td><td>${E(j.stage)}</td><td>${fmtD(j.target)}</td><td>${j.boxes?E(j.boxes)+' / '+E(j.weight||'—')+' kg':'—'}</td><td>${j.priority==='Urgent'?'<span class="urg">URGENT</span>':E(j.priority||'Normal')}</td></tr>`;}).join('');
+openPrint('Production Report',pHead('PRODUCTION REPORT',`${fl.length} jobs · ${tq} pcs`)+`<table><tr><th>#</th><th>Job#</th><th>Order#</th><th>Party</th><th>Items</th><th>Qty</th><th>Stage</th><th>Delivery</th><th>Boxes / Wt</th><th>Priority</th></tr>${rows}<tr><th colspan="5" style="text-align:right">Total</th><th>${tq}</th><th colspan="4"></th></tr></table>`);}
+function waOpen(msg){window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+function waJob(no){const j=getJob(no);if(!j)return alert('Job not found');const its=itemsOf(j);
+const L=['*'+ST.company().name+' — Production Job*','','*Job:* '+j.jobNo];if(j.orderRef)L.push('*Order:* '+j.orderRef);L.push('*Party:* '+j.party);
+its.forEach(i=>L.push('*Item:* '+(i.type||'—')+' × '+(i.qty||'—')+' pcs'+(i.capacity?' · '+i.capacity:'')+(i.wire?' · '+i.wire:'')));
+L.push('*Stage:* '+j.stage);if(j.target)L.push('*Delivery:* '+fmtD(j.target));if(j.boxes)L.push('*Boxes:* '+j.boxes+' · *Weight:* '+(j.weight||'—')+' kg');if(j.worker)L.push('*Worker:* '+j.worker);if(j.priority&&j.priority!=='Normal')L.push('*Priority:* '+j.priority.toUpperCase());if(j.remarks)L.push('*Remarks:* '+j.remarks);
+waOpen(L.join('\n'));}
+function waJobList(all){const fl=shownJobs(all);if(!fl.length)return alert('No jobs to send.');const qty=j=>itemsOf(j).reduce((a,b)=>a+(parseFloat(b.qty)||0),0);const tq=fl.reduce((a,j)=>a+qty(j),0);
+let L=['*'+ST.company().name+' — Production Report ('+fmtD(new Date())+')*',fl.length+' jobs · '+tq+' pcs',''];
+if(all){STAGES.slice(0,-1).forEach(st=>{const sj=fl.filter(j=>j.stage===st);if(!sj.length)return;L.push('*'+st+'* ('+sj.length+')');sj.forEach(j=>L.push('• '+j.jobNo+' – '+j.party+' – '+ST.itemsShort(itemsOf(j))+(j.priority==='Urgent'?' 🔥':'')));L.push('');});}
+else fl.forEach((j,i)=>L.push((i+1)+'. '+j.jobNo+' – '+j.party+' – '+ST.itemsShort(itemsOf(j))+' – '+j.stage+(j.target?' – due '+fmtD(j.target):'')+(j.priority==='Urgent'?' 🔥':'')));
+waOpen(L.join('\n').trim());}
+function exportJobsCSV(){const jobs=g(JK);if(!jobs.length)return alert('No jobs.');let csv='Job#,Order#,Party,Items,Total Qty,Stage,Start,Delivery,Boxes,Weight,Laser approved by,Packing approved by,Bill approved by,Bill No,L.R.,Despatch,Worker,Priority,Remarks\n';
+  jobs.forEach(j=>{const its=itemsOf(j);const a=j.approvals||{};csv+=[j.jobNo,j.orderRef,j.party,ST.itemsShort(its),its.reduce((x,i)=>x+(parseFloat(i.qty)||0),0),j.stage,j.startDate,j.target,j.boxes,j.weight,a.laser&&a.laser.by,a.packing&&a.packing.by,a.bill&&a.bill.by,j.billNo,j.lrNumber,j.dod,j.worker,j.priority,j.remarks].map(v=>'"'+(v==null?'':v).toString().replace(/"/g,'""')+'"').join(',')+'\n';});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='production_'+ST.today()+'.csv';a.click();}
 
-function exportJobsCSV(){const jobs=g(JK);if(!jobs.length)return alert('No jobs.');let csv='Job#,Order#,Party,Type,Qty,Capacity,Wire,Stage,Start,Target,Worker,Priority,Remarks\n';jobs.forEach(j=>{csv+=[j.jobNo,j.orderRef,j.party,j.type,j.qty,j.cap,j.wire,j.stage,j.startDate,j.target,j.worker,j.priority,j.remarks].map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='production_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
-
-renderDash();
+ST.attachCalendar(document.getElementById('jf_target'));
+renderDash();renderBanners();
 </script>
-<script src="voice_engine.js"></script></body></html>
+<script src="voice_engine.js"></script>
+<style>
+#tipBox{position:fixed;z-index:100000;pointer-events:none;background:#e8ecf4;color:#0c0f14;font:600 12px/1.35 'DM Sans',sans-serif;padding:6px 10px;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.45);max-width:260px;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;}
+#tipBox.show{opacity:1;transform:translateY(0);}
+</style>
+<div id="tipBox" role="tooltip"></div>
+<script>
+(function(){const box=document.getElementById('tipBox');let cur=null;
+  function place(el){const r=el.getBoundingClientRect();const w=box.offsetWidth,h=box.offsetHeight;let x=r.left+r.width/2-w/2;x=Math.max(8,Math.min(x,innerWidth-w-8));let y=r.top-h-8;if(y<8)y=r.bottom+8;box.style.left=x+'px';box.style.top=y+'px';}
+  document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]');if(el===cur)return;cur=el;if(!el){box.classList.remove('show');return;}box.textContent=el.dataset.tip;box.classList.add('show');place(el);});
+  document.addEventListener('scroll',()=>{cur=null;box.classList.remove('show');},true);})();
+</script>
+</body></html>

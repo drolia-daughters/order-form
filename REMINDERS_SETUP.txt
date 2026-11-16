@@ -1,0 +1,63 @@
+SENTIRE REMINDERS — ONE-TIME SETUP (about 10 minutes)
+=====================================================
+Your reminders live in YOUR Google account: a Google Sheet + 3 Google Calendars
+(Sentire – ODS (Monthly), Sentire – Annual, Sentire – Business).
+Your phone alerts you through the Google Calendar app, even when the page is closed.
+
+PART 1 — Google script (on the laptop, once)
+--------------------------------------------
+1. Open https://script.google.com  →  New project.
+2. Click "Untitled project" at the top and name it:  Sentire Reminders
+3. Delete everything in the editor. Open reminders_apps_script.gs (in this folder) in Notepad,
+   copy ALL of it, paste it into the editor, and press Ctrl+S.
+4. Click ⚙ Project Settings (left side) → Time zone → "(GMT+05:30) India Standard Time".
+5. Back in the editor (< > icon), choose the function  setup  in the drop-down at the top → click ▶ Run.
+   Google asks for permission → choose your account → "Advanced" → "Go to Sentire Reminders (unsafe)"
+   → Allow.  (It is your own script; Google shows this for every personal script.)
+6. Open "Execution log" at the bottom. Copy the line  SECRET KEY: xxxxxxxx  — you need it in step 9.
+7. Click Deploy (top right) → New deployment → ⚙ Select type → Web app.
+     Description: Reminders
+     Execute as:  Me
+     Who has access:  Anyone
+   → Deploy → copy the Web app URL (ends with /exec).
+   ("Anyone" lets the page reach it; without the secret key nobody can read or change anything.)
+
+PART 2 — Connect the Reminders page
+-----------------------------------
+8. Main Page → Reminders → tap "Local only · Connect" at the top.
+9. Paste the Web app URL and the SECRET KEY → Connect.
+   Reminders you already added on this device are uploaded to Google.
+
+PART 3 — On your phone
+----------------------
+10. The page must be on an https address for the microphone and Share to work on a phone.
+    Put these 6 files in your GitHub repository (drolia-daughters/order-form):
+      reminders.html, reminders_agent.js, reminders_sw.js, reminders.webmanifest,
+      reminders-192.png, reminders-512.png
+    (GitHub → repository → Add file → Upload files → Commit.)
+    Then open on the phone in Chrome:  https://drolia-daughters.github.io/order-form/reminders.html
+11. Tap "Connect" and paste the same URL + key (once per phone).
+12. Chrome menu ⋮ → "Add to Home screen" (or "Install app"). Allow the microphone when asked.
+13. Install the Google Calendar app (if not already) and make sure the 3 "Sentire –" calendars
+    are switched ON with notifications.
+
+HOW TO USE
+----------
+• Tap 🎤 and say:  "remind me on 20th of every month to pay GST"           → ODS
+                    "every year on 15 March renew factory licence"         → Annual
+                    "tomorrow at 11 am meeting with bank"                  → Business
+                    add "2 days before" for an early alert.
+  Check the card, tap ✓ Save. Use the ODS / Annual / Business buttons on the card to move it.
+• WhatsApp: open the message → long-press → Share → choose "Reminders" (after step 12),
+  or copy it into the "Paste a WhatsApp message" box. The agent reads the date and title.
+• Gmail: every morning at 7 AM the script looks for due dates, renewals, EMIs and premiums in
+  the last 3 days of mail and puts them in "To review". Tap ✓ Add or ✕. Button: "Check Gmail now".
+• Every morning at 8 AM you get an email with what is due today and in the next 7 days.
+• ✓ Done on a monthly/annual reminder marks this time done; the next one stays.
+
+LIMITS
+------
+• WhatsApp cannot be read automatically by any app — use Share or paste.
+• Monthly reminders on the 29th–31st skip months that do not have that day.
+• If you change the script later: Deploy → Manage deployments → ✏️ → Version: New version → Deploy
+  (the URL stays the same).

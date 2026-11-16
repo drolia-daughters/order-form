@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cohort — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="sentire_common.js"></script>
+<script src="cohort_engine.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#8b5cf6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:12px;}.brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;}.brand h1{font-size:15px;font-weight:600;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 11px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
+.main{padding:20px 24px 80px;max-width:1360px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.filters label{font-size:11px;color:var(--text-dim);font-family:var(--mono);text-transform:uppercase;}
+select,input{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;}
+.btn{padding:9px 14px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}.btn.sm{padding:5px 10px;font-size:11px;}.btn.wa{background:rgba(37,211,102,.12);border-color:rgba(37,211,102,.35);color:#25d366;}
+.demo-bar{display:none;background:rgba(201,133,0,.12);border:1px solid rgba(201,133,0,.45);color:#fbbf24;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;align-items:center;gap:10px;flex-wrap:wrap;}
+.demo-bar.show{display:flex;}
+.hint-bar{display:none;background:rgba(139,92,246,.10);border:1px solid rgba(139,92,246,.35);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;align-items:center;gap:10px;flex-wrap:wrap;}.hint-bar.show{display:flex;}
+h2{font-size:20px;margin-bottom:4px;}.sub{font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+h3{font-size:14px;font-weight:600;margin-bottom:2px;}.h3sub{font-size:11px;color:var(--text-dim);margin-bottom:10px;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.kpi .l{font-size:12px;color:var(--text-dim);}.kpi .v{font-size:26px;font-weight:700;font-family:var(--mono);margin-top:4px;letter-spacing:-.02em;}.kpi .d{font-size:11px;font-family:var(--mono);margin-top:4px;color:var(--text-dim);}
+.up{color:#4ade80;}.down{color:#f87171;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;min-width:0;}
+.card.wide{grid-column:1/-1;}
+.chart{min-height:120px;}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text-dim);margin-bottom:6px;}.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+.empty{color:var(--text-muted);font-size:12px;padding:30px 0;text-align:center;border:1px dashed var(--border);border-radius:8px;}
+.hb{display:flex;flex-direction:column;gap:7px;}.hr{display:grid;grid-template-columns:minmax(90px,170px) 1fr minmax(70px,auto);gap:10px;align-items:center;font-size:12px;cursor:default;}
+.hl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}.ht{height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden;}.hf{display:block;height:100%;border-radius:0 5px 5px 0;}
+.hv{font-family:var(--mono);text-align:right;color:var(--text);}.hv small{display:block;color:var(--text-dim);font-size:10px;}
+.insights{list-style:none;display:flex;flex-direction:column;gap:8px;}.insights li{font-size:13px;line-height:1.5;padding-left:22px;position:relative;}.insights li::before{content:attr(data-i);position:absolute;left:0;}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;}thead th{background:var(--surface-2);padding:8px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);white-space:nowrap;}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);}
+td.num,th.num{text-align:right;font-family:var(--mono);}
+.segs{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px;}
+.seg{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;}.seg:hover,.seg.on{border-color:var(--accent);}
+.seg .n{font-size:24px;font-weight:700;font-family:var(--mono);}.seg .t{font-size:12px;font-weight:600;margin-top:2px;}.seg .x{font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.4;}
+.stat{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;}
+.s-Champions{background:rgba(25,158,112,.18);color:#34d399;}.s-Loyal{background:rgba(57,135,229,.18);color:#60a5fa;}.s-New{background:rgba(144,133,233,.18);color:#a5b4fc;}.s-Need{background:rgba(201,133,0,.18);color:#fbbf24;}.s-At{background:rgba(217,89,38,.18);color:#fb923c;}.s-Lost{background:rgba(230,103,103,.18);color:#f87171;}
+.hm td.c{text-align:center;font-family:var(--mono);font-size:11px;min-width:48px;border:2px solid var(--surface);border-radius:4px;}
+.hm td.c.e{color:var(--text-muted);}
+.hm-legend{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);margin-top:10px;font-family:var(--mono);}.hm-legend .bar{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,#104281,#2a78d6,#6da7ec,#cde2fb);}
+.opp{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+.opp .top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;}
+.opp .ti{font-size:15px;font-weight:700;}.opp .why{font-size:13px;color:var(--text-dim);margin-top:4px;line-height:1.5;max-width:820px;}
+.opp .val{font-family:var(--mono);font-size:20px;font-weight:700;color:#4ade80;text-align:right;white-space:nowrap;}.opp .val small{display:block;font-size:10px;color:var(--text-dim);font-weight:500;}
+.opp .ppl{margin-top:10px;display:flex;flex-direction:column;gap:6px;}.opp .pp{display:flex;align-items:center;gap:10px;font-size:12px;background:var(--surface-2);border-radius:8px;padding:7px 10px;flex-wrap:wrap;}
+.opp .pp b{min-width:160px;}.opp .pp span{color:var(--text-dim);flex:1;}
+.wi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}.wi label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}.wi input[type=range]{width:100%;padding:0;accent-color:var(--accent);}.wi .wv{font-family:var(--mono);font-size:13px;font-weight:600;}
+.proj{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+.ask{display:flex;gap:8px;}.ask input{flex:1;font-size:15px;padding:13px 14px;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 18px;}.chip{border:1px solid var(--border);background:var(--surface);color:var(--text-dim);border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--sans);}.chip:hover{color:var(--text);border-color:var(--accent);}
+.answer{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+.answer .q{font-size:12px;color:var(--text-dim);font-family:var(--mono);margin-bottom:6px;}.answer .a{font-size:17px;line-height:1.55;}.answer .a b{color:#c4b5fd;}
+.answer details{margin-top:10px;}.answer summary{cursor:pointer;font-size:12px;color:#a78bfa;font-family:var(--mono);}
+.answer .how{font-size:11px;color:var(--text-muted);margin-top:8px;font-family:var(--mono);}
+.pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+.pc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}.pc .n{font-size:26px;font-weight:700;font-family:var(--mono);}.pc .l{font-size:12px;color:var(--text-dim);}.pc .s{font-size:11px;color:var(--text-muted);margin-top:4px;font-family:var(--mono);}
+#vtip{position:fixed;z-index:1000;pointer-events:none;background:#e8ecf4;color:#0c0f14;font:500 12px/1.5 var(--sans);padding:8px 10px;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.45);display:none;max-width:280px;}
+#vtip i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr);}.grid2,.grid3{grid-template-columns:1fr;}.segs{grid-template-columns:repeat(3,1fr);}.wi,.proj{grid-template-columns:1fr 1fr;}}
+@media (max-width:560px){.main{padding:16px;}.segs{grid-template-columns:1fr 1fr;}.ask{flex-direction:column;}.wi,.proj{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="brand"><div class="icon">CH</div><h1>Cohort — Business Dashboard</h1></div>
+<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="over">Overview</button><button class="tab-btn" data-v="sales">Sales</button><button class="tab-btn" data-v="cust">Customers &amp; Cohorts</button><button class="tab-btn" data-v="mkt">Marketing</button><button class="tab-btn" data-v="ops">Operations</button><button class="tab-btn" data-v="grow">💡 Grow Income</button><button class="tab-btn" data-v="ask">Ask</button><button class="tab-btn" data-v="pool">Data pool</button></div></div>
+<div class="main">
+<div class="demo-bar" id="demoBar">⚠ <b>DEMO DATA</b> — sample figures to show how the dashboard works. Nothing is saved and your real data is untouched. <button class="btn sm" onclick="setDemo(false)">Show my real data</button></div>
+<div class="hint-bar" id="hintBar">📊 You have only a few orders so far — charts fill up as you work. <button class="btn sm pri" onclick="setDemo(true)">Preview with demo data</button></div>
+<div class="filters" id="filters"><label>Period</label><select id="per" onchange="render()"><option value="m3">Last 3 months</option><option value="m6">Last 6 months</option><option value="m12" selected>Last 12 months</option><option value="fy">This financial year</option><option value="m24">Last 24 months</option><option value="all">All time</option></select><span class="h3sub" id="perNote" style="margin:0"></span><span class="h3sub" style="margin:0">· * month in progress</span></div>
+
+<!-- OVERVIEW -->
+<div class="view active" id="v_over">
+ <div class="kpis" id="kpis"></div>
+ <div class="grid2"><div class="card"><h3>Sales income by month</h3><div class="h3sub">Bills + sales entries in Accounts</div><div class="chart" id="c_rev"></div></div>
+ <div class="card"><h3>Income vs expenses</h3><div class="h3sub">Monthly — the gap is your profit</div><div class="chart" id="c_ie"></div></div></div>
+ <div class="grid3"><div class="card"><h3>Load cells ordered</h3><div class="h3sub">Pieces per month</div><div class="chart" id="c_pcs"></div></div>
+ <div class="card"><h3>Money waiting to come in</h3><div class="h3sub">Unpaid credit bills by age</div><div class="chart" id="c_age"></div></div>
+ <div class="card"><h3>Where the money goes</h3><div class="h3sub">Expenses by category</div><div class="chart" id="c_expcat"></div></div></div>
+ <div class="card"><h3>Management summary</h3><div class="h3sub">What the numbers say, in plain words</div><ul class="insights" id="insights"></ul></div>
+</div>
+
+<!-- SALES -->
+<div class="view" id="v_sales">
+ <div class="kpis" id="skpis"></div>
+ <div class="grid2"><div class="card"><h3>Top customers</h3><div class="h3sub" id="topSub"></div><div class="chart" id="c_top"></div></div>
+ <div class="card"><h3>Product mix</h3><div class="h3sub">Pieces by loadcell type · change vs previous period</div><div class="chart" id="c_mix"></div></div></div>
+ <div class="grid2"><div class="card"><h3>New vs returning customers</h3><div class="h3sub">Customers ordering each month</div><div class="chart" id="c_nr"></div></div>
+ <div class="card"><h3>Average order size</h3><div class="h3sub">Pieces per order, by month</div><div class="chart" id="c_aos"></div></div></div>
+ <div class="grid2"><div class="card"><h3>Sales by city</h3><div class="h3sub">Pieces ordered</div><div class="chart" id="c_city"></div></div>
+ <div class="card"><h3>Orders per month</h3><div class="h3sub">Number of orders received</div><div class="chart" id="c_ord"></div></div></div>
+</div>
+
+<!-- CUSTOMERS & COHORTS -->
+<div class="view" id="v_cust">
+ <h2>Customer health</h2><p class="sub">Every customer is placed in one group from how recently and how often they buy. Click a group to list its customers.</p>
+ <div class="segs" id="segs"></div>
+ <div class="grid2"><div class="card"><h3>Cohort retention</h3><div class="h3sub">Customers grouped by month of first order — % who ordered again in later months</div><div class="table-wrap" style="border:0"><table class="hm" id="hm"></table></div><div class="hm-legend"><span>low</span><span class="bar"></span><span>high</span></div></div>
+ <div class="card"><h3>Average retention curve</h3><div class="h3sub">% of a new cohort still ordering N months later</div><div class="chart" id="c_ret"></div><div class="h3sub" id="retNote" style="margin-top:8px"></div></div></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;"><div><h3 id="custTitle">All customers</h3><div class="h3sub" style="margin:0">Sorted by value · avg gap = usual days between orders</div></div><div style="display:flex;gap:8px;"><input id="cs" placeholder="Search…" oninput="renderCustTable()" style="max-width:200px"><button class="btn sm" onclick="csv(custRows(),'customers')">↓ CSV</button></div></div>
+ <div class="table-wrap"><table><thead><tr><th>Customer</th><th>Group</th><th>City</th><th>First order</th><th>Last order</th><th class="num">Days since</th><th class="num">Orders</th><th class="num">Avg gap</th><th>Next order due</th><th class="num">Pcs</th><th class="num">Value ₹</th><th class="num">Unpaid ₹</th><th>Buys</th></tr></thead><tbody id="custBody"></tbody></table></div></div>
+</div>
+
+<!-- MARKETING -->
+<div class="view" id="v_mkt">
+ <div class="kpis" id="mkpis"></div>
+ <div class="grid2"><div class="card"><h3>Lead funnel</h3><div class="h3sub">How many leads reach each step (from the CRM)</div><div class="chart" id="c_fun"></div></div>
+ <div class="card"><h3>Conversion by lead source</h3><div class="h3sub">% of leads that became orders · bar label shows leads</div><div class="chart" id="c_src"></div></div></div>
+ <div class="grid2"><div class="card"><h3>New leads per month</h3><div class="h3sub">Enquiries added to the CRM</div><div class="chart" id="c_leadm"></div></div>
+ <div class="card"><h3>Telecaller performance</h3><div class="h3sub">Leads handled, calls made and conversions</div><div class="table-wrap" style="border:0"><table><thead><tr><th>Telecaller</th><th class="num">Leads</th><th class="num">Calls</th><th class="num">Converted</th><th class="num">Conversion</th></tr></thead><tbody id="callerBody"></tbody></table></div></div></div>
+ <div class="card"><h3>Lead sources in detail</h3><div class="table-wrap" style="border:0;margin-top:8px"><table><thead><tr><th>Source</th><th class="num">Leads</th><th class="num">Converted</th><th class="num">Conversion</th><th class="num">Converted value</th></tr></thead><tbody id="srcBody"></tbody></table></div></div>
+</div>
+
+<!-- OPERATIONS -->
+<div class="view" id="v_ops">
+ <div class="kpis" id="okpis"></div>
+ <div class="grid2"><div class="card"><h3>Jobs in each stage now</h3><div class="h3sub">Factory Production</div><div class="chart" id="c_stage"></div></div>
+ <div class="card"><h3>Average days in each stage</h3><div class="h3sub">Where jobs wait longest — the bottleneck is at the top</div><div class="chart" id="c_stdays"></div></div></div>
+ <div class="grid2"><div class="card"><h3>Order to despatch time</h3><div class="h3sub">Average days from approval to despatch, by month</div><div class="chart" id="c_cyc"></div></div>
+ <div class="card"><h3>Late against delivery date</h3><div class="h3sub">Open orders past their promised delivery date</div><div class="table-wrap" style="border:0"><table><thead><tr><th>Order</th><th>Customer</th><th>Delivery</th><th class="num">Days late</th><th>Stage</th></tr></thead><tbody id="lateBody"></tbody></table></div></div></div>
+</div>
+
+<!-- GROW INCOME -->
+<div class="view" id="v_grow">
+ <h2>Grow income — what to do next</h2><p class="sub">Opportunities found in your own data, biggest first. The ₹ figure is an estimate of extra sales (or cash) per year if you act — based on each customer's past orders and your average selling prices. Tap 💬 to message a customer directly.</p>
+ <div id="opps"></div>
+ <div class="card" style="margin-top:6px"><h3>What-if: how much more can this set-up earn?</h3><div class="h3sub" id="wiBase"></div>
+  <div class="wi"><div><label>Win back / keep more customers</label><input type="range" id="w_ret" min="0" max="30" value="10" oninput="renderWhatIf()"><div class="wv" id="w_retV"></div></div>
+  <div><label>Bigger orders (avg order size)</label><input type="range" id="w_size" min="0" max="30" value="10" oninput="renderWhatIf()"><div class="wv" id="w_sizeV"></div></div>
+  <div><label>New customers per month</label><input type="range" id="w_new" min="0" max="6" value="1" oninput="renderWhatIf()"><div class="wv" id="w_newV"></div></div>
+  <div><label>Price increase</label><input type="range" id="w_price" min="0" max="10" value="3" oninput="renderWhatIf()"><div class="wv" id="w_priceV"></div></div></div>
+  <div class="proj" id="wiOut"></div><div class="h3sub" style="margin-top:10px" id="wiHow"></div></div>
+</div>
+
+<!-- ASK -->
+<div class="view" id="v_ask"><h2>Ask your data</h2><p class="sub">One question, one answer. Name a customer, a loadcell type, a stage or a period (this month, last month, March, last 30 days, 2026). Tap “Show records” under an answer to see the details.</p>
+ <div class="ask"><input id="q" placeholder="e.g. How many DLC did Hindustan Smart order this year?" autocomplete="off"><button class="btn pri" id="askBtn" onclick="ask()">Ask</button></div>
+ <div class="chips" id="chips"></div><div id="answers"></div></div>
+
+<!-- DATA POOL -->
+<div class="view" id="v_pool"><h2>Data pool</h2><p class="sub">Everything the dashboard reads, gathered from all apps. Download it as a backup, open it in Excel, or attach it in a Claude chat for deeper questions.</p>
+ <div class="pool" id="poolCards"></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" onclick="downloadPool()">⬇ Download data pool (JSON)</button><button class="btn" onclick="csv(orderLineRows(),'order_lines')">↓ Order lines (CSV)</button><button class="btn" onclick="csv(custRows(),'customers')">↓ Customers (CSV)</button></div></div>
+</div>
+<div id="vtip"></div>
+<script>
+const E=ST.esc,num=CE.num,inr=v=>ST.inr(v),inrS=CE.inrShort;let M=null,cur='over',segFilter='';
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab-btn');if(!b)return;cur=b.dataset.v;document.querySelectorAll('.tab-btn').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v_'+cur));document.getElementById('filters').style.display=(cur==='ask'||cur==='pool')?'none':'flex';render();});
+function setDemo(on){CE.demo=on;CE._demo=null;render();}
+const pct=(a,b)=>b?Math.round((a-b)/Math.abs(b)*100):null;
+const delta=(a,b,good)=>{const p=pct(a,b);if(p==null||!isFinite(p))return '<span>no earlier data</span>';const up=p>=0;const ok=good==='down'?!up:up;return `<span class="${ok?'up':'down'}">${up?'▲':'▼'} ${Math.abs(p)}%</span> vs previous period`;};
+const kpi=(l,v,d)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d||''}</div></div>`;
+const labels=()=>M.per.months.map((m,i,a)=>CE.mLabel(m)+(i===a.length-1&&m===ST.today().slice(0,7)?'*':''));
+const sumO=o=>Object.values(o).reduce((a,b)=>a+b,0);
+
+function render(){M=CE.model(document.getElementById('per').value);
+  document.getElementById('demoBar').classList.toggle('show',CE.demo);document.getElementById('hintBar').classList.toggle('show',!CE.demo&&CE.real().orders.length<8);
+  document.getElementById('perNote').textContent=ST.fmtDate(M.per.from)+' → '+ST.fmtDate(M.per.to)+' · compared with the same length before';
+  ({over:rOver,sales:rSales,cust:rCust,mkt:rMkt,ops:rOps,grow:rGrow,ask:()=>{},pool:rPool})[cur]();}
+let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(M)({over:rOver,sales:rSales,cust:rCust,mkt:rMkt,ops:rOps,grow:()=>{},ask:()=>{},pool:()=>{}})[cur]();},200);});
+
+/* ═════ OVERVIEW ═════ */
+function rOver(){const profit=M.rev-M.exp,profitPrev=M.revPrev-M.expPrev;
+  document.getElementById('kpis').innerHTML=
+    kpi('Sales income',M.hasRevenue?inrS(M.rev):'—',M.hasRevenue?delta(M.rev,M.revPrev):'appears once bills are made')+kpi('Net profit (income − expenses)',M.hasRevenue?inrS(profit):'—',M.hasRevenue&&M.rev?(Math.round(profit/M.rev*100)+'% margin · '+delta(profit,profitPrev)):'')+
+    kpi('Orders',M.orders,delta(M.orders,M.ordersPrev))+kpi('Load cells ordered',M.pcs.toLocaleString('en-IN')+' pcs',delta(M.pcs,M.pcsPrev))+
+    kpi('Active customers',M.active,M.newCust+' new · '+delta(M.active,M.activePrev))+kpi('Repeat customers',M.repeatRate+'%',M.repeatRatePrev?('was '+M.repeatRatePrev+'%'):'of customers who ordered')+
+    kpi('Average order value',M.aov?inrS(M.aov):'—',M.aov?delta(M.aov,M.aovPrev):'')+kpi('Money to collect',inrS(M.outstanding),M.overdue?`<span class="down">${inrS(M.overdue)} overdue</span>`:'nothing overdue');
+  CE.bars(document.getElementById('c_rev'),{labels:labels(),series:[{name:'Sales income',values:M.revM}],fmt:inrS,title:'Sales income by month',empty:'No sales income yet — bills from Factory Production appear here'});
+  CE.bars(document.getElementById('c_ie'),{labels:labels(),series:[{name:'Income',values:M.revM},{name:'Expenses',values:M.expM}],fmt:inrS,title:'Income vs expenses'});
+  CE.lines(document.getElementById('c_pcs'),{labels:labels(),series:[{name:'Pieces',values:M.pcsM}],title:'Pieces per month'});
+  CE.hbars(document.getElementById('c_age'),{rows:Object.entries(M.ageing).map(([k,v],i)=>({label:k,value:v,color:['#199e70','#c98500','#d95926','#e66767','#e66767'][i]})),fmt:inrS,empty:'Nothing waiting — all credit bills are paid ✓'});
+  CE.hbars(document.getElementById('c_expcat'),{rows:Object.entries(M.expCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k,value:v,sub:M.exp?Math.round(v/M.exp*100)+'%':''})),fmt:inrS,color:CE.C.s[1],empty:'No expenses entered for this period'});
+  document.getElementById('insights').innerHTML=insights().map(x=>`<li data-i="${x[0]}">${x[1]}</li>`).join('')||'<li data-i="ℹ️">Add orders, bills and expenses — insights appear here automatically.</li>';}
+function insights(){const out=[];const p=M.per.label;
+  if(M.hasRevenue&&M.revPrev){const d=pct(M.rev,M.revPrev);out.push([d>=0?'📈':'📉',`Sales income in the ${p} is <b>${inrS(M.rev)}</b>, ${d>=0?'up':'down'} <b>${Math.abs(d)}%</b> on the period before.`]);}
+  else if(M.hasRevenue)out.push(['💰',`Sales income in the ${p}: <b>${inrS(M.rev)}</b>.`]);
+  if(M.hasRevenue&&M.rev){const m=Math.round((M.rev-M.exp)/M.rev*100);out.push([m>=15?'✅':m>=0?'⚠️':'🔴',`Profit margin is <b>${m}%</b>${M.expCat['Raw Material']?' — raw material is '+Math.round(M.expCat['Raw Material']/M.rev*100)+'% of sales':''}.`]);}
+  const bm=M.revM.indexOf(Math.max(...M.revM));if(M.hasRevenue&&M.revM[bm])out.push(['🏆',`Best month: <b>${CE.mLabel(M.per.months[bm])}</b> with ${inrS(M.revM[bm])}.`]);
+  if(M.topCust[0])out.push(['👑',`Biggest customer: <b>${E(M.topCust[0].name)}</b> (${M.top1Share}% of sales). Top 5 customers bring <b>${M.top5Share}%</b>${M.top5Share>=70?' — high dependence on a few buyers':''}.`]);
+  const mix=Object.entries(M.mix).sort((a,b)=>b[1]-a[1]);if(mix[0])out.push(['📦',`Most ordered type: <b>${E(mix[0][0])}</b> (${Math.round(mix[0][1]/(sumO(M.mix)||1)*100)}% of pieces).`]);
+  out.push(['🔁',`<b>${M.repeatRate}%</b> of active customers are repeat buyers; <b>${M.newCust}</b> new customer${M.newCust!==1?'s':''} joined.`]);
+  const ar=M.segs['At risk'].length,lo=M.segs['Lost'].length;if(ar||lo)out.push(['🎯',`<b>${ar}</b> customer${ar!==1?'s are':' is'} at risk and <b>${lo}</b> lost — see 💡 Grow Income for who to call.`]);
+  if(M.overdue)out.push(['💰',`<b>${inrS(M.overdue)}</b> is overdue from ${M.overdueList.length} order${M.overdueList.length!==1?'s':''}; oldest is ${M.overdueList[0].pi.over} days late (${E(M.overdueList[0].o.partyName)}).`]);
+  if(M.cycle!=null)out.push(['⏱️',`Orders take <b>${M.cycle} days</b> on average from approval to despatch${M.onTime!=null?'; <b>'+M.onTime+'%</b> despatched on or before the delivery date':''}.`]);
+  if(M.leads.length)out.push(['📣',`<b>${M.leads.length}</b> leads, <b>${M.convRate}%</b> converted${M.sources[0]?' — '+E(M.sources.slice().sort((a,b)=>b.rate-a.rate)[0].source)+' converts best':''}.`]);
+  return out;}
+
+/* ═════ SALES ═════ */
+function rSales(){const byRev=M.hasRevenue;const avgPcs=M.orders?Math.round(M.pcs/M.orders):0;
+  document.getElementById('skpis').innerHTML=kpi('Orders',M.orders,delta(M.orders,M.ordersPrev))+kpi('Average order size',avgPcs+' pcs',M.ordersPrev?delta(avgPcs,Math.round(M.pcsPrev/M.ordersPrev)):'')+kpi('Top 5 customers share',M.top5Share+'%',M.top5Share>=70?'<span class="down">high dependence</span>':'<span class="up">well spread</span>')+kpi('Average price per load cell',M.avgPrice?inr(Math.round(M.avgPrice)):'—','from bills (before GST)');
+  document.getElementById('topSub').textContent=(byRev?'By sales income':'By pieces')+' in the '+M.per.label;
+  CE.hbars(document.getElementById('c_top'),{rows:M.topCust.slice(0,10).map(c=>({label:c.name,value:byRev?c.rev:c.pcs,sub:c.orders+' orders · '+c.pcs+' pcs'})),fmt:byRev?inrS:(v=>v+' pcs')});
+  CE.hbars(document.getElementById('c_mix'),{rows:Object.entries(M.mix).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const pv=M.mixPrev[k]||0;const d=pv?Math.round((v-pv)/pv*100):null;return {label:k,value:v,sub:Math.round(v/(sumO(M.mix)||1)*100)+'%'+(d==null?'':' · '+(d>=0?'▲':'▼')+Math.abs(d)+'%')};}),fmt:v=>v.toLocaleString('en-IN')+' pcs',color:CE.C.s[2]});
+  CE.bars(document.getElementById('c_nr'),{labels:labels(),series:[{name:'Returning',values:M.retM},{name:'New',values:M.newM}],stacked:true,title:'New vs returning'});
+  CE.lines(document.getElementById('c_aos'),{labels:labels(),series:[{name:'Pcs per order',values:M.avgPcsM}],title:'Average order size'});
+  CE.hbars(document.getElementById('c_city'),{rows:Object.entries(M.city).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k,value:v})),fmt:v=>v+' pcs',color:CE.C.s[6]});
+  CE.bars(document.getElementById('c_ord'),{labels:labels(),series:[{name:'Orders',values:M.ordM}],title:'Orders per month',fmt:v=>Math.round(v)});}
+
+/* ═════ CUSTOMERS & COHORTS ═════ */
+const SEGINFO={Champions:'Buy often and recently — your best customers. Keep them happy.',Loyal:'Buy regularly. Offer volume rates to grow them.','New':'First order in the last 90 days. Follow up for the 2nd order.','Need attention':'Bought once some time ago, or slowing down.','At risk':'Usually regular but now overdue for an order. Call them.',Lost:'No order for 6+ months. Win-back offer.'};
+function rCust(){document.getElementById('segs').innerHTML=Object.entries(M.segs).map(([k,a])=>`<div class="seg ${segFilter===k?'on':''}" data-s="${k}"><div class="n">${a.length}</div><div class="t"><span class="stat s-${k.split(' ')[0]}">${k}</span></div><div class="x">${SEGINFO[k]}</div></div>`).join('');
+  document.querySelectorAll('.seg').forEach(s=>s.onclick=()=>{segFilter=segFilter===s.dataset.s?'':s.dataset.s;rCust();});
+  renderCohort();renderCustTable();}
+function renderCohort(){const P=M.P;const nowI=CE.mIdx(ST.today().slice(0,7));const n=Math.min(12,M.per.months.length);const first=M.first;
+  const cohorts={};Object.entries(first).forEach(([p,d])=>{const i=CE.mIdx(d.slice(0,7));if(i>nowI-n)(cohorts[i]=cohorts[i]||new Set()).add(p);});const keys=Object.keys(cohorts).map(Number).sort((a,b)=>a-b);const maxOff=Math.min(11,n-1);
+  const cell={};P.orders.forEach(o=>{if(!o.partyName||!o.date)return;const c=CE.mIdx(first[o.partyName].slice(0,7));if(!cohorts[c])return;const off=CE.mIdx(o.date.slice(0,7))-c;if(off<0||off>maxOff)return;(cell[c+'|'+off]=cell[c+'|'+off]||new Set()).add(o.partyName);});
+  const RAMP=['#104281','#184f95','#1c5cab','#256abf','#2a78d6','#3987e5','#5598e7','#6da7ec','#86b6ef','#9ec5f4','#b7d3f6','#cde2fb'];
+  const val=(c,o)=>cell[c+'|'+o]?Math.round(cell[c+'|'+o].size/cohorts[c].size*100):0;
+  let h=`<thead><tr><th>Cohort</th><th class="num">Cust.</th>${Array.from({length:maxOff},(_,o)=>`<th class="num">M${o+1}</th>`).join('')}</tr></thead><tbody>`;
+  keys.slice().reverse().forEach(c=>{h+=`<tr><td style="font-family:var(--mono)">${CE.mLabel(CE.mFromIdx(c))}</td><td class="num">${cohorts[c].size}</td>`;
+    for(let o=1;o<=maxOff;o++){if(c+o>nowI){h+='<td class="c e"></td>';continue;}const v=val(c,o);const k=Math.min(11,Math.floor(v/100*11));const set=cell[c+'|'+o];
+      h+=`<td class="c${v?'':' e'}" style="${v?`background:${RAMP[k]};color:${k>=6?'#0c0f14':'#e8ecf4'}`:''}" data-t="${E(CE.mLabel(CE.mFromIdx(c))+' cohort · '+CE.mLabel(CE.mFromIdx(c+o))+': '+(set?set.size:0)+' of '+cohorts[c].size+' ordered'+(set?' ('+[...set].slice(0,4).join(', ')+(set.size>4?'…':'')+')':''))}">${v?v+'%':'·'}</td>`;}h+='</tr>';});
+  document.getElementById('hm').innerHTML=keys.length?h+'</tbody>':'<tbody><tr><td class="empty" style="border:0">No new customers in this period yet</td></tr></tbody>';
+  document.querySelectorAll('#hm td[data-t]').forEach(td=>{td.onmousemove=e=>CE.tipShow(E(td.dataset.t),e);td.onmouseleave=CE.tipHide;});
+  // average curve
+  const curve=[];for(let o=1;o<=maxOff;o++){const el=keys.filter(c=>c+o<=nowI);curve.push(el.length?Math.round(el.reduce((s,c)=>s+val(c,o),0)/el.length):null);}
+  CE.lines(document.getElementById('c_ret'),{labels:curve.map((_,i)=>'M'+(i+1)),series:[{name:'% still ordering',values:curve}],max:100,fmt:v=>Math.round(v)+'%',title:'Retention curve'});
+  const m3=curve[2];document.getElementById('retNote').innerHTML=m3!=null?`On average <b>${m3}%</b> of new customers are still ordering 3 months after their first order.`:'';}
+function custList(){const q=(document.getElementById('cs').value||'').toLowerCase();return M.customers.filter(c=>(!segFilter||c.seg===segFilter)&&(!q||c.name.toLowerCase().includes(q)));}
+function renderCustTable(){const t=ST.today();document.getElementById('custTitle').textContent=segFilter?segFilter+' customers':'All customers';
+  document.getElementById('custBody').innerHTML=custList().map(c=>{const due=c.nextDue?ST.daysBetween(t,c.nextDue):null;
+    return `<tr><td><strong>${E(c.name)}</strong></td><td><span class="stat s-${c.seg.split(' ')[0]}">${c.seg}</span></td><td>${E(c.loc)||'—'}</td><td style="font-family:var(--mono)">${ST.fmtDate(c.first)}</td><td style="font-family:var(--mono)">${ST.fmtDate(c.last)}</td><td class="num">${c.since}</td><td class="num">${c.orders}</td><td class="num">${c.gap==null?'—':c.gap+' d'}</td><td style="font-family:var(--mono);font-size:11px;${due!=null&&due<0&&c.seg!=='Lost'?'color:#fbbf24':''}">${c.nextDue&&c.seg!=='Lost'?ST.fmtDate(c.nextDue)+(due<0?' ('+(-due)+'d late)':''):'—'}</td><td class="num">${c.pcs}</td><td class="num">${c.rev?inrS(c.rev):'—'}</td><td class="num">${c.unpaid?inrS(c.unpaid):'—'}</td><td style="font-size:11px">${E(Object.entries(c.types).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>k+' '+v).join(', '))}</td></tr>`;}).join('')||'<tr><td colspan="13" class="empty" style="border:0">No customers</td></tr>';}
+function custRows(){return (M||CE.model('m12')).customers.map(c=>({Customer:c.name,Group:c.seg,City:c.loc,'First order':c.first,'Last order':c.last,'Days since':c.since,Orders:c.orders,'Avg gap days':c.gap==null?'':c.gap,'Next due':c.nextDue||'',Pcs:c.pcs,'Value ₹':Math.round(c.rev),'Unpaid ₹':Math.round(c.unpaid)}));}
+
+/* ═════ MARKETING ═════ */
+function rMkt(){const conv=M.leads.filter(l=>l.status==='Converted');const best=M.sources.slice().filter(s=>s.leads>=3).sort((a,b)=>b.rate-a.rate)[0];
+  document.getElementById('mkpis').innerHTML=kpi('Leads',M.leads.length,'in the '+M.per.label)+kpi('Converted to orders',conv.length,M.convRate+'% conversion')+kpi('Best source',best?E(best.source):'—',best?best.rate+'% conversion':'')+kpi('Quotes waiting 7+ days',M.staleQuotes.length,M.staleQuotes.length?'<span class="down">follow up now</span>':'all followed up');
+  const f=M.funnel;CE.hbars(document.getElementById('c_fun'),{rows:f.map((s,i)=>({label:s.stage,value:s.n,sub:i?Math.round(s.n/(f[i-1].n||1)*100)+'% of previous':'all leads'})),color:CE.C.s[6],fmt:v=>v+' leads',empty:'No leads in the CRM for this period'});
+  CE.hbars(document.getElementById('c_src'),{rows:M.sources.map(s=>({label:s.source,value:s.rate||0.0001,sub:s.leads+' leads',tip:s.conv+' converted'})),fmt:v=>Math.round(v)+'%',color:CE.C.s[2],empty:'No leads yet'});
+  CE.bars(document.getElementById('c_leadm'),{labels:labels(),series:[{name:'Leads',values:M.leadM}],title:'Leads per month',fmt:v=>Math.round(v)});
+  document.getElementById('callerBody').innerHTML=M.callers.map(c=>`<tr><td>${E(c.caller)}</td><td class="num">${c.leads}</td><td class="num">${c.calls}</td><td class="num">${c.conv}</td><td class="num">${c.rate}%</td></tr>`).join('')||'<tr><td colspan="5" class="empty" style="border:0">No telecaller data</td></tr>';
+  document.getElementById('srcBody').innerHTML=M.sources.map(s=>`<tr><td>${E(s.source)}</td><td class="num">${s.leads}</td><td class="num">${s.conv}</td><td class="num">${s.rate}%</td><td class="num">${s.val?inrS(s.val):'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty" style="border:0">No leads</td></tr>';}
+
+/* ═════ OPERATIONS ═════ */
+function rOps(){const w=M.waiting;const open=Object.values(M.stageCount).reduce((a,b)=>a+b,0);
+  document.getElementById('okpis').innerHTML=kpi('Jobs in production',open,'not yet despatched')+kpi('Order → despatch',M.cycle!=null?M.cycle+' days':'—','average, '+M.per.label)+kpi('On-time despatch',M.onTime!=null?M.onTime+'%':'—','vs delivery date')+kpi('Waiting for approval',w.laser+w.packing+w.bill+w.orders,`${w.orders} order · ${w.laser} laser · ${w.packing} packing · ${w.bill} bill`);
+  CE.bars(document.getElementById('c_stage'),{labels:Object.keys(M.stageCount),series:[{name:'Jobs',values:Object.values(M.stageCount)}],fmt:v=>Math.round(v),title:'Jobs by stage',empty:'No jobs in production'});
+  CE.hbars(document.getElementById('c_stdays'),{rows:Object.entries(M.stageDays).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k,value:v})),fmt:v=>v+' days',color:CE.C.s[3],empty:'Stage times appear once jobs move through production'});
+  CE.lines(document.getElementById('c_cyc'),{labels:labels(),series:[{name:'Days to despatch',values:M.cycleM.map(v=>v||null)}],fmt:v=>(Math.round(v*10)/10)+'d',title:'Order to despatch'});
+  document.getElementById('lateBody').innerHTML=M.late.sort((a,b)=>b.days-a.days).map(x=>`<tr><td style="font-family:var(--mono)">${E(x.o.orderNo)}</td><td>${E(x.o.partyName)}</td><td style="font-family:var(--mono)">${ST.fmtDate(x.o.deliveryDate)}</td><td class="num" style="color:#f87171">${x.days}</td><td>${x.job?E(x.job.stage):'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty" style="border:0">Nothing is late ✓</td></tr>';}
+
+/* ═════ GROW INCOME ═════ */
+let OPS=[];
+function rGrow(){OPS=CE.opportunities(M);
+  document.getElementById('opps').innerHTML=OPS.length?OPS.map((op,k)=>`<div class="opp"><div class="top"><div><div class="ti">${op.icon} ${E(op.title)}</div><div class="why">${E(op.why)}</div></div><div class="val">${op.risk?'<span style="color:#fbbf24">risk</span>':inrS(op.value)}<small>${op.risk?'spread your sales':op.cash?'cash to collect':'est. extra sales / year'}</small></div></div>
+    ${op.people.length?`<div class="ppl">${op.people.map((p,i)=>`<div class="pp"><b>${E(p.c.name)}</b><span>${E(p.note)}</span>${op.msg?`<button class="btn sm wa" data-k="${k}" data-i="${i}">💬 Message</button>`:''}</div>`).join('')}</div>`:''}
+    ${op.link?`<div style="margin-top:10px"><button class="btn sm" onclick="goApp('${op.link}')">${E(op.linkLabel)} →</button></div>`:''}</div>`).join(''):'<div class="card empty">No opportunities found yet — they appear as orders, bills and leads build up. Try “Preview with demo data” to see examples.</div>';
+  document.querySelectorAll('#opps .btn.wa').forEach(b=>b.onclick=()=>{const op=OPS[+b.dataset.k],p=op.people[+b.dataset.i];if(!p.c.phone){alert('No WhatsApp number saved for '+p.c.name+'. Add it in Masters → Clients.');return;}ST.openWA(p.c.phone,op.msg(p.c));b.textContent='✓ Opened';});
+  renderWhatIf();}
+function goApp(f){if(window.top!==window)window.top.postMessage({sentireNav:f},'*');else location.href=f;}
+function renderWhatIf(){if(!M)return;const r=+document.getElementById('w_ret').value,s=+document.getElementById('w_size').value,n=+document.getElementById('w_new').value,p=+document.getElementById('w_price').value;
+  document.getElementById('w_retV').textContent='+'+r+'% of customers kept';document.getElementById('w_sizeV').textContent='+'+s+'% per order';document.getElementById('w_newV').textContent=n+' per month';document.getElementById('w_priceV').textContent='+'+p+'%';
+  const useRev=M.rev12>0;const base=useRev?M.rev12:M.pcs12;const perCust=M.cust12?base/M.cust12:0;
+  const keep=base*r/100,size=base*s/100,newc=n*12*perCust*0.4,price=useRev?(base+keep+size+newc)*p/100:0;const total=keep+size+newc+price;const fmt=useRev?inrS:(v=>Math.round(v).toLocaleString('en-IN')+' pcs');
+  document.getElementById('wiBase').textContent=base?('Base: last 12 months = '+fmt(base)+' from '+M.cust12+' customers ('+fmt(perCust)+' per customer per year).'):'Needs at least a few months of orders and bills.';
+  document.getElementById('wiOut').innerHTML=kpi('Today (last 12 months)',fmt(base),'')+kpi('Possible next 12 months',fmt(base+total),base?'<span class="up">▲ '+Math.round(total/base*100)+'%</span>':'')+kpi('Extra',fmt(total),useRev?'':'add bills to see ₹');
+  document.getElementById('wiHow').textContent='How it is worked out: customers kept × their usual yearly buying + bigger orders + new customers at 40% of a normal customer in their first year'+(useRev?' + price increase on the total':'')+'. Use it to set targets for sales, marketing and telecallers.';}
+
+/* ═════ ASK — one specific answer per question ═════ */
+const GENERIC=new Set(['and','the','pvt','ltd','private','limited','company','co','scale','scales','weighing','weigh','system','systems','industries','industry','traders','trading','enterprise','enterprises','engineering','works','india','technologies','tech','electronics','corporation','corp','group','sons','brothers','bros','shree','shri','sri','new','house']);
+const words=s=>String(s||'').toLowerCase().replace(/[^a-z0-9&. ]+/g,' ').split(/\s+/).filter(Boolean);
+function findParty(q,names){const ql=' '+q.toLowerCase().replace(/[^a-z0-9&. ]+/g,' ')+' ';let best=null,score=0;
+  names.forEach(n=>{const nl=n.toLowerCase().replace(/[^a-z0-9&. ]+/g,' ').trim();if(nl&&ql.includes(' '+nl+' ')){if(100>score){best=n;score=100;}return;}
+    const w=words(n).filter(x=>x.length>=3&&!GENERIC.has(x));if(!w.length)return;const hit=w.filter(x=>ql.includes(' '+x+' ')).length;const sc=hit/w.length*90;if(hit&&sc>=45&&sc>score){best=n;score=sc;}});return best;}
+const TYPES=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];
+function findTypes(q){const out=[];const up=' '+q.replace(/[^A-Za-z. ]+/g,' ')+' ';const low=up.toLowerCase();
+  TYPES.forEach(t=>{const sens=['AS','DS','CUT','REG'].includes(t);if(sens?up.includes(' '+t+' '):low.includes(' '+t.toLowerCase()+' '))out.push(t);});if(/\bs[ -]?type\b/i.test(q)&&!out.includes('S TYPE'))out.push('S TYPE');return out;}
+const MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+function findPeriod(q){const t=ST.today(),d=ST.parseISO(t),y=d.getFullYear(),m=d.getMonth();const ql=q.toLowerCase();const iso=ST.iso;let r;const mS=(yy,mm)=>iso(new Date(yy,mm,1)),mE=(yy,mm)=>iso(new Date(yy,mm+1,0));
+  if(/\btoday\b/.test(ql))r={from:t,to:t,label:'today'};else if(/\byesterday\b/.test(ql)){const x=ST.addDays(t,-1);r={from:x,to:x,label:'yesterday'};}
+  else if(/\bthis week\b/.test(ql))r={from:ST.addDays(t,-((d.getDay()+6)%7)),to:t,label:'this week'};else if(/\blast week\b/.test(ql)){const s=ST.addDays(t,-((d.getDay()+6)%7)-7);r={from:s,to:ST.addDays(s,6),label:'last week'};}
+  else if(/\bthis month\b/.test(ql))r={from:mS(y,m),to:t,label:'this month'};else if(/\b(last|previous) month\b/.test(ql))r={from:mS(y,m-1),to:mE(y,m-1),label:'last month'};
+  else if(/\b(this|current) (financial|fiscal) year\b|\bthis fy\b/.test(ql)){const fy=m>=3?y:y-1;r={from:fy+'-04-01',to:t,label:'FY '+fy+'-'+String(fy+1).slice(2)};}
+  else if(/\blast (financial|fiscal) year\b|\blast fy\b/.test(ql)){const fy=(m>=3?y:y-1)-1;r={from:fy+'-04-01',to:(fy+1)+'-03-31',label:'FY '+fy+'-'+String(fy+1).slice(2)};}
+  else if(/\bthis year\b/.test(ql))r={from:y+'-01-01',to:t,label:'this year'};else if(/\blast year\b/.test(ql))r={from:(y-1)+'-01-01',to:(y-1)+'-12-31',label:String(y-1)};
+  else{const n=ql.match(/\b(?:last|past)\s+(\d+)\s+(day|week|month)s?\b/);if(n){const k=+n[1]*(n[2]==='day'?1:n[2]==='week'?7:30);r={from:ST.addDays(t,-k+1),to:t,label:'last '+n[1]+' '+n[2]+'s'};}}
+  if(!r){const mm=ql.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b(?:\s*[-' ]?\s*(\d{2,4}))?/);if(mm&&!(mm[1]==='may'&&!mm[2]&&/\bmay (i|we|you)\b/.test(ql))){const mi=MON.indexOf(mm[1]);const yy=mm[2]?(+mm[2]<100?2000+(+mm[2]):+mm[2]):(mi>m?y-1:y);r={from:mS(yy,mi),to:mE(yy,mi),label:mm[1][0].toUpperCase()+mm[1].slice(1)+' '+yy};}}
+  if(!r){const yy=ql.match(/\b(20\d{2})\b/);if(yy)r={from:yy[1]+'-01-01',to:yy[1]+'-12-31',label:yy[1]};}return r;}
+const STAGE_WORDS={received:'Received',assembly:'Assembly',wiring:'Wiring',testing:'Testing',laser:'Laser',packing:'Packing',packed:'Packing',ready:'Ready',dispatched:'Dispatched',despatched:'Dispatched'};
+const orderRow=o=>({Order:o.orderNo,Date:ST.fmtDate(o.date),Customer:o.partyName,Items:ST.itemsShort(ST.items(o)),Pcs:num(o.quantity),Status:o.status==='completed'?'Despatched':o.status==='awaiting'?'Awaiting approval':'In production'});
+
+function ask(text){const q=(text||document.getElementById('q').value).trim();if(!q)return;document.getElementById('q').value=q;let r;
+  try{r=answer(q);}catch(e){console.error(e);r={a:'Sorry — something went wrong reading the data ('+E(e.message)+').'};}
+  const div=document.createElement('div');div.className='answer';
+  div.innerHTML=`<div class="q">❓ ${E(q)}</div><div class="a">${r.a}</div>${r.rows&&r.rows.length?`<details><summary>Show the ${r.rows.length} record${r.rows.length>1?'s':''} behind this answer</summary>${tableHtml(r.rows)}<div class="how"><a href="#" data-csv style="color:#a78bfa">↓ CSV</a></div></details>`:''}${r.how?`<div class="how">From: ${E(r.how)}</div>`:''}`;
+  if(r.rows&&r.rows.length)div.querySelector('[data-csv]').onclick=e=>{e.preventDefault();csv(r.rows,'answer');};
+  const box=document.getElementById('answers');box.insertBefore(div,box.firstChild);while(box.children.length>15)box.removeChild(box.lastChild);}
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')ask();});
+
+function answer(q){const P=CE.pool();const ql=q.toLowerCase();const has=(...w)=>w.some(x=>ql.includes(x));
+  const party=findParty(q,[...new Set(P.orders.map(o=>o.partyName).concat(P.fin.map(f=>f.party)).filter(Boolean))]);const types=findTypes(q);const per=findPeriod(q);
+  const stageWord=Object.keys(STAGE_WORDS).find(w=>new RegExp('\\b'+w+'\\b').test(ql));const stage=stageWord&&STAGE_WORDS[stageWord];
+  const inP=d=>!per||CE.inR(d,per.from,per.to);const perTxt=per?' '+per.label:'';const forTxt=party?' for <b>'+E(party)+'</b>':'';
+  const howMany=has('how many','number of','count'),howMuch=has('how much','amount','value','worth','₹','rupee'),who=/\b(who|which customer|which party|whom)\b/.test(ql),when=/\bwhen\b/.test(ql);
+  const inc=P.fin.filter(e=>e.type==='income'),exp=P.fin.filter(e=>e.type==='expense');const sum=(a,f)=>a.reduce((s,x)=>s+num(f(x)),0);
+  const M12=CE.model('m12');
+
+  // Payments
+  if(has('overdue','outstanding','unpaid','not paid','pending payment','payment due','receivable','owe','dues','to collect','collect')){
+    let rows=P.orders.filter(o=>!party||o.partyName===party).map(o=>({o,pi:ST.payInfo(o)})).filter(x=>x.pi.mode==='Credit'&&x.pi.action!=='paid'&&x.o.dod);
+    const onlyOver=has('overdue','late');if(onlyOver)rows=rows.filter(x=>x.pi.over>0);rows.sort((a,b)=>b.pi.over-a.pi.over);const amt=sum(rows,x=>x.o.billTotal);const w=onlyOver?'overdue':'unpaid';
+    const rr=rows.map(x=>({Order:x.o.orderNo,Customer:x.o.partyName,Amount:x.o.billTotal||'','Due':ST.fmtDate(x.pi.due),'Days overdue':Math.max(0,x.pi.over),Reminders:x.pi.sent}));
+    if(!rows.length)return {a:`Nothing is ${w}${forTxt}. ✓`,how:'credit orders'};
+    const nc=new Set(rows.map(x=>x.o.partyName)).size;
+    if(who)return {a:`${nc} customer${nc>1?'s have':' has'} ${w} payments — most ${onlyOver?'overdue':'pending'}: <b>${E(rows[0].o.partyName)}</b>${rows[0].pi.over>0?' ('+rows[0].pi.over+' days)':''}${rows.length>1?', then '+[...new Set(rows.slice(1,3).map(x=>x.o.partyName))].map(E).join(', '):''}.`,rows:rr,how:'credit orders'};
+    if(howMany&&!howMuch)return {a:`<b>${rows.length}</b> ${w} order${rows.length>1?'s':''}${forTxt}.`,rows:rr,how:'credit orders'};
+    return {a:`<b>${inrS(amt)}</b> ${w}${forTxt} (${rows.length} order${rows.length>1?'s':''}).`,rows:rr,how:'credit orders'};}
+  // Reorders due
+  if(has('reorder','due to order','will order','order again','next order','expected order')){const c=party?M12.customers.find(x=>x.name===party):null;
+    if(c)return {a:c.nextDue?`<b>${E(c.name)}</b> usually orders every <b>${c.gap} days</b> — next order expected around <b>${ST.fmtDate(c.nextDue)}</b>.`:`<b>${E(c.name)}</b> has only one order so far — no pattern yet.`,how:'order history'};
+    const due=M12.customers.filter(x=>x.nextDue&&x.seg!=='Lost'&&ST.daysBetween(ST.today(),x.nextDue)<=14&&x.since<=(x.gap||60)*2);
+    return {a:due.length?`<b>${due.length}</b> customer${due.length>1?'s are':' is'} due to reorder in the next 2 weeks: ${due.slice(0,4).map(x=>'<b>'+E(x.name)+'</b>').join(', ')}${due.length>4?' …':''}.`:'No customer is due to reorder in the next 2 weeks.',rows:due.map(x=>({Customer:x.name,'Usual gap (days)':x.gap,'Last order':ST.fmtDate(x.last),'Expected':ST.fmtDate(x.nextDue)})),how:'order history'};}
+  // Approvals
+  if(has('approv','waiting')){const w=CE.model('m12').waiting;const tot=w.orders+w.laser+w.packing+w.bill;
+    return {a:tot?`<b>${tot}</b> approval${tot>1?'s':''} waiting: ${[w.orders&&w.orders+' order',w.laser&&w.laser+' laser',w.packing&&w.packing+' packing',w.bill&&w.bill+' bill'].filter(Boolean).join(', ')}.`:'Nothing is waiting for approval. ✓',how:'orders + production'};}
+  // Profit
+  if(has('profit','margin','loss')){const i=sum(inc.filter(e=>inP(e.date)),e=>e.amount),x=sum(exp.filter(e=>inP(e.date)),e=>e.amount);
+    return {a:x?`Profit${perTxt||' (all time)'}: <b>${inrS(i-x)}</b>${i?' — '+Math.round((i-x)/i*100)+'% margin':''} (income ${inrS(i)} − expenses ${inrS(x)}).`:`Sales income${perTxt||''} is <b>${inrS(i)}</b>, but no expenses are entered for this period yet — profit can't be worked out until they are.`,how:'Accounts'};}
+  // Expenses
+  if(has('expense','spent','spend','expenditure','paid to','purchase')){const cats=['raw material','china import','salary','rent','utilities','transport','marketing','equipment','misc'];const cat=cats.find(c=>ql.includes(c));
+    const rows=exp.filter(e=>inP(e.date)&&(!party||e.party===party)&&(!cat||(e.category||'').toLowerCase()===cat));const tot=sum(rows,e=>e.amount);
+    if(has('biggest','most','highest','top')&&!cat){const by={};rows.forEach(e=>by[e.category||'Misc']=(by[e.category||'Misc']||0)+num(e.amount));const b=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+      return {a:b?`Biggest expense${perTxt}: <b>${E(b[0])}</b> — ${inrS(b[1])} (${Math.round(b[1]/(tot||1)*100)}% of spending).`:'No expenses found.',how:'Accounts'};}
+    return {a:`Expenses${perTxt}${cat?' on '+cat:''}${party?' to <b>'+E(party)+'</b>':''}: <b>${inrS(tot)}</b>.`,rows:rows.map(e=>({Date:ST.fmtDate(e.date),Vendor:e.party,Category:e.category,Amount:e.amount})),how:'Accounts'};}
+  // Bills
+  if(has('bills','invoice','billed')||/\bbill\b/.test(ql)){const bills=P.bills.filter(b=>inP(b.date)&&(!party||(b.buyer||{}).name===party));const tot=sum(bills,b=>b.total);
+    return {a:howMany&&!howMuch?`<b>${bills.length}</b> bill${bills.length!==1?'s':''}${perTxt}${forTxt}.`:`Bills${perTxt}${forTxt}: <b>${inrS(tot)}</b> (${bills.length} bill${bills.length!==1?'s':''}).`,rows:bills.map(b=>({Invoice:b.no,Date:ST.fmtDate(b.date),Customer:(b.buyer||{}).name,Total:b.total})),how:'bills'};}
+  // Sales income / revenue
+  if(has('revenue','turnover','income','sales','sold','earn','business')&&(howMuch||has('revenue','turnover','income','earn','business')||!howMany)){const rows=inc.filter(e=>inP(e.date)&&(!party||e.party===party));const tot=sum(rows,e=>e.amount);
+    if(!has('pcs','pieces','quantity','qty')&&(rows.length||!P.orders.length))return {a:`Sales income${perTxt||' (all time)'}${party?' from <b>'+E(party)+'</b>':''}: <b>${inrS(tot)}</b>.`,rows:rows.map(e=>({Date:ST.fmtDate(e.date),Customer:e.party,Amount:e.amount,Status:e.status})),how:'Accounts income (bills + sales entries)'};}
+  // Best month
+  if(has('best month','highest month','peak month')){const by={};inc.forEach(e=>{const k=(e.date||'').slice(0,7);by[k]=(by[k]||0)+num(e.amount);});const b=Object.entries(by).sort((a,b)=>b[1]-a[1])[0];
+    if(b)return {a:`Best month: <b>${CE.mLabel(b[0])}</b> with ${inrS(b[1])} sales income.`,how:'Accounts'};
+    const bp={};P.orders.forEach(o=>{const k=(o.date||'').slice(0,7);bp[k]=(bp[k]||0)+num(o.quantity);});const c=Object.entries(bp).sort((a,b)=>b[1]-a[1])[0];return {a:c?`Best month: <b>${CE.mLabel(c[0])}</b> with ${c[1]} pcs ordered.`:'No orders yet.',how:'orders'};}
+  // Repeat / retention
+  if(has('repeat','retention','come back','returning')){const m=M12;const rep2=m.customers.filter(x=>x.orders>=2).length;return {a:`<b>${m.repeatRate}%</b> of customers who ordered in the last 12 months were repeat buyers (${rep2} of ${m.customers.length} customers have ordered more than once).`,how:'order history'};}
+  // Average order
+  if(has('average order','avg order','order size','order value')){const os=P.orders.filter(o=>inP(o.date)&&(!party||o.partyName===party));const pcs=sum(os,o=>o.quantity);const val=sum(os,o=>o.billTotal);
+    return {a:os.length?`Average order${perTxt}${forTxt}: <b>${Math.round(pcs/os.length)} pcs</b>${val?' · '+inrS(val/os.filter(o=>o.billTotal).length)+' per billed order':''} (${os.length} orders).`:'No orders found.',how:'orders'};}
+  // Conversion / leads
+  if(has('conversion','convert','lead','enquir','inquir','source')){const L=P.leads.filter(l=>inP(l.createdAt));const c=L.filter(l=>l.status==='Converted').length;
+    if(has('source','best','which')){const by={};L.forEach(l=>{const s=l.source||'Unknown';by[s]=by[s]||[0,0];by[s][0]++;if(l.status==='Converted')by[s][1]++;});const arr=Object.entries(by).filter(x=>x[1][0]>=3).map(([s,v])=>[s,Math.round(v[1]/v[0]*100),v[0]]).sort((a,b)=>b[1]-a[1]);
+      return {a:arr.length?`Best lead source: <b>${E(arr[0][0])}</b> — ${arr[0][1]}% of its ${arr[0][2]} leads converted${arr.length>1?'; weakest: '+E(arr[arr.length-1][0])+' ('+arr[arr.length-1][1]+'%)':''}.`:'Not enough leads to compare sources yet.',how:'CRM leads'};}
+    return {a:howMany&&!has('conversion','convert')?`<b>${L.length}</b> leads${perTxt}.`:`<b>${L.length?Math.round(c/L.length*100):0}%</b> of leads${perTxt} converted (${c} of ${L.length}).`,how:'CRM leads'};}
+  // Production time / on-time
+  if(has('how long','cycle','production time','despatch time','dispatch time','lead time','on time','on-time','late')){const m=CE.model('m12');
+    if(has('on time','on-time','late'))return {a:m.onTime!=null?`<b>${m.onTime}%</b> of orders in the last 12 months were despatched on or before the delivery date${m.late.length?'; <b>'+m.late.length+'</b> open order'+(m.late.length>1?'s are':' is')+' late now':''}.`:'No despatches with a delivery date yet.',how:'orders'};
+    return {a:m.cycle!=null?`Orders take <b>${m.cycle} days</b> on average from approval to despatch${Object.keys(m.stageDays).length?' — longest stage: <b>'+Object.entries(m.stageDays).sort((a,b)=>b[1]-a[1])[0][0]+'</b>':''}.`:'No despatched orders yet.',how:'orders + production history'};}
+  // Job work
+  if(has('job work','jobwork','job worker','challan')){const bal={};P.jw.forEach(m=>{const qy=num(m.qty);const it=(m.item||'').trim();if(!qy||!it)return;const own=n=>!n||n==='Our Premises'||n==='Baroda Factory'||n==='Ahmedabad Factory';if(!own(m.to)&&m.type!=='scrap')bal[m.to+'|'+it]=(bal[m.to+'|'+it]||0)+qy;if(!own(m.from))bal[m.from+'|'+it]=(bal[m.from+'|'+it]||0)-qy;});
+    const rows=Object.entries(bal).filter(([k,v])=>v>1e-9).map(([k,v])=>({'Job worker':k.split('|')[0],Item:k.split('|')[1],'Qty outside':Math.round(v*100)/100}));
+    return {a:rows.length?`<b>${new Set(rows.map(r=>r['Job worker'])).size}</b> job worker(s) are holding <b>${rows.length}</b> item line${rows.length>1?'s':''} of our goods.`:'Nothing is lying with job workers. ✓',rows,how:'job work'};}
+  // Stock
+  if(has('stock','inventory','reorder level','shortage')){const low=P.items.filter(i=>(i.reorder||0)>0&&(i.stock||0)<=i.reorder);
+    return {a:low.length?`<b>${low.length}</b> item${low.length>1?'s are':' is'} at or below reorder level: ${low.slice(0,3).map(i=>E(i.name)).join(', ')}${low.length>3?'…':''}.`:'No item is below its reorder level. ✓',rows:low.map(i=>({Item:i.name,Stock:i.stock,'Reorder at':i.reorder})),how:'inventory'};}
+  // Production stage
+  if(stage||has('production','in factory','jobs')){const jobs=P.jobs.filter(j=>(!party||j.party===party)&&(stage?j.stage===stage:j.stage!=='Dispatched'));const pcs=sum(jobs,j=>ST.items(j.items?{items:j.items}:j).reduce((a,i)=>a+num(i.qty),0));
+    return {a:`<b>${jobs.length}</b> job${jobs.length!==1?'s':''}${stage?' at '+stage:' in production'}${forTxt} (${pcs} pcs).`,rows:jobs.map(j=>({Job:j.jobNo,Customer:j.party,Items:ST.itemsShort(ST.items(j.items?{items:j.items}:j)),Stage:j.stage})),how:'production'};}
+  // Inactive customers
+  if(has('not ordered',"haven't",'havent','inactive','lost','stopped','no order','at risk','dormant')){const m=ql.match(/(\d+)\s*days?/);const lim=m?+m[1]:null;const sel=lim?M12.customers.filter(c=>c.since>=lim):M12.customers.filter(c=>c.seg==='Lost'||c.seg==='At risk');
+    return {a:sel.length?`<b>${sel.length}</b> customer${sel.length!==1?'s have':' has'} not ordered ${lim?'for '+lim+'+ days':'recently (at risk or lost)'}${sel.length<=3?': '+sel.map(c=>'<b>'+E(c.name)+'</b>').join(', '):''}.`:'Every customer has ordered recently. ✓',rows:sel.map(c=>({Customer:c.name,Group:c.seg,'Last order':ST.fmtDate(c.last),'Days since':c.since})),how:'order history'};}
+  // Top / most
+  if(has('top','best','biggest','largest','most','highest','rank')){const byVal=has('value','amount','₹','rupee','revenue','income');
+    if(has('type','loadcell','load cell','model','product')&&!party){const by={};P.lines.filter(l=>inP(l.date)).forEach(l=>by[l.type||'—']=(by[l.type||'—']||0)+l.qty);const r=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+      return {a:r.length?`Most ordered type${perTxt}: <b>${E(r[0][0])}</b> — ${r[0][1]} pcs.`:'No orders found.',rows:r.map(([k,v])=>({Type:k,Pcs:v})),how:'order lines'};}
+    const by={};P.orders.filter(o=>inP(o.date)&&(!types.length||ST.items(o).some(i=>types.includes(i.type)))).forEach(o=>{const b=by[o.partyName]=by[o.partyName]||{pcs:0,orders:0};b.orders++;b.pcs+=ST.items(o).filter(i=>!types.length||types.includes(i.type)).reduce((s,i)=>s+num(i.qty),0);});
+    inc.filter(e=>inP(e.date)&&e.party).forEach(e=>{const b=by[e.party]=by[e.party]||{pcs:0,orders:0};b.val=(b.val||0)+num(e.amount);});
+    const r=Object.entries(by).map(([k,v])=>({Customer:k,Orders:v.orders,Pcs:v.pcs,'Value ₹':Math.round(v.val||0)})).sort((a,b)=>byVal?b['Value ₹']-a['Value ₹']:b.Pcs-a.Pcs);const n=+(ql.match(/top\s+(\d+)/)||[])[1]||(has('top')?5:1);
+    if(!r.length)return {a:'No orders found for that period.'};
+    if(n===1)return {a:`Top customer${perTxt}${types.length?' for '+types.join('/'):''}: <b>${E(r[0].Customer)}</b> — ${byVal?inrS(r[0]['Value ₹']):r[0].Pcs+' pcs'}.`,how:'orders'};
+    return {a:`Top ${Math.min(n,r.length)}${perTxt}${types.length?' for '+types.join('/'):''} by ${byVal?'value':'pieces'}: `+r.slice(0,n).map((x,i)=>`${i+1}. <b>${E(x.Customer)}</b> (${byVal?inrS(x['Value ₹']):x.Pcs+' pcs'})`).join(' · '),rows:r.slice(0,n),how:'orders'};}
+  // Last order
+  if(party&&(when||has('last order','last time','latest order','recent order'))){const os=P.orders.filter(o=>o.partyName===party).sort((a,b)=>(b.date||'').localeCompare(a.date||''));if(!os.length)return {a:'No orders from <b>'+E(party)+'</b>.'};const o=os[0];
+    return {a:`<b>${E(party)}</b> last ordered on <b>${ST.fmtDate(o.date)}</b> (${ST.daysBetween(o.date.slice(0,10),ST.today())} days ago): ${E(ST.itemsShort(ST.items(o)))}.`,rows:os.slice(0,10).map(orderRow),how:'orders'};}
+  // Orders / pieces (default)
+  const os=P.orders.filter(o=>(!party||o.partyName===party)&&inP(o.date)&&(!types.length||ST.items(o).some(i=>types.includes(i.type))));
+  const ls=P.lines.filter(l=>(!party||l.party===party)&&inP(l.date)&&(!types.length||types.includes(l.type)));const pcs=ls.reduce((s,l)=>s+l.qty,0);
+  if(!party&&!types.length&&!per&&!has('order','pcs','piece','quantity','qty','how many','total','sold','dispatch','despatch','deliver','customer'))
+    return {a:'I could not match that question. Try: <i>“DLC orders last month”</i>, <i>“how much is overdue”</i>, <i>“top 5 customers this year”</i>, <i>“who is due to reorder”</i>, <i>“profit this month”</i>, <i>“best lead source”</i>.'};
+  if(has('customer')&&howMany&&!party){const cs=new Set(os.map(o=>o.partyName));return {a:`<b>${cs.size}</b> customer${cs.size!==1?'s':''} ordered${perTxt}${types.length?' '+types.join('/'):''}.`,rows:[...cs].map(c=>({Customer:c})),how:'orders'};}
+  const desp=has('dispatch','despatch','deliver');const ds=desp?os.filter(o=>o.status==='completed'):os;const dpcs=desp?ds.reduce((s,o)=>s+ST.items(o).filter(i=>!types.length||types.includes(i.type)).reduce((a,i)=>a+num(i.qty),0),0):pcs;
+  const wantPcs=has('pcs','piece','quantity','qty','load cell','loadcell')||(types.length>0&&!/\borders\b/.test(ql));
+  const a=wantPcs?`<b>${dpcs} pcs</b>${types.length?' of '+types.join('/'):''} ${desp?'despatched':'ordered'}${perTxt}${forTxt} (${ds.length} order${ds.length!==1?'s':''}).`:`<b>${ds.length}</b> order${ds.length!==1?'s':''} ${desp?'despatched':''}${perTxt}${forTxt} — ${dpcs} pcs.`;
+  return {a,rows:ds.slice().sort((x,y)=>(y.date||'').localeCompare(x.date||'')).map(orderRow),how:'orders'};}
+function tableHtml(rows){const cols=Object.keys(rows[0]);const isNum=c=>rows.every(r=>r[c]===''||r[c]==null||typeof r[c]==='number');
+  return `<div class="table-wrap" style="margin-top:8px"><table><thead><tr>${cols.map(c=>`<th class="${isNum(c)?'num':''}">${E(c)}</th>`).join('')}</tr></thead><tbody>${rows.slice(0,60).map(r=>`<tr>${cols.map(c=>`<td class="${isNum(c)?'num':''}">${E(typeof r[c]==='number'&&/Amount|Total|Value|₹/.test(c)?inr(r[c]):r[c]==null?'':r[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+function csv(rows,name){if(!rows.length){alert('Nothing to download.');return;}const cols=Object.keys(rows[0]);const t=[cols.join(',')].concat(rows.map(r=>cols.map(c=>'"'+String(r[c]==null?'':r[c]).replace(/"/g,'""')+'"').join(','))).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=name+'_'+ST.today()+'.csv';a.click();}
+
+/* ═════ DATA POOL ═════ */
+function orderLineRows(){return CE.pool().lines.map(l=>({Order:l.orderNo,Date:l.date,Customer:l.party,Type:l.type,Qty:l.qty,Capacity:l.capacity,Wire:l.wire,Status:l.status,Despatched:l.dod,Bill:l.billNo}));}
+function rPool(){const P=CE.pool();const c=(n,l,s)=>`<div class="pc"><div class="n">${n}</div><div class="l">${l}</div>${s?`<div class="s">${s}</div>`:''}</div>`;const ds=P.orders.map(o=>o.date).filter(Boolean).sort();
+  document.getElementById('poolCards').innerHTML=c(P.orders.length,'Orders',ds.length?ST.fmtDate(ds[0])+' → '+ST.fmtDate(ds[ds.length-1]):'')+c(P.lines.length,'Order lines (items)',P.lines.reduce((s,l)=>s+l.qty,0)+' pcs')+c(new Set(P.orders.map(o=>o.partyName)).size,'Customers')+c(P.jobs.length,'Production jobs')+c(P.bills.length,'Bills',inrS(P.bills.reduce((s,b)=>s+num(b.total),0)))+c(P.fin.length,'Accounts entries')+c(P.jw.length,'Job work challans')+c(P.leads.length,'CRM leads')+c(P.items.length,'Stock items');}
+function downloadPool(){const P=CE.pool();const data={exported:new Date().toISOString(),demo:CE.demo,company:ST.company().name,orders:P.orders.map(o=>{const x=Object.assign({},o);delete x.logoImage;return x;}),orderLines:P.lines,productionJobs:P.jobs,bills:P.bills,accounts:P.fin,jobWork:P.jw,crmLeads:P.leads,crmCalls:P.calls,stockItems:P.items};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));a.download='sentire_data_pool_'+ST.today()+'.json';a.click();}
+
+const EX=['How much is overdue?','Who is due to reorder?','Top 5 customers this year','Profit this month','DLC pcs last month','Best lead source','How long does production take?','Best month','Customers not ordered for 90 days','What is waiting for approval?'];
+document.getElementById('chips').innerHTML=EX.map(x=>`<button class="chip">${E(x)}</button>`).join('');document.getElementById('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b)ask(b.textContent);});
+render();
+</script>
+<script src="voice_engine.js"></script>
+</body></html>

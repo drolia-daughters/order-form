@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loadcell Calculator — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#84cc16;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;color:#0c0f14;}.topbar-brand h1{font-size:16px;font-weight:700;}
+.batch-pick{display:flex;align-items:center;gap:8px;}.batch-pick select{width:auto;min-width:200px;padding:7px 10px;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;margin:8px 0;}.tab-btn{padding:7px 14px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#0c0f14;font-weight:700;}
+.main{padding:24px;max-width:1500px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+h2{font-size:20px;margin-bottom:6px;}.sub{color:var(--text-dim);font-size:13px;margin-bottom:18px;line-height:1.5;}
+h3{font-size:14px;margin-bottom:10px;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+textarea{font-family:var(--mono);font-size:12px;min-height:180px;resize:vertical;}
+.btn{padding:9px 18px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-2);color:var(--text);}
+.btn-primary{background:var(--accent);color:#0c0f14;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}.btn-sm{padding:6px 12px;font-size:12px;}.btn-red{color:var(--red);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.06);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}@media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+.settings{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}@media(max-width:1000px){.settings{grid-template-columns:repeat(3,1fr);}}@media(max-width:560px){.settings{grid-template-columns:1fr 1fr;}}
+.fg{display:flex;flex-direction:column;gap:5px;}.fg label{font-size:10px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.fg input{background:#1f2a12;border-color:#3f5a1a;color:#d9f99d;font-family:var(--mono);font-weight:600;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.stat-card .num{font-size:22px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:11px;color:var(--text-dim);margin-top:3px;}
+.stat-card.alert .num{color:var(--red);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:auto;max-height:70vh;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{position:sticky;top:0;background:var(--surface-2);padding:8px 9px;text-align:right;font-weight:600;font-size:10px;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);white-space:normal;vertical-align:bottom;min-width:84px;}
+thead th.l,tbody td.l{text-align:left;}
+thead th.fit{color:#d9f99d;}
+tbody td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono);white-space:nowrap;}
+tbody td.fit{color:#d9f99d;font-weight:700;background:rgba(132,204,22,.06);}
+tbody tr:hover td{background:rgba(255,255,255,0.03);}
+tbody td.bad{color:var(--red);}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}.filters>input,.filters>select{max-width:240px;}
+.note{font-size:12px;color:var(--text-dim);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6;}
+.note code{font-family:var(--mono);color:var(--text);}
+.steps{display:grid;grid-template-columns:auto 1fr auto;gap:0;font-size:13px;}
+.steps div{padding:9px 10px;border-bottom:1px solid var(--border);}
+.steps .k{color:var(--text-dim);font-family:var(--mono);font-size:11px;}.steps .v{font-family:var(--mono);font-weight:700;text-align:right;}
+.steps .fit{color:#d9f99d;}
+.formula{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+.empty{text-align:center;padding:50px 20px;color:var(--text-dim);}.empty b{display:block;font-size:16px;color:var(--text);margin-bottom:6px;}
+.drop{border:2px dashed var(--border);border-radius:12px;padding:22px;text-align:center;color:var(--text-dim);cursor:pointer;margin-bottom:12px;}
+.drop:hover,.drop.over{border-color:var(--accent);color:var(--text);}
+.preview{font-size:12px;color:var(--text-dim);margin:10px 0;min-height:18px;}
+.preview b{color:var(--text);}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+#tipBox{position:fixed;z-index:100000;pointer-events:none;background:#e8ecf4;color:#0c0f14;font:600 12px/1.35 'DM Sans',sans-serif;padding:6px 10px;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.45);max-width:280px;opacity:0;transition:opacity .12s;}
+#tipBox.show{opacity:1;}
+/* Printing the fitting sheet */
+.print-only{display:none;}
+@media print{
+  body{background:#fff;color:#000;}
+  .topbar,.no-print,.v-mic,#tipBox,.toast{display:none !important;}
+  .view{display:none !important;}#v_fit{display:block !important;}
+  .main{padding:0;max-width:none;}
+  .print-only{display:block;margin-bottom:8px;}
+  .table-wrap{max-height:none;overflow:visible;border:0;background:#fff;}
+  thead th{position:static;background:#eee;color:#000;border:1px solid #999;font-size:10pt;}
+  tbody td{color:#000 !important;background:#fff !important;border:1px solid #999;font-size:10pt;padding:4px 6px;}
+  h2,.sub{color:#000;}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-brand"><div class="icon">LC</div><h1>Loadcell Calculator</h1></div>
+  <div class="batch-pick no-print"><select id="batchSel" onchange="selectBatch(this.value)" data-tip="Choose which batch of load cells to work on"></select></div>
+  <div class="tab-bar">
+    <button class="tab-btn" data-v="batches" onclick="showV('batches')">Batches</button>
+    <button class="tab-btn active" data-v="calc" onclick="showV('calc')">Calculator</button>
+    <button class="tab-btn" data-v="lookup" onclick="showV('lookup')">Find by S/N</button>
+    <button class="tab-btn" data-v="fit" onclick="showV('fit')">Fitting Sheet</button>
+    <button class="tab-btn" data-v="match" onclick="showV('match')">Match to weight</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ═══ BATCHES ═══ -->
+<div class="view" id="v_batches">
+  <h2>Batches</h2>
+  <p class="sub">Each supplier lot is a batch (for example “dec500”). Paste the supplier test data or upload the Excel file — every step is then calculated automatically.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>Add a new batch</h3>
+      <div class="fg" style="margin-bottom:10px;"><label>Batch name *</label><input id="bName" placeholder="e.g. dec500" style="background:var(--surface);border-color:var(--border);color:var(--text);font-family:var(--sans);font-weight:500;"></div>
+      <div class="drop" id="dropZone" onclick="document.getElementById('fileIn').click()">📄 <b>Upload the supplier Excel / CSV file</b><br><small>or drop it here</small></div>
+      <input type="file" id="fileIn" accept=".xlsx,.xls,.csv,.txt" style="display:none;" onchange="readFile(this.files[0])">
+      <div class="fg"><label>…or paste rows copied from Excel</label><textarea id="pasteIn" placeholder="Item No.	S/N	Model	Capacity	Accuracy	Sensitivity	Zero O/P	Input R	Output R	Protection&#10;1	2602492001	…" oninput="previewPaste()"></textarea></div>
+      <div class="preview" id="pPrev"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;"><button class="btn btn-ghost" onclick="clearImport()">Clear</button><button class="btn btn-primary" onclick="createBatch()">+ Create batch</button></div>
+    </div>
+    <div>
+      <div class="note"><b>Accepted layouts</b><br>
+        • The supplier test sheet, columns in this order: <code>Item No., S/N, Model, Capacity, Accuracy, Sensitivity, Zero O/P, Input R, Output R, Protection</code><br>
+        • Or just three columns: <code>S/N, Sensitivity (mV/V), Input R (Ω)</code><br>
+        • Header rows and blank rows are skipped automatically. Duplicate S/Ns are flagged.</div>
+      <div class="table-wrap" style="max-height:none;"><table><thead><tr><th class="l">Batch</th><th>Cells</th><th class="l">Created</th><th class="l">Settings</th><th class="l">Actions</th></tr></thead><tbody id="bBody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CALCULATOR ═══ -->
+<div class="view active" id="v_calc">
+  <div id="calcEmpty" class="empty" style="display:none;"><b>No batch yet</b>Go to <a href="#" onclick="showV('batches');return false;" style="color:var(--accent);">Batches</a> and paste or upload the supplier data.</div>
+  <div id="calcBody">
+    <h2 id="cTitle">Calculator</h2>
+    <p class="sub">Light-green boxes are settings for this batch — change any of them and every cell recalculates. Light-green columns are the values to <b>fit</b>.</p>
+    <div class="card no-print">
+      <div class="settings">
+        <div class="fg"><label data-tip="Rated capacity of the cells in this batch">Rated capacity (t)</label><input type="number" step="any" id="s_cap" oninput="updSettings()"></div>
+        <div class="fg"><label data-tip="Required output at rated capacity">Target sensitivity (mV/V)</label><input type="number" step="any" id="s_target" oninput="updSettings()"></div>
+        <div class="fg"><label data-tip="Added to each cell's capacity before calculating the new sensitivity">Allowance (kg)</label><input type="number" step="any" id="s_allow" oninput="updSettings()"></div>
+        <div class="fg"><label data-tip="Series resistor per leg is rounded to this step — same resolution as your machine">Round per leg to (Ω)</label><input type="number" step="any" id="s_leg" oninput="updSettings()"></div>
+        <div class="fg"><label data-tip="Shunt resistor across Ex+/Ex− brings the input resistance to this value">Target input R (Ω)</label><input type="number" step="any" id="s_rin" oninput="updSettings()"></div>
+        <div class="fg"><label data-tip="Shunt resistors are rounded to this step">Round shunt to (Ω)</label><input type="number" step="any" id="s_shunt" oninput="updSettings()"></div>
+      </div>
+    </div>
+    <div class="stats-row" id="cStats"></div>
+    <div class="filters no-print">
+      <input type="text" id="cSrch" placeholder="Search S/N…" oninput="renderCalc()">
+      <select id="cSort" onchange="renderCalc()"><option value="sn">Sort by S/N</option><option value="sens">Sort by sensitivity</option><option value="cap">Sort by capacity</option><option value="leg">Sort by resistor per leg</option></select>
+      <button class="btn btn-ghost btn-sm" onclick="exportCalc()" data-tip="Download every step for every cell as a CSV (Excel) file">↓ CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleFormulas()" data-tip="Show how each step is calculated">ƒ Formulas</button>
+    </div>
+    <div class="note" id="formulaNote" style="display:none;">
+      <b>The formulas (per load cell)</b><br>
+      Step 1 Capacity at target (kg) = Capacity(t) × 1000 ÷ (Sensitivity ÷ Target)<br>
+      Step 2 New weight (kg) = Step 1 + Allowance<br>
+      Step 3 New sensitivity (mV/V) = Target × Capacity(t) × 1000 ÷ New weight<br>
+      Step 4 Resistor total (Ω) = Input R × (New sensitivity ÷ Target − 1) &nbsp;→ “Cannot trim” if New sensitivity is below Target<br>
+      Step 5 Per leg = Step 4 ÷ 2, rounded to the step above &nbsp;→ fit on Ex+ and Ex−<br>
+      Step 6 Input R after resistors = Input R + 2 × per leg<br>
+      Step 7 Shunt = Target input R × Step 6 ÷ (Step 6 − Target input R), rounded &nbsp;→ fit across Ex+/Ex−, outside the series resistors (does not change sensitivity)<br>
+      Check: sensitivity with rounded resistors = New sensitivity × Input R ÷ (Input R + 2 × per leg)
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th class="l">S/N</th><th>Sensitivity (mV/V)</th><th>Input R (Ω)</th><th>1 · Capacity at target (kg)</th><th>2 · New weight (kg)</th><th>3 · New sensitivity (mV/V)</th>
+      <th>4 · Resistor total exact (Ω)</th><th class="fit">5 · Per leg — FIT (Ω)</th><th>Check sens. (mV/V)</th><th>Sens. at rated after R (mV/V)</th><th>6 · Input R after (Ω)</th><th class="fit">7 · Shunt — FIT (Ω)</th><th>Final input R (Ω)</th>
+    </tr></thead><tbody id="cBody"></tbody></table></div>
+    <div class="preview" id="cCount"></div>
+  </div>
+</div>
+
+<!-- ═══ LOOKUP ═══ -->
+<div class="view" id="v_lookup">
+  <h2>Find by S/N</h2>
+  <p class="sub">Type a load cell number to see every step for it. Searches all batches.</p>
+  <div class="filters"><input type="text" id="lSn" placeholder="Enter S/N, e.g. 2602492161" oninput="renderLookup()" style="max-width:340px;font-family:var(--mono);"></div>
+  <div id="lOut"></div>
+</div>
+
+<!-- ═══ FITTING SHEET ═══ -->
+<div class="view" id="v_fit">
+  <div class="print-only"><h2 id="fPrintTitle"></h2></div>
+  <h2 class="no-print">Fitting Sheet</h2>
+  <p class="sub no-print">The short list for the workshop: what to fit on each cell. Print it or download it.</p>
+  <div class="filters no-print">
+    <input type="text" id="fSrch" placeholder="Search S/N…" oninput="renderFit()">
+    <button class="btn btn-primary btn-sm" onclick="printFit()">🖨 Print</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportFit()">↓ CSV</button>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th class="l">S/N</th><th class="fit">Total series resistor (Ω)</th><th class="fit">Per leg Ex+ / Ex− (Ω)</th><th>Input R after resistors (Ω)</th><th class="fit">Shunt (Ω)</th><th class="l">Done ✓</th></tr></thead><tbody id="fBody"></tbody></table></div>
+</div>
+
+<!-- ═══ MATCH TO WEIGHT ═══ -->
+<div class="view" id="v_match">
+  <h2>Match to a target weight</h2>
+  <p class="sub">Pick cells for a weighbridge set and get the resistor that brings each one to exactly the target weight (capacity + allowance). Only cells at or below the target can be trimmed to it.</p>
+  <div class="card no-print" style="margin-bottom:14px;">
+    <div class="settings" style="grid-template-columns:repeat(4,1fr);">
+      <div class="fg"><label>Target weight (kg)</label><input type="number" step="any" id="mTarget" value="28700" oninput="renderMatch()"></div>
+      <div class="fg"><label>Cells needed</label><input type="number" id="mCount" value="8" min="1" oninput="renderMatch()"></div>
+      <div class="fg"><label>Max distance from target (kg)</label><input type="number" step="any" id="mTol" value="100" oninput="renderMatch()"></div>
+      <div class="fg"><label>Exclude S/Ns (comma separated)</label><input type="text" id="mEx" placeholder="already used" oninput="renderMatch()" style="font-weight:500;"></div>
+    </div>
+  </div>
+  <div class="stats-row" id="mStats"></div>
+  <div class="filters"><button class="btn btn-ghost btn-sm" onclick="exportMatch()">↓ CSV of this set</button></div>
+  <div class="table-wrap"><table><thead><tr><th class="l">#</th><th class="l">S/N</th><th>Sensitivity (mV/V)</th><th>Input R (Ω)</th><th>Weight now (kg)</th><th>Distance (kg)</th><th class="fit">Per leg — FIT (Ω)</th><th>Weight after (kg)</th><th class="fit">Shunt — FIT (Ω)</th></tr></thead><tbody id="mBody"></tbody></table></div>
+</div>
+
+</div>
+<div class="toast" id="toast">✓ Saved</div>
+<div id="tipBox" role="tooltip"></div>
+
+<script>
+// ═══ Storage ═══
+const BK='lc_batches',CK='lc_current';
+const DEF={cap:30,target:2,allow:370,leg:0.1,rin:750,shunt:100};
+const g=()=>{try{return JSON.parse(localStorage.getItem(BK))||[];}catch(e){return [];}};
+const s=d=>{try{localStorage.setItem(BK,JSON.stringify(d));return true;}catch(e){alert('Not enough browser storage to save this batch. Delete an old batch first.');return false;}};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const toast=m=>{const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+const f=(v,d)=>v===null||v===undefined||v===''||isNaN(v)?'—':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const rnd=(v,step)=>step>0?Math.round(v/step)*step:v;
+let cur=localStorage.getItem(CK)||'';
+const batch=()=>g().find(b=>b.id===cur)||g()[0]||null;
+
+// ═══ The calculation — same steps as the Excel calculator ═══
+function calc(c,S){
+  const sens=+c.sens,R=+c.rin,cap=+S.cap,T=+S.target,A=+S.allow;
+  const o={sn:c.sn,sens,rin:R};
+  if(!(sens>0)||!(R>0)||!(cap>0)||!(T>0)){o.err='Missing data';return o;}
+  o.c1=cap*1000/(sens/T);                 // Step 1: capacity at target sensitivity
+  o.w=o.c1+A;                             // Step 2: new weight
+  o.sNew=T*cap*1000/o.w;                  // Step 3: new sensitivity
+  if(o.sNew>=T){
+    o.rTotExact=R*(o.sNew/T-1);           // Step 4: resistor total (exact)
+    o.leg=rnd(o.rTotExact/2,+S.leg);      // Step 5: per leg, rounded — FIT
+    o.rTot=2*o.leg;
+    o.check=o.sNew*R/(R+o.rTot);          // check: new sensitivity with rounded resistors
+    o.realSens=sens*R/(R+o.rTot);         // sensitivity at rated capacity after resistors
+  } else {o.cannot=true;o.leg=0;o.rTot=0;o.check=o.sNew;o.realSens=sens;}
+  o.rinAfter=R+o.rTot;                    // Step 6: input R after series resistors
+  const Rt=+S.rin;
+  if(Rt>0&&o.rinAfter>Rt){o.shuntExact=Rt*o.rinAfter/(o.rinAfter-Rt);o.shunt=rnd(o.shuntExact,+S.shunt);o.finalRin=o.rinAfter*o.shunt/(o.rinAfter+o.shunt);} // Step 7
+  else {o.shunt=null;o.finalRin=o.rinAfter;o.noShunt=Rt>0;}
+  return o;
+}
+function results(b){b=b||batch();if(!b)return [];return b.cells.map(c=>calc(c,b.settings));}
+
+// ═══ Import ═══
+let pending=[];
+function cleanNum(v){if(v===null||v===undefined)return NaN;const t=String(v).replace(/[^0-9.\-eE]/g,'');return t?parseFloat(t):NaN;}
+function cleanSn(v){return String(v??'').trim().replace(/\.0+$/,'');}
+function parseRows(rows){
+  // Find a header row to map columns by name; otherwise use the supplier order or a 3-column layout
+  let map=null;
+  for(const r of rows.slice(0,15)){const low=r.map(x=>String(x??'').toLowerCase());
+    const sn=low.findIndex(x=>/s\/?n|serial/.test(x)),se=low.findIndex(x=>/sensitiv|mv\/v/.test(x)),ri=low.findIndex(x=>/input/.test(x));
+    if(sn>=0&&se>=0&&ri>=0){map={sn,sens:se,rin:ri,model:low.findIndex(x=>/model/.test(x)),zero:low.findIndex(x=>/zero/.test(x)),rout:low.findIndex(x=>/output r|output res/.test(x))};break;}}
+  const out=[];
+  for(const r0 of rows){const r=r0.map(x=>x===null||x===undefined?'':x);if(!r.some(x=>String(x).trim()))continue;
+    let sn,sens,rin,model='',zero='',rout='';
+    if(map){sn=r[map.sn];sens=r[map.sens];rin=r[map.rin];model=map.model>=0?r[map.model]:'';zero=map.zero>=0?r[map.zero]:'';rout=map.rout>=0?r[map.rout]:'';}
+    else if(r.filter(x=>String(x).trim()!=='').length>=8){sn=r[1];model=r[2];sens=r[5];zero=r[6];rin=r[7];rout=r[8];}
+    else {sn=r[0];sens=r[1];rin=r[2];}
+    const S=cleanNum(sens),R=cleanNum(rin),N=cleanSn(sn);
+    if(!N||!/\d/.test(N)||!(S>0.3&&S<10)||!(R>50&&R<10000))continue; // skips headers and junk
+    out.push({sn:N,sens:S,rin:R,model:String(model||'').trim(),zero:String(zero||'').trim(),rout:String(rout||'').trim()});}
+  return out;
+}
+function showPreview(list,src){pending=list;const el=document.getElementById('pPrev');
+  if(!list.length){el.innerHTML=src?'<span style="color:var(--red);">No load cell rows found. Check the column order.</span>':'';return;}
+  const sn=list.map(c=>c.sn),dup=sn.length-new Set(sn).size;
+  el.innerHTML=`Found <b>${list.length}</b> load cells${src?' in '+esc(src):''} · sensitivity <b>${f(Math.min(...list.map(c=>c.sens)),4)}–${f(Math.max(...list.map(c=>c.sens)),4)}</b> mV/V · input R <b>${f(Math.min(...list.map(c=>c.rin)),1)}–${f(Math.max(...list.map(c=>c.rin)),1)}</b> Ω`+(dup?` · <span style="color:var(--red);">${dup} duplicate S/N</span>`:'');}
+function previewPaste(){const txt=document.getElementById('pasteIn').value;const rows=txt.split(/\r?\n/).map(l=>l.includes('\t')?l.split('\t'):l.split(','));showPreview(parseRows(rows),'');}
+function readFile(file){if(!file)return;const name=file.name;const rd=new FileReader();
+  if(/\.(xlsx|xls)$/i.test(name)){
+    if(typeof XLSX==='undefined'){alert('The Excel reader could not load (needs internet). Open the file in Excel, copy the rows, and paste them instead.');return;}
+    rd.onload=e=>{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});let best=[];
+      wb.SheetNames.forEach(n=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''});const p=parseRows(rows);if(p.length>best.length)best=p;});
+      showPreview(best,name);if(!document.getElementById('bName').value)document.getElementById('bName').value=name.replace(/\.[^.]+$/,'');};
+    rd.readAsArrayBuffer(file);}
+  else{rd.onload=e=>{const rows=String(e.target.result).split(/\r?\n/).map(l=>l.includes('\t')?l.split('\t'):l.split(','));showPreview(parseRows(rows),name);if(!document.getElementById('bName').value)document.getElementById('bName').value=name.replace(/\.[^.]+$/,'');};rd.readAsText(file);}}
+function clearImport(){pending=[];document.getElementById('pasteIn').value='';document.getElementById('bName').value='';document.getElementById('fileIn').value='';document.getElementById('pPrev').textContent='';}
+function createBatch(){const name=document.getElementById('bName').value.trim();
+  if(!name)return alert('Give the batch a name, e.g. dec500.');if(!pending.length)return alert('Paste or upload the supplier data first.');
+  const all=g();if(all.some(b=>b.name.toLowerCase()===name.toLowerCase()))return alert('A batch with this name already exists.');
+  const sn=pending.map(c=>c.sn),dup=sn.length-new Set(sn).size;
+  if(dup&&!confirm(dup+' S/N appear more than once. Create the batch anyway? (They will be flagged.)'))return;
+  const b={id:Date.now().toString(36),name,created:new Date().toISOString(),settings:{...DEF,...(batch()?.settings||{})},cells:pending.slice().sort((a,b)=>a.sn.localeCompare(b.sn,undefined,{numeric:true}))};
+  all.push(b);if(!s(all))return;cur=b.id;localStorage.setItem(CK,cur);clearImport();toast('✓ Batch '+name+' created with '+b.cells.length+' cells');renderAll();showV('calc');}
+function delBatch(id){const b=g().find(x=>x.id===id);if(!b)return;if(!confirm('Delete batch '+b.name+' ('+b.cells.length+' cells)?'))return;s(g().filter(x=>x.id!==id));if(cur===id){cur='';localStorage.removeItem(CK);}renderAll();}
+function renameBatch(id){const all=g(),b=all.find(x=>x.id===id);if(!b)return;const n=prompt('New name for this batch:',b.name);if(!n||!n.trim())return;b.name=n.trim();s(all);renderAll();}
+function selectBatch(id){cur=id;localStorage.setItem(CK,id);renderAll();}
+// Drag & drop
+(function(){const dz=document.getElementById('dropZone');['dragover','dragenter'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.add('over');}));['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('over');}));dz.addEventListener('drop',ev=>readFile(ev.dataTransfer.files[0]));})();
+
+// ═══ Settings ═══
+let setTimer=null;
+function paintSettings(){const b=batch();if(!b)return;const S=b.settings;[['cap','s_cap'],['target','s_target'],['allow','s_allow'],['leg','s_leg'],['rin','s_rin'],['shunt','s_shunt']].forEach(([k,id])=>{const el=document.getElementById(id);if(document.activeElement!==el)el.value=S[k];});}
+function updSettings(){const all=g(),b=all.find(x=>x.id===(batch()||{}).id);if(!b)return;
+  [['cap','s_cap'],['target','s_target'],['allow','s_allow'],['leg','s_leg'],['rin','s_rin'],['shunt','s_shunt']].forEach(([k,id])=>{const v=parseFloat(document.getElementById(id).value);b.settings[k]=isNaN(v)?0:v;});
+  s(all);clearTimeout(setTimer);setTimer=setTimeout(renderAll,120);}
+
+// ═══ Calculator view ═══
+function sortRes(list,by){const k={sn:(a,b)=>String(a.sn).localeCompare(String(b.sn),undefined,{numeric:true}),sens:(a,b)=>a.sens-b.sens,cap:(a,b)=>(a.c1||0)-(b.c1||0),leg:(a,b)=>(a.leg||0)-(b.leg||0)}[by]||(()=>0);return list.slice().sort(k);}
+function renderCalc(){const b=batch();document.getElementById('calcEmpty').style.display=b?'none':'block';document.getElementById('calcBody').style.display=b?'':'none';if(!b)return;
+  paintSettings();document.getElementById('cTitle').textContent='Calculator — '+b.name;
+  const res=results(b),ok=res.filter(r=>!r.err);const sn=res.map(r=>r.sn);const dupSet=new Set(sn.filter((x,i)=>sn.indexOf(x)!==i));
+  const sens=ok.map(r=>r.sens),legs=ok.filter(r=>!r.cannot).map(r=>r.leg);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:NaN;
+  const checks=ok.filter(r=>!r.cannot).map(r=>r.check),fins=ok.filter(r=>r.shunt).map(r=>r.finalRin);
+  document.getElementById('cStats').innerHTML=[
+    {n:res.length,l:'Load cells in batch'},
+    {n:f(avg(sens),4),l:'Average sensitivity (mV/V)'},
+    {n:sens.length?f(Math.min(...sens),4)+' / '+f(Math.max(...sens),4):'—',l:'Min / max sensitivity'},
+    {n:f(avg(legs),2),l:'Average resistor per leg (Ω)'},
+    {n:checks.length?f(Math.min(...checks),4)+'–'+f(Math.max(...checks),4):'—',l:'Sensitivity after rounding (mV/V)'},
+    {n:fins.length?f(Math.min(...fins),1)+'–'+f(Math.max(...fins),1):'—',l:'Final input R (Ω)'},
+    {n:ok.filter(r=>r.cannot).length,l:'Cells that cannot be trimmed',cls:ok.some(r=>r.cannot)?'alert':''},
+    {n:dupSet.size,l:'Duplicate S/N',cls:dupSet.size?'alert':''}
+  ].map(x=>`<div class="stat-card ${x.cls||''}"><div class="num">${x.n}</div><div class="lab">${x.l}</div></div>`).join('');
+  const q=(document.getElementById('cSrch').value||'').trim();
+  const list=sortRes(res.filter(r=>!q||String(r.sn).includes(q)),document.getElementById('cSort').value);
+  const show=list.slice(0,1500);
+  document.getElementById('cBody').innerHTML=show.map(r=>r.err?`<tr><td class="l">${esc(r.sn)}</td><td colspan="12" class="bad l">${r.err}</td></tr>`:`<tr>
+    <td class="l"${dupSet.has(r.sn)?' style="color:var(--red);" data-tip="This S/N appears more than once in the batch"':''}>${esc(r.sn)}</td><td>${f(r.sens,4)}</td><td>${f(r.rin,1)}</td><td>${f(r.c1,1)}</td><td>${f(r.w,1)}</td><td>${f(r.sNew,4)}</td>
+    <td>${r.cannot?'<span class="bad">Cannot trim</span>':f(r.rTotExact,2)}</td><td class="fit">${r.cannot?'—':f(r.leg,1)}</td><td>${f(r.check,4)}</td><td>${f(r.realSens,4)}</td><td>${f(r.rinAfter,1)}</td>
+    <td class="fit">${r.shunt?f(r.shunt,0):(r.noShunt?'<span class="bad">Not possible</span>':'—')}</td><td>${f(r.finalRin,1)}</td></tr>`).join('');
+  document.getElementById('cCount').textContent=list.length>show.length?`Showing first ${show.length} of ${list.length} — use search to find others, or download the CSV for all.`:`${list.length} cells shown.`;}
+function toggleFormulas(){const n=document.getElementById('formulaNote');n.style.display=n.style.display==='none'?'':'none';}
+function csv(name,head,rows){let t=head.map(h=>'"'+h+'"').join(',')+'\n';rows.forEach(r=>{t+=r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=name;a.click();}
+const n4=(v,d)=>v===null||v===undefined||isNaN(v)?'':Number(v).toFixed(d);
+function exportCalc(){const b=batch();if(!b)return;const S=b.settings;
+  csv('calculator_'+b.name+'.csv',['S/N','Sensitivity (mV/V)','Input R (Ohm)','Step 1 Capacity at '+S.target+' mV/V (kg)','Step 2 New weight (kg)','Step 3 New sensitivity (mV/V)','Step 4 Resistor total exact (Ohm)','Step 5 Per leg FIT (Ohm)','Check sensitivity (mV/V)','Sensitivity at rated after R (mV/V)','Step 6 Input R after (Ohm)','Step 7 Shunt FIT (Ohm)','Final input R (Ohm)'],
+    sortRes(results(b),'sn').map(r=>[r.sn,n4(r.sens,4),n4(r.rin,1),n4(r.c1,1),n4(r.w,1),n4(r.sNew,4),r.cannot?'Cannot trim':n4(r.rTotExact,2),r.cannot?'':n4(r.leg,1),n4(r.check,4),n4(r.realSens,4),n4(r.rinAfter,1),r.shunt?n4(r.shunt,0):'',n4(r.finalRin,1)]));}
+
+// ═══ Lookup ═══
+function renderLookup(){const q=(document.getElementById('lSn').value||'').trim();const out=document.getElementById('lOut');
+  if(!q){out.innerHTML='<div class="empty"><b>Type a S/N above</b>Partial numbers work too — the first matches are shown.</div>';return;}
+  const hits=[];g().forEach(b=>b.cells.forEach(c=>{if(String(c.sn).includes(q))hits.push({b,c});}));
+  if(!hits.length){out.innerHTML='<div class="empty"><b>Not found</b>No cell with this S/N in any batch.</div>';return;}
+  const exact=hits.filter(h=>h.c.sn===q);const list=(exact.length?exact:hits).slice(0,6);
+  out.innerHTML=(hits.length>list.length&&!exact.length?`<p class="sub">${hits.length} cells match — showing the first ${list.length}. Type more digits to narrow it down.</p>`:'')+'<div class="grid2">'+list.map(({b,c})=>{const r=calc(c,b.settings),S=b.settings;
+    const row=(k,v,form,fit)=>`<div class="k">${k}</div><div class="formula">${form||''}</div><div class="v${fit?' fit':''}">${v}</div>`;
+    return `<div class="card"><h3>${esc(c.sn)} <span style="color:var(--text-dim);font-weight:500;font-size:12px;">· batch ${esc(b.name)}${c.model?' · '+esc(c.model):''}</span></h3><div class="steps">
+      ${row('Sensitivity',f(r.sens,4)+' mV/V','supplier')}
+      ${row('Input R',f(r.rin,1)+' Ω','supplier')}
+      ${row('1 · Capacity at '+S.target+' mV/V',f(r.c1,1)+' kg',S.cap+' t × 1000 ÷ ('+f(r.sens,4)+' ÷ '+S.target+')')}
+      ${row('2 · New weight',f(r.w,1)+' kg','+ '+S.allow+' kg allowance')}
+      ${row('3 · New sensitivity',f(r.sNew,4)+' mV/V',S.target+' × '+S.cap+' × 1000 ÷ new weight')}
+      ${row('4 · Resistor total (exact)',r.cannot?'Cannot trim':f(r.rTotExact,2)+' Ω','Input R × (new ÷ target − 1)')}
+      ${row('5 · Per leg Ex+ / Ex−',r.cannot?'—':f(r.leg,1)+' Ω','rounded to '+S.leg+' Ω — FIT THIS',true)}
+      ${row('Check sensitivity',f(r.check,4)+' mV/V','with rounded resistors')}
+      ${row('6 · Input R after resistors',f(r.rinAfter,1)+' Ω','Input R + 2 × per leg')}
+      ${row('7 · Shunt across Ex+/Ex−',r.shunt?f(r.shunt,0)+' Ω':(r.noShunt?'Not possible':'—'),'for '+S.rin+' Ω, rounded to '+S.shunt+' Ω — FIT THIS',true)}
+      ${row('Final input R',f(r.finalRin,1)+' Ω','')}
+    </div></div>`;}).join('')+'</div>';}
+
+// ═══ Fitting sheet ═══
+function renderFit(){const b=batch();const body=document.getElementById('fBody');if(!b){body.innerHTML='';return;}
+  document.getElementById('fPrintTitle').textContent='Sentire Technologies — Fitting Sheet — batch '+b.name+' ('+b.settings.cap+' t, '+b.settings.target+' mV/V, +'+b.settings.allow+' kg, input '+b.settings.rin+' Ω)';
+  const q=(document.getElementById('fSrch').value||'').trim();
+  body.innerHTML=sortRes(results(b),'sn').filter(r=>!q||String(r.sn).includes(q)).map(r=>`<tr><td class="l">${esc(r.sn)}</td><td class="fit">${r.err?'—':r.cannot?'Cannot trim':f(r.rTot,1)}</td><td class="fit">${r.cannot||r.err?'—':f(r.leg,1)}</td><td>${f(r.rinAfter,1)}</td><td class="fit">${r.shunt?f(r.shunt,0):'—'}</td><td class="l">☐</td></tr>`).join('');}
+function printFit(){showV('fit');document.getElementById('fSrch').value='';renderFit();setTimeout(()=>window.print(),100);}
+function exportFit(){const b=batch();if(!b)return;csv('fitting_sheet_'+b.name+'.csv',['S/N','Total series resistor (Ohm)','Per leg Ex+/Ex- (Ohm)','Input R after resistors (Ohm)','Shunt (Ohm)'],sortRes(results(b),'sn').map(r=>[r.sn,r.cannot?'Cannot trim':n4(r.rTot,1),r.cannot?'':n4(r.leg,1),n4(r.rinAfter,1),r.shunt?n4(r.shunt,0):'']));}
+
+// ═══ Match to weight ═══
+// Bring a cell to exactly the target weight: needed sensitivity S' = Target × Cap × 1000 ÷ (Target weight − Allowance)
+function matchList(){const b=batch();if(!b)return {set:[],avail:0};const S=b.settings;
+  const W=parseFloat(document.getElementById('mTarget').value),N=parseInt(document.getElementById('mCount').value)||0,tol=parseFloat(document.getElementById('mTol').value);
+  const ex=new Set((document.getElementById('mEx').value||'').split(/[\s,]+/).filter(Boolean));
+  if(!(W>S.allow))return {set:[],avail:0};
+  const Sneed=S.target*S.cap*1000/(W-S.allow);
+  const cands=results(b).filter(r=>!r.err&&!ex.has(r.sn)&&r.w<=W+1e-9&&(isNaN(tol)||W-r.w<=tol)).map(r=>{
+    const rTot=r.rin*(r.sens/Sneed-1);const leg=Math.max(0,rnd(rTot/2,S.leg));const sAfter=r.sens*r.rin/(r.rin+2*leg);
+    const wAfter=S.cap*1000/(sAfter/S.target)+S.allow;const rinAfter=r.rin+2*leg;
+    let shunt=null;if(S.rin>0&&rinAfter>S.rin)shunt=rnd(S.rin*rinAfter/(rinAfter-S.rin),S.shunt);
+    return {...r,dist:W-r.w,mleg:leg,wAfter,mshunt:shunt};}).sort((a,b)=>a.dist-b.dist);
+  return {set:cands.slice(0,N),avail:cands.length,W};}
+function renderMatch(){const {set,avail,W}=matchList();
+  const spread=set.length?Math.max(...set.map(r=>r.wAfter))-Math.min(...set.map(r=>r.wAfter)):NaN;
+  document.getElementById('mStats').innerHTML=[{n:avail,l:'Cells that can reach the target within range'},{n:set.length,l:'Cells picked'},{n:f(spread,1),l:'Spread after trimming (kg)'},{n:set.length?f(Math.max(...set.map(r=>r.dist)),1):'—',l:'Furthest cell from target (kg)'}]
+    .map(x=>`<div class="stat-card"><div class="num">${x.n}</div><div class="lab">${x.l}</div></div>`).join('');
+  document.getElementById('mBody').innerHTML=set.length?set.map((r,i)=>`<tr><td class="l">${i+1}</td><td class="l">${esc(r.sn)}</td><td>${f(r.sens,4)}</td><td>${f(r.rin,1)}</td><td>${f(r.w,1)}</td><td>${f(r.dist,1)}</td><td class="fit">${f(r.mleg,1)}</td><td>${f(r.wAfter,1)}</td><td class="fit">${r.mshunt?f(r.mshunt,0):'—'}</td></tr>`).join(''):`<tr><td colspan="9" class="l" style="color:var(--text-dim);">No cells found — widen the distance or check the target weight.</td></tr>`;}
+function exportMatch(){const {set,W}=matchList();if(!set.length)return alert('No cells in this set.');csv('matched_set_'+W+'kg.csv',['#','S/N','Sensitivity (mV/V)','Input R (Ohm)','Weight now (kg)','Distance (kg)','Per leg FIT (Ohm)','Weight after (kg)','Shunt FIT (Ohm)'],set.map((r,i)=>[i+1,r.sn,n4(r.sens,4),n4(r.rin,1),n4(r.w,1),n4(r.dist,1),n4(r.mleg,1),n4(r.wAfter,1),r.mshunt?n4(r.mshunt,0):'']));}
+
+// ═══ Batches list + views ═══
+function renderBatches(){const all=g();const b=batch();
+  document.getElementById('batchSel').innerHTML=all.length?all.map(x=>`<option value="${x.id}"${b&&x.id===b.id?' selected':''}>${esc(x.name)} (${x.cells.length})</option>`).join(''):'<option>No batches yet</option>';
+  document.getElementById('bBody').innerHTML=all.length?all.slice().reverse().map(x=>`<tr><td class="l"><b>${esc(x.name)}</b></td><td>${x.cells.length}</td><td class="l">${new Date(x.created).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</td><td class="l" style="font-size:11px;color:var(--text-dim);">${x.settings.cap} t · ${x.settings.target} mV/V · +${x.settings.allow} kg · ${x.settings.rin} Ω</td>
+    <td class="l"><button class="btn btn-sm" onclick="selectBatch('${x.id}');showV('calc')">Open</button> <button class="btn btn-sm btn-ghost" onclick="renameBatch('${x.id}')">Rename</button> <button class="btn btn-sm btn-red" onclick="delBatch('${x.id}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="5" class="l" style="color:var(--text-dim);">No batches yet.</td></tr>';}
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('active',e.id==='v_'+v));document.querySelectorAll('.tab-btn').forEach(x=>x.classList.toggle('active',x.dataset.v===v));
+  ({batches:renderBatches,calc:renderCalc,lookup:renderLookup,fit:renderFit,match:renderMatch}[v]||(()=>{}))();}
+function renderAll(){renderBatches();const v=(document.querySelector('.view.active')||{}).id||'v_calc';showV(v.replace('v_',''));}
+
+// Hover labels
+(function(){const box=document.getElementById('tipBox');let curEl=null;
+  document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]');if(el===curEl)return;curEl=el;if(!el){box.classList.remove('show');return;}
+    box.textContent=el.dataset.tip;box.classList.add('show');const r=el.getBoundingClientRect();const w=box.offsetWidth,h=box.offsetHeight;
+    box.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,innerWidth-w-8))+'px';box.style.top=(r.top-h-8<8?r.bottom+8:r.top-h-8)+'px';});
+  document.addEventListener('scroll',()=>{curEl=null;box.classList.remove('show');},true);})();
+
+if(!g().length)showV('batches');else renderAll();
+</script>
+<script src="voice_engine.js"></script>
+</body>
+</html>

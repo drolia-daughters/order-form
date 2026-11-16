@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0c0f14">
+<title>Reminders — Sentire</title>
+<link rel="manifest" href="reminders.webmanifest">
+<link rel="icon" href="reminders-192.png">
+<link rel="apple-touch-icon" href="reminders-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="reminders_agent.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#f43f5e;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--ods:#3987e5;--ann:#d95926;--biz:#199e70;--radius:10px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+button{font-family:inherit;}
+.top{position:sticky;top:0;z-index:50;background:rgba(12,15,20,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.top .ic{width:32px;height:32px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.top h1{font-size:16px;font-weight:700;flex:1;}
+.chip{font-size:11px;font-family:var(--mono);padding:4px 9px;border-radius:999px;border:1px solid var(--border);color:var(--text-dim);white-space:nowrap;cursor:pointer;background:transparent;}
+.chip.ok{color:#4ade80;border-color:rgba(34,197,94,.4);}.chip.warn{color:#fbbf24;border-color:rgba(245,158,11,.45);}
+.ibtn{width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;cursor:pointer;flex-shrink:0;}
+.main{max-width:1280px;margin:0 auto;padding:16px;}
+/* agent */
+.agent{background:linear-gradient(135deg,rgba(244,63,94,.10),rgba(139,92,246,.08));border:1px solid rgba(244,63,94,.35);border-radius:14px;padding:14px;margin-bottom:14px;}
+.agent .hd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:10px;}.agent .hd small{font-weight:400;color:var(--text-dim);font-size:12px;}
+.say{display:flex;gap:8px;}.say input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:16px;color:var(--text);outline:none;font-family:var(--sans);}
+.say input:focus{border-color:var(--accent);}
+.mic{width:54px;height:54px;border-radius:50%;border:2px solid var(--accent);background:rgba(244,63,94,.12);color:var(--text);font-size:22px;cursor:pointer;flex-shrink:0;}
+.mic.on{background:var(--accent);animation:pulse 1.2s infinite;}@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(244,63,94,.5)}50%{box-shadow:0 0 0 10px rgba(244,63,94,0)}}
+.send{height:54px;padding:0 18px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:700;font-size:15px;cursor:pointer;}
+.examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}.ex{font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;}
+.heard{font-size:12px;color:var(--text-dim);font-family:var(--mono);margin-top:8px;min-height:16px;}
+.prop{display:none;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}.prop.show{display:block;}
+.prop .who{font-size:12px;color:var(--text-dim);margin-bottom:8px;}.prop .t{font-size:18px;font-weight:700;}
+.prop .meta{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;}
+.tag{font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:6px;background:var(--surface-2);color:var(--text);}
+.t-ODS{background:rgba(57,135,229,.18);color:#7cb3f2;}.t-Annual{background:rgba(217,89,38,.18);color:#fb923c;}.t-Business{background:rgba(25,158,112,.2);color:#34d399;}
+.prop .miss{color:#fbbf24;font-size:12px;margin-bottom:8px;}
+.row{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);font-weight:600;font-size:14px;cursor:pointer;}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}.btn.ok{background:var(--green);border-color:var(--green);color:#fff;}.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px;}
+/* week strip */
+.week{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:thin;}
+.wk{min-width:200px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--c);border-radius:10px;padding:10px 12px;flex-shrink:0;}
+.wk .d{font-size:11px;font-family:var(--mono);color:var(--text-dim);}.wk .d b{color:#f87171;}.wk .n{font-size:14px;font-weight:600;margin-top:2px;}
+.sec{font-size:11px;font-family:var(--mono);color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin:6px 0 8px;display:flex;justify-content:space-between;align-items:center;}
+/* review inbox */
+.inbox{background:var(--surface);border:1px dashed rgba(245,158,11,.5);border-radius:14px;padding:12px;margin-bottom:14px;}
+.inbox .item{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}.inbox .item:last-child{border-bottom:0;}
+.inbox .item .x{flex:1;min-width:200px;}.inbox .src{font-size:10px;font-family:var(--mono);color:var(--text-dim);}
+.paste{display:flex;gap:8px;margin-top:8px;}.paste textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-family:var(--sans);font-size:13px;min-height:44px;resize:vertical;}
+/* columns */
+.tabs{display:none;gap:4px;background:var(--surface);border-radius:12px;padding:4px;margin-bottom:10px;}
+.tabs button{flex:1;padding:10px 4px;border:0;border-radius:9px;background:transparent;color:var(--text-dim);font-weight:600;font-size:13px;}
+.tabs button.on{background:var(--surface-2);color:var(--text);box-shadow:inset 0 -3px 0 var(--c);}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start;}
+.col{background:var(--surface);border:1px solid var(--border);border-top:4px solid var(--c);border-radius:14px;padding:12px;min-width:0;}
+.col h2{font-size:15px;display:flex;align-items:center;gap:8px;}.col h2 .n{margin-left:auto;font-size:12px;font-family:var(--mono);color:var(--text-dim);}
+.col .sub{font-size:11px;color:var(--text-dim);margin:2px 0 10px;}
+.card{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.card .t{font-weight:600;font-size:14px;line-height:1.35;word-break:break-word;}.card .when{font-size:12px;font-family:var(--mono);color:var(--text-dim);margin-top:4px;}
+.card .when .soon{color:#fbbf24;}.card .when .late{color:#f87171;font-weight:700;}.card .when .today{color:#f87171;font-weight:700;}
+.card .notes{font-size:12px;color:var(--text-dim);margin-top:4px;white-space:pre-wrap;word-break:break-word;max-height:60px;overflow:hidden;}
+.card .acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.card .acts button{padding:5px 10px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-size:12px;cursor:pointer;}
+.card .acts .done{color:#4ade80;border-color:rgba(34,197,94,.35);}
+.card.isdone{opacity:.5;}
+.addcol{width:100%;padding:10px;border:1px dashed var(--border);border-radius:10px;background:transparent;color:var(--text-dim);cursor:pointer;font-size:13px;}
+.empty{font-size:12px;color:var(--text-muted);padding:14px 4px;text-align:center;}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;}.ov.show{display:flex;}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:92vh;overflow:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom));}
+@media (min-width:700px){.ov{align-items:center;}.md{border-radius:16px;}}
+.md h3{font-size:17px;margin-bottom:10px;}.md label{display:block;font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);margin:12px 0 5px;}
+.md input,.md select,.md textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-size:15px;font-family:var(--sans);outline:none;}
+.md .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}.md .hint{font-size:11px;color:var(--text-dim);margin-top:4px;}.md .err{color:#f87171;font-size:13px;min-height:18px;margin-top:10px;}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}.seg3 button{padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-dim);font-weight:600;font-size:13px;cursor:pointer;}
+.seg3 button.on{color:#fff;border-color:var(--c);background:var(--c);}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,120px);opacity:0;pointer-events:none;background:#e8ecf4;color:#0c0f14;padding:12px 18px;border-radius:12px;font-weight:600;font-size:14px;z-index:300;transition:transform .25s;max-width:92vw;display:flex;gap:12px;align-items:center;}
+.toast.show{transform:translate(-50%,0);opacity:1;pointer-events:auto;}.toast button{background:transparent;border:0;color:#7c3aed;font-weight:700;cursor:pointer;font-size:14px;}
+.banner{display:none;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);color:#fbbf24;border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:13px;gap:10px;align-items:center;flex-wrap:wrap;}.banner.show{display:flex;}
+@media (max-width:760px){.tabs{display:flex;}.cols{grid-template-columns:1fr;}.col{display:none;}.col.on{display:block;}.say input{font-size:16px;}.send{padding:0 14px;}.main{padding:12px;}}
+</style>
+</head>
+<body>
+<div class="top"><div class="ic">⏰</div><h1>Reminders</h1><button class="chip" id="conn" onclick="openConnect()">Local only</button><button class="ibtn" title="Sync now" onclick="sync(true)">↻</button></div>
+<div class="main">
+ <div class="banner" id="banner"></div>
+ <!-- AGENT -->
+ <div class="agent"><div class="hd">🤖 Reminder agent <small>— type or tap 🎤 and say it</small></div>
+  <div class="say"><input id="cmd" placeholder="e.g. remind me on 20th of every month to pay GST" autocomplete="off" enterkeyhint="send"><button class="mic" id="micBtn" title="Speak" onclick="toggleMic()">🎤</button><button class="send" onclick="runAgent()">Set</button></div>
+  <div class="heard" id="heard"></div>
+  <div class="examples" id="examples"></div>
+  <div class="prop" id="prop"></div>
+ </div>
+ <!-- WEEK -->
+ <div class="sec"><span>Due today &amp; next 7 days</span><span id="weekCount"></span></div>
+ <div class="week" id="week"></div>
+ <!-- REVIEW -->
+ <div class="inbox" id="inbox"><div class="sec" style="margin-top:0"><span>📥 To review — from Gmail &amp; WhatsApp</span><button class="btn sm" id="gmailBtn" onclick="checkGmail()">✉ Check Gmail now</button></div>
+  <div id="inboxList"></div>
+  <div class="paste"><textarea id="pasteBox" placeholder="Paste a WhatsApp message here (or Share it to this app from WhatsApp)…"></textarea><button class="btn sm pri" onclick="readPasted()">Read it</button></div></div>
+ <!-- COLUMNS -->
+ <div class="tabs" id="tabs"></div>
+ <div class="cols" id="cols"></div>
+</div>
+<div class="ov" id="ov" onclick="if(event.target===this)closeModal()"><div class="md" id="md"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const COLS=[{k:'ODS',name:'ODS',sub:'Monthly — repeats every month',c:'var(--ods)',icon:'🔁'},{k:'Annual',name:'Annual',sub:'Every year — renewals, licences, birthdays',c:'var(--ann)',icon:'📅'},{k:'Business',name:'Business',sub:'One-time business tasks & follow-ups',c:'var(--biz)',icon:'💼'}];
+const LS={get:(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+const E=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+let CFG=LS.get('rem_cfg',{url:'',key:''});let REM=LS.get(CFG.url?'rem_cache':'rem_local',[]);let QUEUE=LS.get('rem_queue',[]);let tab=LS.get('rem_tab','ODS');let proposal=null;
+const connected=()=>!!(CFG.url&&CFG.key);
+const fmt=s=>{const d=RA.parse(s);return d?d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:d.getFullYear()!==new Date().getFullYear()?'numeric':undefined}):'—';};
+const t12=t=>{if(!t)return '';const[h,m]=t.split(':').map(Number);return (h%12||12)+(m?':'+String(m).padStart(2,'0'):'')+(h<12?' am':' pm');};
+function toast(msg,undo){const t=document.getElementById('toast');t.innerHTML=E(msg)+(undo?' <button id="undoBtn">Undo</button>':'');t.classList.add('show');if(undo)document.getElementById('undoBtn').onclick=()=>{undo();t.classList.remove('show');};clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),undo?6000:2800);}
+
+/* ═════ STORAGE + GOOGLE SYNC ═════ */
+function persist(){LS.set(connected()?'rem_cache':'rem_local',REM);LS.set('rem_queue',QUEUE);summary();}
+function summary(){const t=RA.today(),in7=RA.add(t,7);let today=0,week=0;REM.filter(r=>r.status==='active').forEach(r=>{const n=RA.next(r,t);if(n){if(n===t)today++;if(n<=in7)week++;}});
+  const over=REM.filter(r=>r.status==='active'&&r.repeat==='none'&&r.date<t).length;LS.set('rem_summary',{today,week,overdue:over,review:REM.filter(r=>r.status==='suggested').length,at:new Date().toISOString()});}
+async function api(action,payload){const body=JSON.stringify(Object.assign({key:CFG.key,action},payload||{}));
+  const r=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body,redirect:'follow'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Google error');return j;}
+async function apiList(){const r=await fetch(CFG.url+(CFG.url.includes('?')?'&':'?')+'key='+encodeURIComponent(CFG.key)+'&t='+Date.now(),{redirect:'follow'});const j=await r.json();if(!j.ok)throw new Error(j.error||'Google error');return j.reminders;}
+async function flush(){while(QUEUE.length){const q=QUEUE[0];await api(q.action,q.payload);QUEUE.shift();LS.set('rem_queue',QUEUE);}}
+async function sync(manual){paintConn();if(!connected()){render();if(manual)openConnect();return;}
+  try{setConn('Syncing…','');await flush();const list=await apiList();REM=list;persist();setConn('✓ Google','ok');render();if(manual)toast('Synced with Google');}
+  catch(e){setConn('Offline','warn');render();if(manual)toast('Could not reach Google — showing saved copy');}}
+async function send(action,payload,localApply){localApply();persist();render();if(!connected())return;
+  try{await flush();const j=await api(action,payload);if(j.reminder){const i=REM.findIndex(x=>x.id===j.reminder.id);if(i>=0)REM[i]=j.reminder;else REM.push(j.reminder);}if(j.reminders)REM=j.reminders;persist();render();setConn('✓ Google','ok');}
+  catch(e){QUEUE.push({action,payload});persist();setConn('Offline · '+QUEUE.length+' to sync','warn');}}
+const newId=()=>'r'+Date.now().toString(36)+Math.floor(Math.random()*1e4);
+function upsert(r){const i=REM.findIndex(x=>x.id===r.id);if(i>=0)REM[i]=Object.assign({},REM[i],r);else REM.push(r);}
+function saveRem(r,msg){r=Object.assign({status:'active',source:'manual',notifyDays:0,time:'09:30',notes:''},r);if(!r.id)r.id=newId();
+  r.repeat=r.type==='ODS'?'monthly':r.type==='Annual'?'yearly':(r.repeat||'none');const before=REM.find(x=>x.id===r.id);const snapshot=before?Object.assign({},before):null;
+  send('save',{reminder:r},()=>upsert(r));toast(msg||'✓ Saved in '+r.type,()=>{if(snapshot)saveRem(snapshot,'Undone');else delRem(r.id,true);});return r;}
+function delRem(id,silent){const r=REM.find(x=>x.id===id);send('delete',{id},()=>{REM=REM.filter(x=>x.id!==id);});if(!silent&&r)toast('Deleted',()=>saveRem(Object.assign({},r),'Restored'));}
+// For repeating reminders, "done" applies to the latest occurrence up to a week ahead (e.g. paid this month's GST early or late)
+function doneRem(id){const r=REM.find(x=>x.id===id);if(!r)return;let occ=RA.today();
+  if(r.repeat!=='none'){const lim=RA.add(RA.today(),7);let f=r.lastDone?RA.add(r.lastDone,1):RA.add(RA.today(),-40);let last=null;for(let i=0;i<24;i++){const n=RA.next(Object.assign({},r,{lastDone:''}),f);if(!n||n>lim)break;last=n;f=RA.add(n,1);}occ=last||RA.next(r,RA.today())||RA.today();}
+  send('done',{id,on:r.repeat==='none'?RA.today():occ},()=>{if(r.repeat==='none'){r.status='done';r.lastDone=RA.today();}else r.lastDone=occ;});toast(r.repeat==='none'?'✓ Marked done':'✓ Done for '+fmt(occ)+' — next one stays');}
+function setConn(t,c){const b=document.getElementById('conn');b.textContent=t;b.className='chip '+(c||'');}
+function paintConn(){if(!connected()){setConn('Local only · Connect','warn');const b=document.getElementById('banner');b.className='banner show';b.innerHTML='⚠ Reminders are only on this device. <b>Connect Google</b> to get phone alerts, the same list on laptop &amp; mobile, and Gmail sync. <button class="btn sm pri" onclick="openConnect()">Connect</button>';}else document.getElementById('banner').className='banner';
+  document.getElementById('gmailBtn').style.display=connected()?'':'none';}
+
+/* ═════ AGENT ═════ */
+const EXAMPLES=['remind me on 20th of every month to pay GST','every year on 15 March renew factory licence','tomorrow at 11 am meeting with bank','follow up Bharat Scales quote in 3 days','TDS payment 7th every month 2 days before','car insurance renewal annual 12/01/2027 one week before'];
+document.getElementById('examples').innerHTML=EXAMPLES.map(x=>`<button class="ex">${E(x)}</button>`).join('');
+document.getElementById('examples').onclick=e=>{const b=e.target.closest('.ex');if(b){document.getElementById('cmd').value=b.textContent;runAgent();}};
+document.getElementById('cmd').addEventListener('keydown',e=>{if(e.key==='Enter')runAgent();});
+function runAgent(text,source){const raw=(text!=null?text:document.getElementById('cmd').value).trim();if(!raw)return;
+  const p=RA.read(raw,{message:source==='whatsapp'||raw.length>80});proposal=Object.assign({},p,{source:source||'agent',raw});showProposal();}
+function showProposal(){const p=proposal;const el=document.getElementById('prop');if(!p){el.className='prop';return;}
+  const col=COLS.find(c=>c.k===p.type);const miss=p.missing.filter(m=>m!=='past');
+  const when=p.date?(p.repeat==='monthly'?'Every month on the '+ord(+p.date.slice(8))+' · next '+fmt(p.date):p.repeat==='yearly'?'Every year on '+RA.parse(p.date).toLocaleDateString('en-IN',{day:'numeric',month:'long'})+' · next '+fmt(p.date):fmt(p.date)):'';
+  el.className='prop show';el.innerHTML=`<div class="who">${p.source==='whatsapp'?'💬 From WhatsApp — ':'🤖 '}I'll set this:</div><div class="t">${E(p.title||'(what should I remind you about?)')}</div>
+   <div class="meta"><span class="tag t-${p.type}">${col.icon} ${col.name}</span>${when?`<span class="tag">📅 ${E(when)}</span>`:''}<span class="tag">⏰ ${t12(p.time)}</span>${p.notifyDays?`<span class="tag">🔔 also ${p.notifyDays} day${p.notifyDays>1?'s':''} before</span>`:''}</div>
+   ${miss.length?`<div class="miss">⚠ I need ${miss.map(m=>({date:'the date',month:'the month',title:'what to remind you about'})[m]||m).join(' and ')} — tap Edit.</div>`:''}${p.missing.includes('past')?'<div class="miss">⚠ That date has already passed — tap Edit to change it.</div>':''}
+   <div class="row">${miss.length||p.missing.includes('past')?'':'<button class="btn ok" onclick="acceptProposal()">✓ Save</button>'}<button class="btn" onclick="editProposal()">✏️ Edit</button><button class="btn" onclick="proposal=null;showProposal()">✕</button><span style="flex:1"></span><span class="seg3" style="grid-template-columns:repeat(3,auto)">${COLS.map(c=>`<button style="--c:${c.c}" class="${c.k===p.type?'on':''}" onclick="moveProposal('${c.k}')">${c.name}</button>`).join('')}</span></div>`;}
+const ord=n=>n+(n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th');
+function moveProposal(k){proposal.type=k;proposal.repeat=k==='ODS'?'monthly':k==='Annual'?'yearly':'none';if(proposal.date&&proposal.repeat!=='none'){const n=RA.next({date:proposal.date,repeat:proposal.repeat},RA.today());if(n)proposal.date=n;}showProposal();}
+function acceptProposal(){const p=proposal;if(!p||!p.date||!p.title)return editProposal();saveRem({type:p.type,title:p.title,date:p.date,time:p.time,notifyDays:p.notifyDays,notes:p.notes||(p.source==='whatsapp'?p.raw:''),source:p.source==='whatsapp'?'whatsapp':'agent'});
+  proposal=null;showProposal();document.getElementById('cmd').value='';document.getElementById('heard').textContent='';tab=COLS.find(c=>c.k===p.type).k;LS.set('rem_tab',tab);render();}
+function editProposal(){const p=proposal;openEdit({type:p.type,title:p.title,date:p.date||'',time:p.time,notifyDays:p.notifyDays,notes:p.notes||(p.source==='whatsapp'?p.raw:''),source:p.source==='whatsapp'?'whatsapp':'agent',_fromAgent:true});}
+
+/* ═════ VOICE (Chrome on Android & laptop, Safari on iPhone) ═════ */
+let rec=null,listening=false;
+function toggleMic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Voice is not supported in this browser — use the 🎤 on your keyboard');document.getElementById('cmd').focus();return;}
+  if(listening){rec.stop();return;}
+  rec=new SR();rec.lang='en-IN';rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;let finalText='';
+  rec.onstart=()=>{listening=true;document.getElementById('micBtn').classList.add('on');document.getElementById('heard').textContent='Listening… say your reminder';};
+  rec.onresult=e=>{let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;document.getElementById('cmd').value=txt;document.getElementById('heard').textContent='🎙 '+txt;if(e.results[e.results.length-1].isFinal)finalText=txt;};
+  rec.onerror=e=>{document.getElementById('heard').textContent=e.error==='not-allowed'?'Microphone blocked — allow it in the browser settings (needs https or the app on your laptop).':e.error==='no-speech'?'Didn\'t hear anything — tap 🎤 and try again.':'Voice error: '+e.error;};
+  rec.onend=()=>{listening=false;document.getElementById('micBtn').classList.remove('on');const t=finalText||document.getElementById('cmd').value;if(t.trim())runAgent(t);};
+  try{rec.start();}catch(e){}}
+
+/* ═════ GMAIL + WHATSAPP REVIEW ═════ */
+async function checkGmail(){if(!connected())return openConnect();const b=document.getElementById('gmailBtn');b.disabled=true;b.textContent='Checking…';
+  try{await flush();const j=await api('scan');REM=j.reminders||REM;persist();render();toast(j.added?'📥 '+j.added+' new from Gmail — see To review':'No new reminders found in Gmail');}catch(e){toast('Could not reach Google');}
+  b.disabled=false;b.textContent='✉ Check Gmail now';}
+function readPasted(){const t=document.getElementById('pasteBox').value.trim();if(!t)return;runAgent(t,'whatsapp');document.getElementById('pasteBox').value='';document.querySelector('.agent').scrollIntoView({behavior:'smooth'});}
+function approve(id){const r=REM.find(x=>x.id===id);if(!r)return;saveRem(Object.assign({},r,{status:'active'}),'✓ Added to '+r.type);}
+function dismiss(id){const r=REM.find(x=>x.id===id);if(!r)return;send('dismiss',{id},()=>{r.status='dismissed';});toast('Dismissed',()=>approveBack(id));}
+function approveBack(id){const r=REM.find(x=>x.id===id);if(r)saveRem(Object.assign({},r,{status:'suggested'}),'Back in To review');}
+
+/* ═════ RENDER ═════ */
+function whenHtml(r){const t=RA.today();if(r.status==='done')return `✓ done ${fmt(r.lastDone)}`;
+  if(r.repeat==='none'&&r.date<t)return `<span class="late">⚠ ${RA.days(r.date,t)} day${RA.days(r.date,t)>1?'s':''} overdue · ${fmt(r.date)}</span>`;
+  const n=RA.next(r,t);if(!n)return '—';const d=RA.days(t,n);const rep=r.repeat==='monthly'?'every month · ':r.repeat==='yearly'?'every year · ':'';
+  return `${rep}${d===0?'<span class="today">TODAY</span>':d===1?'<span class="soon">tomorrow</span>':d<=7?`<span class="soon">in ${d} days</span>`:`in ${d} days`} · ${fmt(n)} · ${t12(r.time)}${r.lastDone&&r.repeat!=='none'?` · last done ${fmt(r.lastDone)}`:''}`;}
+function cardHtml(r){return `<div class="card ${r.status==='done'?'isdone':''}"><div class="t">${E(r.title)}</div><div class="when">${whenHtml(r)}${r.notifyDays>0?` · 🔔 ${r.notifyDays}d before`:''}${r.source&&r.source!=='manual'&&r.source!=='agent'?` · ${r.source==='gmail'?'✉ Gmail':'💬 WhatsApp'}`:''}</div>${r.notes?`<div class="notes">${E(r.notes)}</div>`:''}
+  <div class="acts">${r.status==='done'?`<button onclick="saveRem(Object.assign({},REM.find(x=>x.id==='${r.id}'),{status:'active',lastDone:''}),'Re-opened')">↺ Re-open</button>`:`<button class="done" onclick="doneRem('${r.id}')">✓ Done</button>`}<button onclick="openEdit(REM.find(x=>x.id==='${r.id}'))">✏️ Edit</button><button onclick="delRem('${r.id}')">🗑</button></div></div>`;}
+function sortKey(r){const t=RA.today();if(r.status==='done')return 'z'+r.lastDone;if(r.repeat==='none'&&r.date<t)return '0'+r.date;return '1'+(RA.next(r,t)||'9999');}
+function render(){const t=RA.today(),in7=RA.add(t,7);const act=REM.filter(r=>r.status==='active'||r.status==='done');
+  // week strip
+  const wk=[];REM.filter(r=>r.status==='active').forEach(r=>{if(r.repeat==='none'&&r.date<t){wk.push({r,n:r.date,late:true});return;}const n=RA.next(r,t);if(n&&n<=in7)wk.push({r,n});});wk.sort((a,b)=>a.n.localeCompare(b.n));
+  document.getElementById('weekCount').textContent=wk.length?wk.length+' reminder'+(wk.length>1?'s':''):'';
+  document.getElementById('week').innerHTML=wk.length?wk.map(x=>{const c=COLS.find(c=>c.k===x.r.type);const d=RA.days(t,x.n);return `<div class="wk" style="--c:${c.c}"><div class="d">${x.late?'<b>OVERDUE</b> · ':d===0?'<b>TODAY</b> · ':d===1?'Tomorrow · ':''}${fmt(x.n)} · ${c.name}</div><div class="n">${E(x.r.title)}</div></div>`;}).join(''):'<div class="empty" style="padding:6px 0">Nothing due in the next 7 days ✓</div>';
+  // review
+  const sug=REM.filter(r=>r.status==='suggested').sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('inboxList').innerHTML=sug.length?sug.map(r=>`<div class="item"><div class="x"><div class="src">${r.source==='gmail'?'✉ Gmail':'💬 WhatsApp'} · suggested <span class="tag t-${r.type}" style="font-size:10px">${r.type}</span></div><div style="font-weight:600;font-size:14px">${E(r.title)}</div><div class="src">${fmt(r.date)}${r.notes?' · '+E(r.notes.split('\n')[0]).slice(0,80):''}</div></div><button class="btn sm ok" onclick="approve('${r.id}')">✓ Add</button><button class="btn sm" onclick="openEdit(Object.assign({},REM.find(x=>x.id==='${r.id}'),{status:'active'}))">✏️</button><button class="btn sm" onclick="dismiss('${r.id}')">✕</button></div>`).join(''):'<div class="empty" style="padding:4px 0 6px;text-align:left">Nothing to review. Reminders found in Gmail each morning appear here.</div>';
+  // tabs + columns
+  document.getElementById('tabs').innerHTML=COLS.map(c=>`<button style="--c:${c.c}" class="${tab===c.k?'on':''}" onclick="tab='${c.k}';LS.set('rem_tab',tab);render()">${c.icon} ${c.name} <span style="font-family:var(--mono);font-size:11px;opacity:.7">${act.filter(r=>r.type===c.k&&r.status==='active').length}</span></button>`).join('');
+  document.getElementById('cols').innerHTML=COLS.map(c=>{const list=act.filter(r=>r.type===c.k).sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));const open=list.filter(r=>r.status==='active'),done=list.filter(r=>r.status==='done');
+    return `<div class="col ${tab===c.k?'on':''}" style="--c:${c.c}"><h2>${c.icon} ${c.name}<span class="n">${open.length}</span></h2><div class="sub">${c.sub}</div>${open.map(cardHtml).join('')||'<div class="empty">No reminders yet</div>'}
+      <button class="addcol" onclick="openEdit({type:'${c.k}'})">+ Add ${c.name} reminder</button>${done.length?`<details style="margin-top:8px"><summary style="font-size:12px;color:var(--text-dim);cursor:pointer">Done (${done.length})</summary>${done.slice(0,20).map(cardHtml).join('')}</details>`:''}</div>`;}).join('');
+  paintConn();}
+
+/* ═════ EDIT FORM ═════ */
+let editing=null;
+function openEdit(r){editing=Object.assign({type:'Business',title:'',date:'',time:'09:30',notifyDays:0,notes:''},r||{});const md=document.getElementById('md');const e=editing;
+  const day=e.date?+e.date.slice(8):'',mon=e.date?+e.date.slice(5,7):'';
+  md.innerHTML=`<h3>${e.id&&!e._fromAgent?'Edit reminder':'New reminder'}</h3>
+   <label>Column</label><div class="seg3" id="f_type">${COLS.map(c=>`<button type="button" data-k="${c.k}" style="--c:${c.c}" class="${c.k===e.type?'on':''}">${c.icon} ${c.name}</button>`).join('')}</div>
+   <label>What to remember</label><input id="f_title" value="${E(e.title)}" placeholder="e.g. Pay GST">
+   <div id="f_dateBox"></div>
+   <div class="two"><div><label>Time</label><input id="f_time" type="time" value="${E(e.time)}"></div><div><label>Also alert before</label><select id="f_nd">${[0,1,2,3,5,7,10,15,30].map(n=>`<option value="${n}" ${+e.notifyDays===n?'selected':''}>${n?n+' day'+(n>1?'s':'')+' before':'Only on the day'}</option>`).join('')}</select></div></div>
+   <label>Notes</label><textarea id="f_notes" rows="2">${E(e.notes)}</textarea>
+   <div class="err" id="f_err"></div>
+   <div class="row" style="margin-top:6px"><button class="btn ok" onclick="submitEdit()">✓ Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>`;
+  const paintDate=()=>{const k=editing.type;const box=document.getElementById('f_dateBox');
+    if(k==='ODS')box.innerHTML=`<label>Day of every month</label><select id="f_day">${Array.from({length:31},(_,i)=>`<option value="${i+1}" ${+day===i+1?'selected':''}>${ord(i+1)}</option>`).join('')}</select><div class="hint">Days 29–31 are skipped in shorter months (Google Calendar does the same).</div>`;
+    else if(k==='Annual')box.innerHTML=`<div class="two"><div><label>Day</label><select id="f_day">${Array.from({length:31},(_,i)=>`<option value="${i+1}" ${+day===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div><div><label>Month</label><select id="f_mon">${['January','February','March','April','May','June','July','August','September','October','November','December'].map((m,i)=>`<option value="${i+1}" ${+mon===i+1?'selected':''}>${m}</option>`).join('')}</select></div></div>`;
+    else box.innerHTML=`<label>Date</label><input id="f_date" type="date" value="${E(editing.date||RA.add(RA.today(),1))}">`;};
+  paintDate();document.querySelectorAll('#f_type button').forEach(b=>b.onclick=()=>{editing.type=b.dataset.k;document.querySelectorAll('#f_type button').forEach(x=>x.classList.toggle('on',x===b));paintDate();});
+  document.getElementById('ov').classList.add('show');setTimeout(()=>{if(!e.title)document.getElementById('f_title').focus();},50);}
+function submitEdit(){const e=editing;const v=id=>(document.getElementById(id)||{}).value||'';const err=document.getElementById('f_err');const title=v('f_title').trim();if(!title){err.textContent='Write what to remember.';return;}
+  let date;const t=RA.today();
+  if(e.type==='ODS'){const d=+v('f_day');date=RA.next({date:t.slice(0,8)+String(d).padStart(2,'0'),repeat:'monthly'},t);if(!date){err.textContent='Choose a day.';return;}}
+  else if(e.type==='Annual'){const d=+v('f_day'),m=+v('f_mon');if(d>RA.monthLen(2028,m)){err.textContent='That month does not have day '+d+'.';return;}let y=+t.slice(0,4);date=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');if(date<t||d>RA.monthLen(y,m))date=RA.next({date:'2028-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'),repeat:'yearly'},t);}
+  else{date=v('f_date');if(!date){err.textContent='Choose a date.';return;}if(date<t&&!confirm('That date has passed. Save anyway?'))return;}
+  const r={id:e._fromAgent?undefined:e.id,type:e.type,title,date,time:v('f_time')||'09:30',notifyDays:+v('f_nd')||0,notes:v('f_notes').trim(),status:e.status==='suggested'?'active':(e.status||'active'),source:e.source||'manual',sourceRef:e.sourceRef||'',lastDone:e.lastDone||''};
+  if(e.id&&!e._fromAgent)r.id=e.id;saveRem(r);closeModal();if(e._fromAgent){proposal=null;showProposal();document.getElementById('cmd').value='';}tab=r.type;LS.set('rem_tab',tab);render();}
+function closeModal(){document.getElementById('ov').classList.remove('show');}
+
+/* ═════ CONNECT GOOGLE ═════ */
+function openConnect(){const md=document.getElementById('md');md.innerHTML=`<h3>Connect Google</h3><p style="font-size:13px;color:var(--text-dim);line-height:1.5">Paste the <b>Web app URL</b> and <b>secret key</b> from your Sentire Reminders Google script (see REMINDERS_SETUP.txt). Do this once on the laptop and once on the phone.</p>
+  <label>Web app URL</label><input id="c_url" value="${E(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec"><label>Secret key</label><input id="c_key" value="${E(CFG.key)}" placeholder="from the setup log">
+  <div class="err" id="c_err"></div><div class="row" style="margin-top:6px"><button class="btn ok" onclick="saveConnect()">Connect</button>${connected()?'<button class="btn" onclick="disconnect()">Disconnect</button>':''}<button class="btn" onclick="closeModal()">Cancel</button></div>`;document.getElementById('ov').classList.add('show');}
+async function saveConnect(){const url=document.getElementById('c_url').value.trim(),key=document.getElementById('c_key').value.trim();const err=document.getElementById('c_err');
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){err.textContent='The URL should start with https://script.google.com/';return;}if(!key){err.textContent='Paste the secret key.';return;}
+  err.style.color='var(--text-dim)';err.textContent='Checking…';const old=CFG;CFG={url,key};
+  try{const r=await fetch(url+(url.includes('?')?'&':'?')+'action=ping&key='+encodeURIComponent(key),{redirect:'follow'});const j=await r.json();if(!j.ok)throw new Error(j.error);}
+  catch(e){CFG=old;err.style.color='';err.textContent='Could not connect: '+(e.message||'check the URL, key and that the script is deployed for "Anyone".');return;}
+  LS.set('rem_cfg',CFG);const local=LS.get('rem_local',[]);
+  if(local.length&&confirm('Upload the '+local.length+' reminder(s) saved on this device to Google?')){try{const j=await api('bulk',{reminders:local});REM=j.reminders;LS.set('rem_local',[]);}catch(e){}}
+  closeModal();toast('✓ Connected to Google');sync();}
+function disconnect(){if(!confirm('Disconnect this device from Google? Your reminders stay safe in Google.'))return;CFG={url:'',key:''};LS.set('rem_cfg',CFG);REM=LS.get('rem_local',[]);closeModal();render();}
+
+/* ═════ START ═════ */
+// Shared from WhatsApp (phone): reminders.html?text=...
+(function(){const q=new URLSearchParams(location.search);const txt=[q.get('title'),q.get('text'),q.get('url')].filter(Boolean).join(' ').trim();if(txt){history.replaceState(null,'',location.pathname);setTimeout(()=>runAgent(txt,'whatsapp'),300);}})();
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))navigator.serviceWorker.register('reminders_sw.js').catch(()=>{});
+if(!(window.SpeechRecognition||window.webkitSpeechRecognition))document.getElementById('micBtn').title='Voice not supported here — use the keyboard mic';
+render();summary();sync();
+window.addEventListener('online',()=>sync());document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();});
+</script>
+</body>
+</html>

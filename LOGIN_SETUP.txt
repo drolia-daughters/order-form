@@ -1,0 +1,74 @@
+SENTIRE LOGIN ON SUPABASE — ONE-TIME SETUP (about 5 minutes)
+============================================================
+The site has 1 Admin + up to 4 Users. Each person has a login ID and password.
+The logins are kept in your Supabase project, so they are the same on every
+laptop and phone. (The earlier Google-script login is no longer used.)
+
+Your project:  https://phuducopbugeyvkzhvki.supabase.co
+It is already filled in for you in auth_config.js.
+
+PART 1 — Set up the database (once)
+-----------------------------------
+1. Open https://supabase.com/dashboard and click your project.
+2. In the left menu click "SQL Editor", then "New query" (or the + button).
+3. Open the file supabase_setup.sql (in this folder) in Notepad.
+   Press Ctrl+A, then Ctrl+C to copy ALL of it.
+4. Click inside the SQL Editor, press Ctrl+V to paste, then click "Run".
+   If Supabase warns about "destructive operations", click "Run this query" —
+   the script only removes and re-creates its own access rule.
+5. You should see "Success. No rows returned". That is all for the database.
+
+PART 2 — Create the Admin (once)
+--------------------------------
+6. Open the site (double-click Start_Command_Center.bat, or the online address).
+   It shows "Create the Admin login".
+   DO THIS STRAIGHT AWAY — whoever opens the site first becomes the Admin.
+7. Type your name, a login ID (for example: admin) and a password. Click "Create Admin".
+8. On the Main Page click "Users" (top right, Admin only) → "+ Add user" for each of
+   the four people. Tell each person their login ID and password.
+
+PART 3 — Recommended: close public sign-up
+------------------------------------------
+9. Supabase dashboard → Authentication → "Sign In / Providers" →
+   switch OFF "Allow new users to sign up" → Save.
+   The site does not need it: only the Admin adds people, on the Users page.
+
+HOW IT WORKS
+------------
+• Admin: uses everything, and can open "Users" to change anyone's login ID, name or
+  password (also the Admin's own), add a user or remove a user.
+• Users: use everything except the "Users" page.
+• A person stays logged in on a device until they click "Log out" on the Main Page.
+• When the Admin changes someone's password, that person is logged out everywhere
+  within about an hour and must use the new password.
+• A removed user loses access the next time a page opens.
+• Many wrong passwords in a short time: Supabase makes the person wait a few minutes.
+• A user who forgets the password asks the Admin to set a new one.
+
+KEYS — IMPORTANT
+----------------
+• auth_config.js holds the Project URL and the PUBLISHABLE key (starts with sb_publishable_).
+  These are safe to be public.
+• The SECRET key (starts with sb_secret_) must never be pasted into a file, a chat,
+  an e-mail or WhatsApp. The site does not use it. If it is ever shared, delete it:
+  Supabase → Settings → API Keys → Secret keys → Delete.
+
+LOST ADMIN PASSWORD
+-------------------
+Supabase → SQL Editor → paste this one line → Run:
+    delete from auth.users where id in (select user_id from public.profiles);
+All logins are erased; open the site and create the Admin again, then add the users
+again. Your orders and other data are not touched.
+
+TO SWITCH THE LOGIN OFF
+-----------------------
+In auth_config.js empty both values (leave the quotes) and upload the file to GitHub.
+
+LIMITS — PLEASE READ
+--------------------
+• This step moves only the LOGIN to Supabase. Your business data is still saved inside
+  each browser, so every device still has its own orders, stock and so on. Moving the
+  data to Supabase is the next step (Masters and Orders first).
+• The login page stops ordinary visitors. The page files themselves are public on GitHub,
+  so a technical person can read the page code (never your data or passwords). Real
+  protection of the data comes when the data moves into Supabase, behind its access rules.

@@ -186,3 +186,28 @@ MIT License — free for personal and commercial use.
 ---
 
 Built with ❤️ for loadcell manufacturing operations.
+
+## Update — October 2026 (testing changes)
+
+**New files:** `sentire_common.js` (shared by all pages — keep it in the same folder), `masters.html`, `cohort.html`.
+
+**First-time setup (Main Page → Masters):**
+1. **Approvers** — add the Admin first (name, WhatsApp, PIN), then Sub Admin and Authorised persons. Any one of them can approve Laser, Packing and Bill with their own PIN.
+2. **Clients** — WhatsApp number, GSTIN, address, pincode, payment mode and credit days.
+3. **Transporters** — WhatsApp number (gets the pickup request) and Transporter ID.
+4. **Company** — GSTIN, address, pincode, pickup address, default HSN and GST %, invoice prefix, pickup cut-off time (2 PM).
+5. **Holidays** — Gujarat 2026 list is already loaded; add your own (Diwali vacation) and 2027 festival dates.
+
+**Order Sheet:** several items per order (+ Add another item), Delivery Date with 📅 holiday calendar, Print opens the printer directly (two sheets per A4), 💰 Payments tab for reminders and escalation.
+
+**Factory Production flow:** Received → Assembly → Wiring → Testing → 🔐 Laser approval → Laser → Packing (boxes & weight) → 🔐 Packing approval → 📲 pickup WhatsApp to transporter (before 2 PM) → Ready → 🔐 Bill approval → 🧾 Bill & E-way bill JSON → 🚚 L.R. → Dispatched + WhatsApp to customer. Job card prints exactly like the order sheet.
+
+**Cohort (business dashboard):** Overview (income, profit, orders, collections), Sales, Customers & Cohorts (health groups, retention), Marketing (lead funnel, sources, telecallers), Operations (stages, bottlenecks, on-time), 💡 Grow Income (ranked opportunities with WhatsApp buttons + what-if calculator), Ask (one answer per question) and Data pool. Needs `cohort_engine.js` in the same folder. “Preview with demo data” shows sample figures without saving anything.
+
+WhatsApp messages open ready to send — someone taps **Send** (browsers cannot send WhatsApp on their own).
+
+**Reminders (`reminders.html`):** three columns — ODS (monthly), Annual, Business — with a voice reminder agent, Gmail suggestions ("To review"), WhatsApp share/paste, and phone alerts through Google Calendar. One-time Google setup: see `REMINDERS_SETUP.txt` (uses `reminders_apps_script.gs`). Phone app files: `reminders_agent.js`, `reminders_sw.js`, `reminders.webmanifest`, `reminders-192.png`, `reminders-512.png`.
+
+## Update — November 2026 (login)
+
+**Login for 1 Admin + 4 Users, on Supabase.** New files: `login.html`, `users.html`, `auth.js`, `auth_config.js`, `supabase_setup.sql`, `LOGIN_SETUP.txt`, `PROJECT_CONTEXT.md`. Every page loads the Supabase library, `auth_config.js` and `auth.js` first. Run `supabase_setup.sql` once in the Supabase SQL Editor — see `LOGIN_SETUP.txt`. The Admin manages login IDs and passwords on the **Users** page. `auth_apps_script.gs` is no longer used.

@@ -5,6 +5,8 @@
 (function(){
 let VR=null,listening=false,currentField=null;
 const page=location.pathname.split('/').pop()||'index.html';
+// Navigate: inside the Main Page window, ask it to switch apps; otherwise go directly
+function go(u){if(window.top!==window){window.top.postMessage({sentireNav:u},'*');}else{location.href=u;}}
 
 // ─── CREATE FLOATING MIC BUTTON ───
 const micCSS=document.createElement('style');
@@ -34,12 +36,14 @@ document.body.appendChild(bar);
 
 // Set hints based on page
 const hints={
-'index.html':'Say: "party name [name]" · "quantity [number]" · "loadcell ALC" · "submit order" · "show database" · "print"',
+'orders.html':'Say: "party name [name]" · "loadcell DLC" · "quantity 12" · "add item" · "loadcell AS" · "quantity 10" · "submit order" · "show payments"',
+'masters.html':'Say: "open orders" · "open production" · "open cohort" · "main page"',
+'cohort.html':'Type or say your question in the Ask box · "open masters" · "main page"',
 'marketing_crm.html':'Say: "add lead" · "company [name]" · "phone [number]" · "show pipeline" · "show dashboard"',
-'factory_production.html':'Say: "new job" · "party [name]" · "quantity [number]" · "next stage" · "show board"',
+'factory_production.html':'Say: "new job" · "party [name]" · "quantity [number]" · "show board" · "show jobs"',
 'inventory_management.html':'Say: "add item" · "stock in" · "stock out" · "check stock" · "show imports"',
-'accounts_reports.html':'Say: "add income" · "add expense" · "amount [number]" · "generate report" · "show receivables"',
-'hub.html':'Say: "open orders" · "open marketing" · "open production" · "open inventory" · "open accounts"'
+'accounts_reports.html':'Say: "add income" · "add expense" · "import statement" · "amount [number]" · "generate report" · "show receivables"',
+'index.html':'Say: "open orders" · "open marketing" · "open production" · "open inventory" · "open accounts"'
 };
 document.getElementById('vHint').textContent=hints[page]||'Say a command...';
 
@@ -75,16 +79,21 @@ function extractNumber(cmd){const m=cmd.match(/\d+/);return m?m[0]:'';}
 // ─── COMMAND HANDLER ───
 function handleCmd(cmd){
 // ──── GLOBAL NAVIGATION ────
-if(cmd.includes('open order')||cmd.includes('order sheet')||cmd.includes('go to order')){confirm('Opening Orders');location.href='index.html';return;}
-if(cmd.includes('open marketing')||cmd.includes('open crm')||cmd.includes('go to marketing')){confirm('Opening CRM');location.href='marketing_crm.html';return;}
-if(cmd.includes('open production')||cmd.includes('open factory')||cmd.includes('go to production')){confirm('Opening Production');location.href='factory_production.html';return;}
-if(cmd.includes('open inventory')||cmd.includes('open stock')||cmd.includes('go to inventory')){confirm('Opening Inventory');location.href='inventory_management.html';return;}
-if(cmd.includes('open account')||cmd.includes('open finance')||cmd.includes('go to account')){confirm('Opening Accounts');location.href='accounts_reports.html';return;}
-if(cmd.includes('go home')||cmd.includes('go back')||cmd.includes('main menu')||cmd.includes('command center')){confirm('Going to Hub');location.href='hub.html';return;}
+if(cmd.includes('open order')||cmd.includes('order sheet')||cmd.includes('go to order')){confirm('Opening Orders');go('orders.html');return;}
+if(cmd.includes('open marketing')||cmd.includes('open crm')||cmd.includes('go to marketing')){confirm('Opening CRM');go('marketing_crm.html');return;}
+if(cmd.includes('open production')||cmd.includes('open factory')||cmd.includes('go to production')){confirm('Opening Production');go('factory_production.html');return;}
+if(cmd.includes('calculator')||cmd.includes('sensitivity')){confirm('Opening Calculator');go('loadcell_calculator.html');return;}
+if(cmd.includes('job work')||cmd.includes('job worker')){confirm('Opening Job Work');go('job_work.html');return;}
+if(cmd.includes('open inventory')||cmd.includes('open stock')||cmd.includes('go to inventory')){confirm('Opening Inventory');go('inventory_management.html');return;}
+if(cmd.includes('open account')||cmd.includes('open finance')||cmd.includes('go to account')){confirm('Opening Accounts');go('accounts_reports.html');return;}
+if(cmd.includes('open reminder')||cmd.includes('go to reminder')||cmd.includes('show reminder')){confirm('Opening Reminders');go('reminders.html');return;}
+if(cmd.includes('open master')||cmd.includes('go to master')||cmd.includes('masters')){confirm('Opening Masters');go('masters.html');return;}
+if(cmd.includes('cohort')||cmd.includes('data pool')||cmd.includes('ask data')){confirm('Opening Cohort');go('cohort.html');return;}
+if(cmd.includes('go home')||cmd.includes('go back')||cmd.includes('main menu')||cmd.includes('main page')||cmd.includes('command center')){confirm('Going to Main Page');go('index.html');return;}
 if(cmd.includes('stop listening')||cmd.includes('stop voice')||cmd.includes('mic off')){stopV();return;}
 
-// ──── ORDER SHEET (index.html) ────
-if(page==='index.html'||page===''){
+// ──── ORDER SHEET (orders.html) ────
+if(page==='orders.html'){
 if(cmd.includes('new order')||cmd.includes('new form')){clickBtn('.tab-btn');confirm('New Order form');return;}
 if(cmd.includes('show database')||cmd.includes('master database')||cmd.includes('show orders')){document.querySelectorAll('.tab-btn')[1]?.click();confirm('Showing Database');return;}
 if(cmd.includes('party name')||cmd.includes('party is')||cmd.includes('company name')||cmd.includes('client name')){
@@ -95,11 +104,13 @@ if(cmd.includes('email')){const v=extractAfter(cmd,'email');if(v){setField('clie
 if(cmd.includes('phone')||cmd.includes('mobile')){const n=cmd.replace(/[^0-9+]/g,'');if(n.length>=10){setField('clientPhone',n);confirm('Phone: '+n);}return;}
 if(cmd.includes('loadcell')||cmd.includes('load cell')||cmd.includes('type alc')||cmd.includes('type dlc')){
 const types=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];
-types.forEach(t=>{if(cmd.toUpperCase().includes(t)){document.querySelectorAll('input[name=\"lc\"]').forEach(cb=>{if(cb.value===t){cb.checked=true;cb.closest('.chip-check')?.classList.add('checked');}});}});
-confirm('Loadcell type set');return;}
-if(cmd.includes('quantity')||cmd.includes('pieces')||cmd.includes('pcs')){const n=extractNumber(cmd);if(n){setField('quantity',n);confirm('Quantity: '+n);}return;}
-if(cmd.includes('capacity')){const v=extractAfter(cmd,'capacity');if(v){setField('capacity',v);confirm('Capacity: '+v);}return;}
-if(cmd.includes('wire')){const v=extractAfter(cmd,'wire');if(v){setField('wire',v);confirm('Wire: '+v);}return;}
+const up=' '+cmd.toUpperCase().replace(/[^A-Z. ]/g,' ')+' ';const found=types.filter(t=>up.includes(' '+t+' '));
+if(found.length&&typeof orderVoiceItem==='function'){found.forEach(t=>orderVoiceItem('type',t));confirm('Loadcell: '+found.join(', '));}else setStatus('Say the type, e.g. "loadcell DLC"','');return;}
+if(cmd.includes('add item')||cmd.includes('another item')||cmd.includes('new item')){if(typeof addItemRow==='function'){addItemRow();confirm('New item row added');}return;}
+if(cmd.includes('quantity')||cmd.includes('pieces')||cmd.includes('pcs')){const n=extractNumber(cmd);if(n&&typeof orderVoiceItem==='function'){orderVoiceItem('qty',n);confirm('Quantity: '+n);}return;}
+if(cmd.includes('capacity')){const v=extractAfter(cmd,'capacity');if(v&&typeof orderVoiceItem==='function'){orderVoiceItem('capacity',v.toUpperCase());confirm('Capacity: '+v);}return;}
+if(cmd.includes('wire')){const v=extractAfter(cmd,'wire');if(v&&typeof orderVoiceItem==='function'){orderVoiceItem('wire',v);confirm('Wire: '+v);}return;}
+if(cmd.includes('show payment')||cmd.includes('payment reminder')){if(typeof showView==='function')showView('pay');confirm('Payments');return;}
 if(cmd.includes('payment advance')){selectDD('paymentMode','Advance');confirm('Payment: Advance');return;}
 if(cmd.includes('payment cod')||cmd.includes('cash on delivery')){selectDD('paymentMode','COD');confirm('Payment: COD');return;}
 if(cmd.includes('payment credit')||cmd.includes('credit payment')){selectDD('paymentMode','Credit');confirm('Payment: Credit');return;}
@@ -176,6 +187,7 @@ if(page==='accounts_reports.html'){
 if(cmd.includes('add income')||cmd.includes('new income')){if(typeof showV==='function')showV('add');if(typeof setType==='function')setType('income');confirm('Add Income');return;}
 if(cmd.includes('add expense')||cmd.includes('new expense')){if(typeof showV==='function')showV('add');if(typeof setType==='function')setType('expense');confirm('Add Expense');return;}
 if(cmd.includes('show income')){if(typeof showV==='function')showV('income');confirm('Income');return;}
+if(cmd.includes('import statement')||cmd.includes('bank statement')){if(typeof showV==='function')showV('import');confirm('Import Bank Statement');return;}
 if(cmd.includes('show expense')){if(typeof showV==='function')showV('expense');confirm('Expenses');return;}
 if(cmd.includes('show report')||cmd.includes('generate report')){if(typeof showV==='function')showV('report');if(typeof genReport==='function')genReport();confirm('Report');return;}
 if(cmd.includes('receivable')){if(typeof showV==='function')showV('receivable');confirm('Receivables');return;}
@@ -195,5 +207,5 @@ setStatus('❓ "'+cmd+'" — try again','');
 document.addEventListener('keydown',function(e){if(e.code==='Space'&&(e.target===document.body||e.target.tagName==='DIV')){e.preventDefault();toggleV();}});
 
 // Auto-announce page
-const pageNames={'index.html':'Order Sheet','marketing_crm.html':'Marketing CRM','factory_production.html':'Factory Production','inventory_management.html':'Inventory Management','accounts_reports.html':'Accounts and Reports','hub.html':'Command Center'};
+const pageNames={'orders.html':'Order Sheet','marketing_crm.html':'Marketing CRM','factory_production.html':'Factory Production','inventory_management.html':'Inventory Management','accounts_reports.html':'Accounts and Reports','job_work.html':'Job Work','loadcell_calculator.html':'Loadcell Calculator','masters.html':'Masters','cohort.html':'Cohort','reminders.html':'Reminders','index.html':'Main Page'};
 })();

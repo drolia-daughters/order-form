@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Accounts & Reports — Sentire Technologies</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#06b6d4;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
@@ -20,12 +22,16 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
 .act-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid;margin:1px;}
 .toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--accent);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.drop{border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;color:var(--text-dim);transition:all .2s;}.drop:hover,.drop.over{border-color:var(--accent);color:var(--text);background:rgba(6,182,212,0.05);}
+.imp-sum{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0;}.pill{background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;font-family:var(--mono);}
+#impBody select,#impBody input[type=text]{padding:5px 7px;font-size:11px;}#impBody tr.dup{opacity:.4;}#impBody td.narr{max-width:320px;white-space:normal;font-size:11px;color:var(--text-dim);}
+.btn-post{background:var(--green);color:#fff;border-color:var(--green);font-size:14px;padding:12px 24px;}
 .report-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}.report-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}.report-row:last-child{border-bottom:none;font-weight:700;padding-top:10px;}
 </style>
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><div class="icon">AR</div><h1>Accounts & Reports</h1><span>PHASE 5</span></div>
-<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('income')">Income</button><button class="tab-btn" onclick="showV('expense')">Expenses</button><button class="tab-btn" onclick="showV('add')">+ Add Entry</button><button class="tab-btn" onclick="showV('report')">Reports</button><button class="tab-btn" onclick="showV('receivable')">Receivables</button></div></div>
+<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('income')">Income</button><button class="tab-btn" onclick="showV('expense')">Expenses</button><button class="tab-btn" onclick="showV('add')">+ Add Entry</button><button class="tab-btn" onclick="showV('import')">🏦 Import Statement</button><button class="tab-btn" onclick="showV('report')">Reports</button><button class="tab-btn" onclick="showV('receivable')">Receivables</button></div></div>
 <div class="main">
 
 <!-- DASHBOARD -->
@@ -59,12 +65,29 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="form-group"><label>Party / Vendor *</label><input type="text" id="ef_party" required></div>
 <div class="form-group"><label>Description</label><input type="text" id="ef_desc"></div>
 <div class="form-group" id="catGroup"><label>Category</label><select id="ef_cat"><option>Raw Material</option><option>China Import</option><option>Salary</option><option>Rent</option><option>Utilities</option><option>Transport</option><option>Marketing</option><option>Equipment</option><option>Misc</option></select></div>
-<div class="form-group"><label>Payment Mode</label><select id="ef_mode"><option>Bank Transfer</option><option>Cash</option><option>UPI</option><option>Cheque</option><option>Credit</option></select></div>
+<div class="form-group"><label>Payment Mode</label><select id="ef_mode"><option>Bank Transfer</option><option>Cash</option><option>UPI</option><option>Cheque</option><option>Card</option><option>Credit</option></select></div>
 <div class="form-group"><label>Invoice / Reference#</label><input type="text" id="ef_ref"></div>
 <div class="form-group"><label>Status</label><select id="ef_status"><option>Paid</option><option>Pending</option><option>Partial</option></select></div>
 <div class="form-group full"><label>Notes</label><textarea id="ef_notes"></textarea></div>
 <div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="resetEF()">Clear</button><button type="submit" class="btn btn-primary" id="efBtn">+ Add Entry</button></div>
 </form></div></div>
+
+<!-- IMPORT BANK STATEMENT -->
+<div class="view" id="v_import"><h2 style="margin-bottom:6px;">Import Bank Statement</h2>
+<p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">Download your HDFC or ICICI statement from net banking as <b>Excel (XLS/XLSX) or CSV</b>, then drop it here. GPay payments are included automatically — they appear in the bank statement as UPI. The file is read only inside this browser; nothing is uploaded anywhere.</p>
+<div class="card">
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:end;">
+<div class="form-group" style="width:170px;"><label>Bank</label><select id="impBank"><option value="auto">Auto-detect</option><option>HDFC</option><option>ICICI</option><option>Other</option></select></div>
+<label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="checkbox" id="impCredits" style="width:auto;" onchange="if(impRows.length)renderImport()"> Also import deposits (credits) as Income</label>
+</div>
+<div class="drop" id="impDrop" onclick="document.getElementById('impFile').click()"><div style="font-size:30px;">🏦</div><div style="font-weight:600;margin-top:6px;">Click or drop statement file here</div><div style="font-size:11px;margin-top:4px;">.xls · .xlsx · .csv · .txt</div></div>
+<input type="file" id="impFile" accept=".xls,.xlsx,.csv,.txt" style="display:none;" onchange="impLoad(this.files[0])">
+</div>
+<div id="impResult" style="display:none;">
+<div class="imp-sum" id="impSum"></div>
+<div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap;"><button class="btn btn-ghost" onclick="impClear()">✕ Cancel</button><button class="btn btn-post" id="impPostBtn" onclick="impPostAll()">✅ Post All</button></div>
+<div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="impAll" style="width:auto;" checked onchange="impToggleAll(this.checked)"></th><th>Date</th><th>Type</th><th>Narration (from bank)</th><th>Party / Vendor</th><th>Category</th><th>Amount (₹)</th><th>Mode</th></tr></thead><tbody id="impBody"></tbody></table></div>
+</div></div>
 
 <!-- REPORTS -->
 <div class="view" id="v_report"><h2 style="margin-bottom:16px;">Financial Reports</h2>
@@ -83,10 +106,11 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 </div>
 <div class="toast" id="toast">✓ Saved</div>
 <script>
+const localToday=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const FK='fin_entries';let editId=null;let entryType='income';
 const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
-function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach((b,i)=>{const map={dash:0,income:1,expense:2,add:3,report:4,receivable:5};if(i===map[v])b.classList.add('active');});
-if(v==='dash')renderDash();if(v==='income')renderIncome();if(v==='expense')renderExpenses();if(v==='receivable')renderReceivables();if(v==='add'){document.getElementById('ef_date').value=new Date().toISOString().split('T')[0];}}
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach((b,i)=>{const map={dash:0,income:1,expense:2,add:3,import:4,report:5,receivable:6};if(i===map[v])b.classList.add('active');});
+if(v==='dash')renderDash();if(v==='income')renderIncome();if(v==='expense')renderExpenses();if(v==='receivable')renderReceivables();if(v==='add'){document.getElementById('ef_date').value=localToday();}}
 function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function setType(t){entryType=t;document.getElementById('ef_type').value=t;document.getElementById('typeInc').style.opacity=t==='income'?'1':'0.4';document.getElementById('typeExp').style.opacity=t==='expense'?'1':'0.4';document.getElementById('catGroup').style.display=t==='expense'?'flex':'none';}
 
@@ -94,11 +118,14 @@ function saveEntry(e){e.preventDefault();const entries=g(FK);
 const entry={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,5),type:document.getElementById('ef_type').value,date:document.getElementById('ef_date').value,amount:parseFloat(document.getElementById('ef_amount').value)||0,party:document.getElementById('ef_party').value,desc:document.getElementById('ef_desc').value,category:entryType==='expense'?document.getElementById('ef_cat').value:'Sales',mode:document.getElementById('ef_mode').value,ref:document.getElementById('ef_ref').value,status:document.getElementById('ef_status').value,notes:document.getElementById('ef_notes').value};
 if(editId){const idx=entries.findIndex(e=>e.id===editId);if(idx>=0)entries[idx]=entry;editId=null;}else entries.push(entry);
 s(FK,entries);resetEF();toast();showV(entry.type==='income'?'income':'expense');}
-function resetEF(){document.getElementById('entryForm').reset();editId=null;document.getElementById('ef_date').value=new Date().toISOString().split('T')[0];document.getElementById('efBtn').textContent='+ Add Entry';}
+function resetEF(){document.getElementById('entryForm').reset();editId=null;document.getElementById('ef_date').value=localToday();document.getElementById('efBtn').textContent='+ Add Entry';}
 function editEntry(id){const entries=g(FK),e=entries.find(x=>x.id===id);if(!e)return;editId=id;setType(e.type);
 document.getElementById('ef_date').value=e.date;document.getElementById('ef_amount').value=e.amount;document.getElementById('ef_party').value=e.party;document.getElementById('ef_desc').value=e.desc||'';if(e.type==='expense')document.getElementById('ef_cat').value=e.category||'Misc';document.getElementById('ef_mode').value=e.mode||'Bank Transfer';document.getElementById('ef_ref').value=e.ref||'';document.getElementById('ef_status').value=e.status||'Paid';document.getElementById('ef_notes').value=e.notes||'';document.getElementById('efBtn').textContent='✓ Update';showV('add');}
 function delEntry(id){if(!confirm('Delete?'))return;s(FK,g(FK).filter(e=>e.id!==id));toast('✓ Deleted');renderIncome();renderExpenses();}
-function markPaid(id){const entries=g(FK),e=entries.find(x=>x.id===id);if(e){e.status='Paid';s(FK,entries);toast('✓ Marked Paid');renderReceivables();renderDash();}}
+function markPaid(id){const entries=g(FK),e=entries.find(x=>x.id===id);if(e){e.status='Paid';s(FK,entries);
+  // A bill made in Factory Production is linked to its order: mark the order paid too, so reminders stop
+  if(e.source==='bill'&&e.orderNo){try{const db=JSON.parse(localStorage.getItem('ordersheet_master_db'))||[];const o=db.find(x=>x.orderNo===e.orderNo);if(o&&!o.paymentDone){o.paymentDone=true;o.paidDate=new Date().toISOString();localStorage.setItem('ordersheet_master_db',JSON.stringify(db));}}catch(err){}}
+  toast('✓ Marked Paid');renderReceivables();renderDash();}}
 
 function renderIncome(){const entries=g(FK).filter(e=>e.type==='income'),srch=(document.getElementById('incSrch')?.value||'').toLowerCase();
 const fl=entries.filter(e=>!srch||((e.party+e.desc+e.ref).toLowerCase().includes(srch)));
@@ -142,6 +169,110 @@ function exportReport(){const entries=g(FK);if(!entries.length)return alert('No 
 let csv='Date,Type,Party,Description,Category,Amount,Mode,Reference,Status,Notes\n';
 entries.sort((a,b)=>a.date?.localeCompare(b.date)).forEach(e=>{csv+=[e.date,e.type,e.party,e.desc,e.category,e.amount,e.mode,e.ref,e.status,e.notes].map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')+'\n';});
 const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='accounts_'+new Date().toISOString().slice(0,10)+'.csv';a.click();}
+
+
+/* ════════ BANK STATEMENT IMPORT ════════ */
+const CATS=['Raw Material','China Import','Salary','Rent','Utilities','Transport','Marketing','Equipment','Misc'];
+const RULEK='stmt_vendor_rules'; // vendor → category the user chose before
+// Keyword guesses for a first category; anything unmatched is Misc and can be changed before posting
+const CAT_WORDS=[['Salary',/salary|wages|payroll|\bsal\b|advance to staff/],['Rent',/\brent\b|lease/],['Utilities',/electric|torrent|ugvcl|mgvcl|dgvcl|pgvcl|power|water|gas|airtel|jio|vodafone|\bvi\b|bsnl|broadband|internet|mobile|recharge|dth/],
+ ['Transport',/transport|logistic|courier|freight|cargo|roadways|vrl|delhivery|bluedart|dtdc|gati|tci|safexpress|porter|fuel|petrol|diesel|hpcl|iocl|bpcl|toll|fastag|uber|ola|rapido/],
+ ['China Import',/alibaba|china|customs|icegate|forex|swift|outward remit|clearing agent|cha /],['Marketing',/google ads|facebook|meta |indiamart|tradeindia|justdial|advert|marketing|printing|visiting card/],
+ ['Equipment',/machine|machinery|tools|equipment|amazon|flipkart|hardware|computer|laptop/],['Raw Material',/steel|metal|alloy|cable|wire|strain gauge|gauge|epoxy|chemical|silicon|plating|nickel|material|traders|industries|enterprise|components/]];
+let impRows=[],impBankName='';
+const dropEl=document.getElementById('impDrop');
+['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('over');}));
+dropEl.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)impLoad(f);});
+
+function impLoad(file){if(!file)return;
+  if(/\.pdf$/i.test(file.name)){alert('PDF statements cannot be read here. In net banking, download the statement as Excel (XLS) or CSV instead.');return;}
+  if(typeof XLSX==='undefined'){alert('The Excel reader could not load. Please check your internet connection once and reload the page.');return;}
+  const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+    let rows=[];wb.SheetNames.forEach(n=>{if(!rows.length||rows.length<5)rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''});});
+    impParse(rows,file.name);}catch(err){console.error(err);alert('Could not read this file: '+err.message);}};
+  r.readAsArrayBuffer(file);document.getElementById('impFile').value='';}
+
+const norm=v=>String(v==null?'':v).toLowerCase().replace(/\s+/g,' ').trim();
+function impParse(rows,fname){
+  // Find the header row: it names a narration/description column and a debit/withdrawal (or amount) column
+  let hi=-1;for(let i=0;i<Math.min(rows.length,60);i++){const r=rows[i].map(norm).join('|');
+    if(/narration|description|particular|remark|details/.test(r)&&/withdraw|debit|\bdr\b|amount/.test(r)&&/date/.test(r)){hi=i;break;}}
+  if(hi<0){alert('Could not find the transaction table in this file. Please use the Excel or CSV statement downloaded from HDFC or ICICI net banking.');return;}
+  const H=rows[hi].map(norm);const find=(...res)=>{for(const re of res){const i=H.findIndex(h=>re.test(h));if(i>=0)return i;}return -1;};
+  const cDate=find(/^transaction date|^txn date|^tran date/,/^date$/,/^date/,/date/), cNar=find(/narration/,/transaction remarks|remarks/,/description/,/particular/,/details/),
+        cRef=find(/chq|cheque|ref/), cDr=find(/withdraw/,/debit/,/^dr\b/), cCr=find(/deposit/,/credit/,/^cr\b/), cAmt=find(/^amount|amount \(/), cDrCr=find(/dr ?\/ ?cr|cr ?\/ ?dr|type/);
+  const all=rows.map(r=>r.map(norm).join(' ')).slice(0,hi+1).join(' ')+' '+fname.toLowerCase();
+  const sel=document.getElementById('impBank').value;impBankName=sel!=='auto'?sel:(/hdfc/.test(all)?'HDFC':/icici/.test(all)?'ICICI':'Bank');
+  const rules=(()=>{try{return JSON.parse(localStorage.getItem(RULEK))||{};}catch{return{};}})();
+  const existing=new Set(g(FK).map(e=>e.stmtKey).filter(Boolean));const seen=new Set();
+  impRows=[];
+  for(let i=hi+1;i<rows.length;i++){const r=rows[i];const date=parseDate(r[cDate]);if(!date)continue;
+    const nar=String(r[cNar]||'').replace(/\s+/g,' ').trim();if(!nar)continue;
+    let dr=num(cDr>=0?r[cDr]:0),cr=num(cCr>=0?r[cCr]:0);
+    if(cDr<0&&cAmt>=0){const a=num(r[cAmt]);const t=norm(cDrCr>=0?r[cDrCr]:'');if(/cr/.test(t))cr=a;else dr=a;}
+    if(!dr&&!cr)continue;const type=dr?'expense':'income',amount=dr||cr;
+    const ref=cRef>=0?String(r[cRef]||'').trim():'';
+    const key=impBankName+'|'+date+'|'+type+'|'+amount.toFixed(2)+'|'+(ref&&!/^0+$/.test(ref)?ref:nar.slice(0,60));
+    const party=guessParty(nar);
+    const cat=type==='income'?'Sales':(rules[party.toLowerCase()]||guessCat(nar));
+    const dup=existing.has(key)||seen.has(key);seen.add(key);
+    impRows.push({date,nar,ref,type,amount,party,category:cat,mode:guessMode(nar),key,dup,sel:!dup});}
+  if(!impRows.length){alert('No transactions were found in this file.');return;}
+  renderImport();document.getElementById('impResult').style.display='block';}
+
+function num(v){if(typeof v==='number')return Math.abs(v);const s=String(v||'').replace(/[,₹\s]|INR/gi,'').replace(/\(([\d.]+)\)/,'$1');const n=parseFloat(s);return isNaN(n)?0:Math.abs(n);}
+function parseDate(v){if(v==null||v==='')return null;
+  if(v instanceof Date&&!isNaN(v)){const d=new Date(v.getTime()-v.getTimezoneOffset()*60000);return d.toISOString().slice(0,10);}
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*86400000));return d.toISOString().slice(0,10);}
+  const s=String(v).trim();const mon={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  let m=s.match(/^(\d{1,2})[\/\-. ](\d{1,2})[\/\-. ](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;return y+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');}
+  m=s.match(/^(\d{1,2})[\/\-. ]([A-Za-z]{3})[A-Za-z]*[\/\-. ,]*(\d{2,4})/);if(m&&mon[m[2].toLowerCase()]){let y=+m[3];if(y<100)y+=2000;return y+'-'+String(mon[m[2].toLowerCase()]).padStart(2,'0')+'-'+m[1].padStart(2,'0');}
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];return null;}
+function guessMode(n){const s=n.toUpperCase();if(/UPI/.test(s))return 'UPI';if(/NEFT|RTGS|IMPS|FT-|INF\/|TRANSFER|NETBANK|\bIB\b/.test(s))return 'Bank Transfer';if(/CHQ|CHEQUE|CLG|CLEARING/.test(s))return 'Cheque';if(/^(ATW|NWD|EAW)|ATM|CASH|\bAWB\b/.test(s))return 'Cash';if(/POS|CARD|ECOM/.test(s))return 'Card';return 'Bank Transfer';}
+// Pick the person/company name out of the narration. Banks put it next to the IFSC code
+// (HDFC: UPI-NAME-vpa@bank-IFSC… / NEFT DR-IFSC-NAME…, ICICI: UPI/ref/note/vpa/NAME/IFSC, MMT/IMPS/ref/note/NAME/IFSC)
+function guessParty(n){
+  if(/^(ATW|NWD|ATM|EAW|CASH ?WDL)/i.test(n.trim()))return 'ATM Cash Withdrawal';
+  const skip=/^((upi|neft|rtgs|imps|ach|nach|ecs|mmt|pos|inf|inft|ft|ib|chq|clg)( ?(dr|cr))?|dr|cr|atm|to|by|transfer|payment|paid|pay|from|ref|txn|sent|received|collect|p2a|p2m|na|null|bank|ltd|netbank.*)$/i;
+  const parts=n.split(/[\/\-:|]+/).map(x=>x.trim()).filter(Boolean);
+  const isIfsc=p=>/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(p);
+  const ok=p=>p&&!p.includes('@')&&!isIfsc(p)&&(p.match(/[A-Za-z]/g)||[]).length>=3&&!/\d{5,}/.test(p)&&!skip.test(p)&&!/,/.test(p);
+  const tidy=p=>p.replace(/\s+/g,' ').replace(/\b(\w)(\w*)/g,(m,a,b)=>a.toUpperCase()+b.toLowerCase()).slice(0,40);
+  const fi=parts.findIndex(isIfsc);
+  if(fi>=0){for(let i=fi-1;i>=0;i--){if(parts[i].includes('@'))continue;if(ok(parts[i]))return tidy(parts[i]);break;}
+    for(let i=fi+1;i<parts.length;i++)if(ok(parts[i]))return tidy(parts[i]);}
+  const at=parts.findIndex(p=>p.includes('@'));if(at>=0&&ok(parts[at+1]))return tidy(parts[at+1]);
+  for(const p of parts)if(ok(p))return tidy(p);
+  const vpa=n.match(/([a-z0-9.\-_]+)@[a-z]+/i);return vpa?vpa[1]:n.slice(0,30);}
+function guessCat(n){const s=n.toLowerCase();for(const [c,re] of CAT_WORDS)if(re.test(s))return c;return 'Misc';}
+
+function impVisible(){const inc=document.getElementById('impCredits').checked;return impRows.map((r,i)=>[r,i]).filter(([r])=>r.type==='expense'||inc);}
+function renderImport(){const vis=impVisible();const esc=v=>String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  document.getElementById('impBody').innerHTML=vis.map(([r,i])=>`<tr class="${r.dup?'dup':''}"><td><input type="checkbox" style="width:auto;" ${r.sel?'checked':''} ${r.dup?'disabled title="Already imported"':''} onchange="impRows[${i}].sel=this.checked;impSummary()"></td>
+  <td style="font-family:var(--mono);font-size:10px;white-space:nowrap;">${r.date}</td>
+  <td>${r.type==='expense'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">▼ Expense</span>':'<span class="tag" style="background:var(--green-dim);color:var(--green);">▲ Income</span>'}${r.dup?'<br><span style="font-size:9px;color:var(--orange);">already posted</span>':''}</td>
+  <td class="narr">${esc(r.nar)}</td>
+  <td><input type="text" value="${esc(r.party)}" onchange="impRows[${i}].party=this.value"></td>
+  <td>${r.type==='expense'?`<select onchange="impRows[${i}].category=this.value">${CATS.map(c=>`<option ${c===r.category?'selected':''}>${c}</option>`).join('')}</select>`:'Sales'}</td>
+  <td style="font-family:var(--mono);font-weight:700;color:${r.type==='expense'?'var(--red)':'var(--green)'};text-align:right;">₹${r.amount.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+  <td style="font-size:11px;">${r.mode}</td></tr>`).join('');
+  impSummary();}
+function impSummary(){const vis=impVisible().map(([r])=>r);const picked=vis.filter(r=>r.sel&&!r.dup);
+  const ex=picked.filter(r=>r.type==='expense'),inc=picked.filter(r=>r.type==='income');const sum=a=>a.reduce((s,r)=>s+r.amount,0).toLocaleString('en-IN',{maximumFractionDigits:0});
+  const dups=vis.filter(r=>r.dup).length;const dates=vis.map(r=>r.date).sort();
+  document.getElementById('impSum').innerHTML=`<span class="pill">🏦 ${impBankName}</span><span class="pill">${dates[0]||''} → ${dates[dates.length-1]||''}</span><span class="pill" style="color:var(--red);">${ex.length} expenses · ₹${sum(ex)}</span>${document.getElementById('impCredits').checked?`<span class="pill" style="color:var(--green);">${inc.length} income · ₹${sum(inc)}</span>`:''}${dups?`<span class="pill" style="color:var(--orange);">${dups} already posted — skipped</span>`:''}`;
+  document.getElementById('impPostBtn').textContent='✅ Post All ('+picked.length+')';document.getElementById('impPostBtn').disabled=!picked.length;}
+function impToggleAll(on){impVisible().forEach(([r])=>{if(!r.dup)r.sel=on;});renderImport();}
+function impClear(){impRows=[];document.getElementById('impResult').style.display='none';}
+function impPostAll(){const picked=impVisible().map(([r])=>r).filter(r=>r.sel&&!r.dup);if(!picked.length)return;
+  if(!confirm('Post '+picked.length+' entries from the '+impBankName+' statement?'))return;
+  const entries=g(FK);const rules=(()=>{try{return JSON.parse(localStorage.getItem(RULEK))||{};}catch{return{};}})();
+  picked.forEach(r=>{entries.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:r.type,date:r.date,amount:Math.round(r.amount*100)/100,party:r.party,desc:r.nar.slice(0,120),
+    category:r.type==='expense'?r.category:'Sales',mode:r.mode,ref:r.ref&&!/^0+$/.test(r.ref)?r.ref:'',status:'Paid',notes:'Imported from '+impBankName+' statement',stmtKey:r.key,source:impBankName});
+    if(r.type==='expense'&&r.party)rules[r.party.toLowerCase()]=r.category;});
+  s(FK,entries);localStorage.setItem(RULEK,JSON.stringify(rules));
+  const ne=picked.filter(r=>r.type==='expense').length;impClear();toast('✓ Posted '+picked.length+' entries');showV(ne?'expense':'income');}
 
 setType('income');renderDash();
 </script>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Sentire Technologies — Log in</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth_config.js"></script>
+<script src="auth.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px;}
+.logo{width:42px;height:42px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;}
+.brand b{display:block;font-size:16px;}.brand span{font-size:12px;color:var(--text-dim);}
+h1{font-size:19px;margin-bottom:6px;}
+p.sub{font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:16px;}
+label{display:block;font-size:12px;color:var(--text-dim);margin:12px 0 5px;}
+input{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:11px 12px;font-size:15px;font-family:inherit;}
+input:focus{outline:none;border-color:var(--accent);}
+.pw{position:relative;}.pw button{position:absolute;right:6px;top:6px;background:none;border:none;color:var(--text-dim);font-size:12px;padding:7px;cursor:pointer;}
+.go{width:100%;margin-top:18px;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+.go:disabled{opacity:.6;cursor:wait;}
+.err{color:var(--red);font-size:13px;margin-top:12px;min-height:18px;line-height:1.4;}
+.foot{font-size:12px;color:var(--text-dim);margin-top:14px;line-height:1.5;}
+[hidden]{display:none!important;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand"><div class="logo">ST</div><div><b>Sentire Technologies</b><span>Command Center</span></div></div>
+
+  <div id="wait"><h1>One moment…</h1><p class="sub" id="waitMsg">Checking the login service.</p></div>
+
+  <form id="fLogin" hidden>
+    <h1>Log in</h1>
+    <label for="l_id">Login ID</label><input id="l_id" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="l_pw">Password</label><div class="pw"><input id="l_pw" type="password" autocomplete="current-password" required><button type="button" onclick="showPw('l_pw',this)">Show</button></div>
+    <button class="go" id="l_go">Log in</button>
+    <div class="err" id="l_err"></div>
+    <div class="foot">Forgot your password? Ask the Admin to set a new one.</div>
+  </form>
+
+  <form id="fSetup" hidden>
+    <h1>Create the Admin login</h1>
+    <p class="sub">This is the first time the site is opened. Create the <b>Admin</b> login now. After that the Admin adds the four users under <b>Users</b>.</p>
+    <label for="s_name">Your name</label><input id="s_name" placeholder="e.g. Abhishek" required>
+    <label for="s_id">Admin login ID</label><input id="s_id" placeholder="e.g. admin" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="s_pw">Password (at least 6 characters)</label><div class="pw"><input id="s_pw" type="password" autocomplete="new-password" required><button type="button" onclick="showPw('s_pw',this)">Show</button></div>
+    <label for="s_pw2">Password again</label><input id="s_pw2" type="password" autocomplete="new-password" required>
+    <button class="go" id="s_go">Create Admin</button>
+    <div class="err" id="s_err"></div>
+    <div class="foot">Keep this password safe. If it is lost, see "Lost Admin password" in LOGIN_SETUP.txt.</div>
+  </form>
+
+  <div id="off" hidden><h1>Login is not switched on</h1><p class="sub">The site is open without a login. To switch the login on, fill in auth_config.js (see LOGIN_SETUP.txt).</p><button class="go" onclick="location.replace('index.html')">Open Main Page</button></div>
+</div>
+<script>
+var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
+function show(id) { ['wait', 'fLogin', 'fSetup', 'off'].forEach(function (x) { $(x).hidden = x !== id; }); }
+function showPw(id, b) { var i = $(id); i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? 'Show' : 'Hide'; }
+function nextPage() {
+  var n = new URLSearchParams(location.search).get('next') || '';
+  return /^[a-z_]+\.html([?#].*)?$/.test(n) && n.indexOf('login.html') !== 0 ? n : 'index.html';   // only pages of this site
+}
+function busy(btn, on, text) { btn.disabled = on; btn.textContent = text; }
+function plain(e) {                       // turn a technical error into a plain sentence
+  var m = (e && e.message) || '';
+  if (e && (e.code === 'PGRST202' || e.code === '42883') || /schema cache|does not exist/i.test(m))
+    return 'The database is not set up yet. Run supabase_setup.sql in Supabase (see LOGIN_SETUP.txt).';
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return 'Could not reach the login service. Check the internet and try again.';
+  return m || 'Something went wrong. Try again.';
+}
+// Check the ID + password with Supabase, then make sure this person has a profile.
+function signIn(id, password) {
+  return A.rpc('login_email', { p_login_id: id }).then(function (email) {
+    return A.client.auth.signInWithPassword({ email: email, password: password });
+  }).then(function (r) {
+    if (r.error) {
+      if (r.error.status === 429) throw new Error('Too many tries. Wait a few minutes and try again.');
+      if (/invalid login credentials/i.test(r.error.message || '')) throw new Error('Wrong login ID or password.');
+      throw new Error(plain(r.error));
+    }
+    return A.rpc('my_profile');
+  }).then(function (p) {
+    if (!p) return A.client.auth.signOut().then(function () { throw new Error('Wrong login ID or password.'); });
+    A.remember(p); location.replace(nextPage());
+  });
+}
+function start() {
+  A.rpc('login_status').then(function (setup) { show(setup ? 'fLogin' : 'fSetup'); $(setup ? 'l_id' : 's_name').focus(); })
+    .catch(function (e) { $('wait').querySelector('h1').textContent = 'Login is not ready'; $('waitMsg').textContent = plain(e); });
+}
+
+if (!A.enabled) show('off');
+else if (!A.client) { $('wait').querySelector('h1').textContent = 'No connection'; $('waitMsg').textContent = 'Could not load the login service. Check the internet and refresh the page.'; }
+else A.client.auth.getSession().then(function (r) {
+  if (!(r.data && r.data.session)) return start();
+  return A.rpc('my_profile').then(function (p) { if (p) { A.remember(p); location.replace(nextPage()); } else return A.client.auth.signOut().then(start); });
+}).catch(start);
+
+$('fLogin').onsubmit = function (e) {
+  e.preventDefault(); $('l_err').textContent = ''; busy($('l_go'), true, 'Checking…');
+  signIn($('l_id').value, $('l_pw').value).catch(function (er) { $('l_err').textContent = plain(er); $('l_pw').value = ''; busy($('l_go'), false, 'Log in'); });
+};
+$('fSetup').onsubmit = function (e) {
+  e.preventDefault(); var err = $('s_err'); err.textContent = '';
+  if ($('s_pw').value !== $('s_pw2').value) { err.textContent = 'The two passwords do not match.'; return; }
+  busy($('s_go'), true, 'Creating…');
+  A.rpc('setup_admin', { p_login_id: $('s_id').value, p_name: $('s_name').value, p_password: $('s_pw').value })
+    .then(function () { return signIn($('s_id').value, $('s_pw').value); })
+    .catch(function (er) { err.textContent = plain(er); busy($('s_go'), false, 'Create Admin'); });
+};
+</script>
+</body>
+</html>

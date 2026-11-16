@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Sentire Technologies — Users</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth_config.js"></script>
+<script src="auth.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding:24px;}
+.wrap{max-width:760px;margin:0 auto;}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+h1{font-size:22px;}.sp{flex:1;}
+p.sub{font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:18px;}
+.btn{border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer;font-family:inherit;}
+.btn:hover{border-color:var(--accent);}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+.btn.del{color:var(--red);}.btn:disabled{opacity:.5;cursor:not-allowed;}
+.row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;flex-wrap:wrap;}
+.row b{font-size:15px;}.row .id{font-size:13px;color:var(--text-dim);font-family:monospace;}
+.tag{font-size:11px;border-radius:20px;padding:2px 9px;border:1px solid var(--border);color:var(--text-dim);}
+.tag.adm{color:var(--orange);border-color:var(--orange);}
+.empty{border:1px dashed var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;color:var(--text-dim);font-size:13px;}
+.msg{font-size:13px;min-height:18px;margin:10px 0;}.msg.err{color:var(--red);}.msg.ok{color:var(--green);}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;}
+.dlg{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;}
+.dlg h2{font-size:17px;margin-bottom:4px;}
+label{display:block;font-size:12px;color:var(--text-dim);margin:12px 0 5px;}
+input{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:10px 12px;font-size:14px;font-family:inherit;}
+input:focus{outline:none;border-color:var(--accent);}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+[hidden]{display:none!important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>Users</h1><span class="sp"></span><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
+  <p class="sub">One Admin and up to four users. Only the Admin can open this page. Change a login ID, name or password with <b>Edit</b> — the person uses the new details from their next login. After a password change that person is logged out on all their devices within about an hour.</p>
+  <div class="msg" id="msg"></div>
+  <div id="list"></div>
+  <button class="btn pri" id="addBtn" onclick="edit(null)" hidden>+ Add user</button>
+</div>
+
+<div class="ov" id="ov" hidden><form class="dlg" id="frm">
+  <h2 id="d_title"></h2>
+  <label for="d_name">Name</label><input id="d_name" required>
+  <label for="d_id">Login ID (3–20 letters or numbers, no spaces)</label><input id="d_id" autocapitalize="none" spellcheck="false" autocomplete="off" required>
+  <label for="d_pw" id="d_pwl"></label><input id="d_pw" type="text" autocomplete="off">
+  <div class="msg err" id="d_err"></div>
+  <div class="acts"><button type="button" class="btn" onclick="closeDlg()">Cancel</button><button class="btn pri" id="d_save">Save</button></div>
+</form></div>
+
+<script>
+var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
+var users = [], max = 4, editing = null;
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function msg(t, ok) { var m = $('msg'); m.textContent = t || ''; m.className = 'msg ' + (ok ? 'ok' : 'err'); }
+function plain(e) { var m = (e && e.message) || ''; return /failed to fetch|networkerror|load failed/i.test(m) ? 'Could not reach the login service. Check the internet and try again.' : (m || 'Something went wrong.'); }
+
+function render() {
+  var n = users.filter(function (u) { return u.role !== 'Admin'; }).length, h = '';
+  users.forEach(function (u, i) {
+    h += '<div class="row"><div><b>' + esc(u.name) + '</b> <span class="tag ' + (u.role === 'Admin' ? 'adm' : '') + '">' + esc(u.role) + '</span><br><span class="id">Login ID: ' + esc(u.login_id) + '</span></div><span class="sp"></span>' +
+      '<button class="btn" onclick="edit(' + i + ')">Edit</button>' + (u.role === 'Admin' ? '' : '<button class="btn del" onclick="removeUser(' + i + ')">Remove</button>') + '</div>';
+  });
+  for (var k = n; k < max; k++) h += '<div class="empty">User ' + (k + 1) + ' — not created yet</div>';
+  $('list').innerHTML = h; $('addBtn').hidden = n >= max;
+}
+function load() { return A.rpc('admin_list_users').then(function (rows) { users = rows || []; render(); }); }
+function edit(i) {
+  editing = i === null ? null : users[i];
+  $('d_title').textContent = editing ? 'Edit ' + editing.name : 'Add user';
+  $('d_name').value = editing ? editing.name : ''; $('d_id').value = editing ? editing.login_id : ''; $('d_pw').value = '';
+  $('d_pwl').textContent = editing ? 'New password (leave empty to keep the present one)' : 'Password (at least 6 characters)';
+  $('d_err').textContent = ''; $('ov').hidden = false; $('d_name').focus();
+}
+function closeDlg() { $('ov').hidden = true; }
+$('frm').onsubmit = function (e) {
+  e.preventDefault(); var b = $('d_save'); b.disabled = true; $('d_err').textContent = '';
+  var name = $('d_name').value, id = $('d_id').value, pw = $('d_pw').value, mine = editing && editing.login_id === A.user.login_id;
+  var call = editing
+    ? A.rpc('admin_update_user', { p_user_id: editing.user_id, p_login_id: id, p_name: name, p_password: pw || null })
+    : A.rpc('admin_add_user', { p_login_id: id, p_name: name, p_password: pw });
+  call.then(function () {
+    if (mine) return A.rpc('my_profile').then(function (p) { if (p) A.remember(p); });   // the Admin changed their own details
+  }).then(load).then(function () {
+    b.disabled = false; closeDlg(); msg('✓ Saved. Tell the person their login ID and password.', true);
+  }).catch(function (er) { b.disabled = false; $('d_err').textContent = plain(er); });
+};
+function removeUser(i) {
+  var u = users[i]; if (!confirm('Remove the login of ' + u.name + ' (' + u.login_id + ')? They will not be able to log in.')) return;
+  A.rpc('admin_remove_user', { p_user_id: u.user_id }).then(load).then(function () { msg('✓ ' + u.name + ' removed.', true); })
+    .catch(function (er) { msg(plain(er)); });
+}
+
+if (!A.enabled) msg('Login is not switched on yet — see LOGIN_SETUP.txt.');
+else A.ready.then(function (me) {
+  if (!me) return;                                   // being sent to the login page
+  if (me.role !== 'Admin') { msg('Only the Admin can open this page.'); return; }
+  load().catch(function (er) { msg(plain(er)); });
+});
+</script>
+</body>
+</html>

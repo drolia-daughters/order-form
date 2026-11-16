@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Work — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#ec4899;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;color:#fff;}.topbar-brand h1{font-size:16px;font-weight:700;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;margin:8px 0;}.tab-btn{padding:7px 14px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+h2{font-size:20px;margin-bottom:6px;}.sub{color:var(--text-dim);font-size:13px;margin-bottom:18px;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+textarea{min-height:60px;resize:vertical;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}.btn-sm{padding:6px 12px;font-size:12px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.stat-card .num{font-size:28px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:11px;color:var(--text-dim);margin-top:4px;}
+.stat-card.alert .num{color:var(--red);}.stat-card.warn .num{color:var(--orange);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;}
+thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:hover td{background:rgba(255,255,255,0.02);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;white-space:nowrap;}
+.t-send{background:rgba(236,72,153,0.14);color:#f472b6;}.t-transfer{background:rgba(59,130,246,0.14);color:#60a5fa;}.t-receive{background:rgba(34,197,94,0.14);color:var(--green);}.t-scrap{background:rgba(239,68,68,0.12);color:var(--red);}.t-internal{background:rgba(6,182,212,0.14);color:var(--cyan);}.t-own{background:rgba(6,182,212,0.14);color:var(--cyan);}
+.party-card.own{border-color:rgba(6,182,212,.35);}
+.t-ok{background:rgba(34,197,94,0.12);color:var(--green);}.t-warn{background:rgba(245,158,11,0.14);color:var(--orange);}.t-bad{background:rgba(239,68,68,0.14);color:var(--red);}
+.mini{padding:4px 9px;border-radius:5px;font-size:11px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);margin:1px;white-space:nowrap;}
+.mini:hover{color:var(--text);border-color:var(--accent);}
+.mini.g{color:var(--green);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08);}.mini.b{color:#60a5fa;border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.08);}.mini.r{color:var(--red);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.06);}
+.party-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.party-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.party-head h3{font-size:15px;}.party-head .proc{font-size:11px;color:var(--text-dim);font-family:var(--mono);}
+.party-head .sp{flex:1;}
+.party-card table{min-width:760px;}
+.empty{text-align:center;padding:50px 20px;color:var(--text-dim);}
+.empty b{display:block;font-size:16px;color:var(--text);margin-bottom:6px;}
+.type-pick{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+@media(max-width:800px){.type-pick{grid-template-columns:1fr 1fr;}}
+.type-btn{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:14px;text-align:left;cursor:pointer;color:var(--text);}
+.type-btn b{display:block;font-size:14px;margin-bottom:4px;}.type-btn small{font-size:11px;color:var(--text-dim);line-height:1.4;display:block;}
+.type-btn.active{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);background:var(--surface-2);}
+.avail{font-size:12px;font-family:var(--mono);margin-top:4px;min-height:16px;}
+.avail.ok{color:var(--green);}.avail.bad{color:var(--red);}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}.filters>*{max-width:220px;}
+.route{font-family:var(--mono);font-size:11px;white-space:nowrap;}.route .arr{color:var(--text-muted);margin:0 4px;}
+.note{font-size:12px;color:var(--text-dim);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.5;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.admin-btn{margin-left:6px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);font:600 11px var(--mono);cursor:pointer;}
+.admin-btn.on{border-color:rgba(245,158,11,.6);background:rgba(245,158,11,.15);color:var(--orange);}
+.lock{opacity:.55;}
+.t-edited{background:rgba(245,158,11,0.14);color:var(--orange);}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:5000;padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;width:100%;max-width:380px;}
+.modal h3{font-size:16px;margin-bottom:6px;}.modal p{font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+.modal input,.modal textarea{margin-bottom:10px;}.modal .err{color:var(--red);font-size:12px;min-height:16px;margin-bottom:8px;}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;}
+#tipBox{position:fixed;z-index:100000;pointer-events:none;background:#e8ecf4;color:#0c0f14;font:600 12px/1.35 'DM Sans',sans-serif;padding:6px 10px;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.45);max-width:260px;opacity:0;transition:opacity .12s;}
+#tipBox.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-brand"><div class="icon">JW</div><h1>Job Work</h1><button class="admin-btn" id="adminBtn" onclick="toggleAdmin()" data-tip="Saved challans are locked. Admin can unlock them with the PIN.">🔒 Locked</button><button class="admin-btn" id="pinChangeBtn" onclick="changePin()" style="display:none;" data-tip="Change the admin PIN">Change PIN</button></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" data-v="where" onclick="showV('where')">Where are my goods?</button>
+    <button class="tab-btn" data-v="move" onclick="showV('move')">+ New Movement</button>
+    <button class="tab-btn" data-v="register" onclick="showV('register')">Register</button>
+    <button class="tab-btn" data-v="parties" onclick="showV('parties')">Job Workers</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ═══ WHERE ARE MY GOODS ═══ -->
+<div class="view active" id="v_where">
+  <h2>Where are my goods?</h2>
+  <p class="sub">Everything lying outside Baroda factory — at job workers and at our Ahmedabad factory — worked out from every challan you have entered.</p>
+  <div class="stats-row" id="wStats"></div>
+  <div class="filters"><input type="text" id="wSrch" placeholder="Search party or item…" oninput="renderWhere()"></div>
+  <div id="wList"></div>
+</div>
+
+<!-- ═══ NEW MOVEMENT ═══ -->
+<div class="view" id="v_move">
+  <h2 id="mTitle">New Movement</h2>
+  <p class="sub">Pick what is happening to the goods, then fill in the challan.</p>
+  <div class="type-pick" id="typePick"></div>
+  <div class="card">
+  <form class="form-grid" id="mForm" onsubmit="return saveMove(event)">
+    <div class="form-group"><label>Challan No.</label><input type="text" id="m_challan"></div>
+    <div class="form-group"><label>Date *</label><input type="date" id="m_date" required></div>
+    <div class="form-group"><label id="m_fromLbl">From *</label><select id="m_from" required onchange="updAvail()"></select><div class="avail" id="m_avail"></div></div>
+    <div class="form-group" id="m_toBox"><label id="m_toLbl">To *</label><select id="m_to"></select></div>
+    <div class="form-group"><label>Item / Material *</label><input type="text" id="m_item" list="itemList" required oninput="updAvail()" placeholder="e.g. Ball-type body 30T"></div>
+    <div class="form-group" style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+      <div class="form-group"><label>Quantity *</label><input type="number" id="m_qty" required min="0.001" step="any" oninput="updAvail()"></div>
+      <div class="form-group"><label>Unit</label><input type="text" id="m_unit" list="unitList" value="pcs"></div>
+    </div>
+    <div class="form-group" id="m_procBox"><label>Process at party</label><input type="text" id="m_proc" list="procList" placeholder="Plating, Laser, Machining…"></div>
+    <div class="form-group" id="m_expBox"><label>Expected return date</label><input type="date" id="m_exp"></div>
+    <div class="form-group"><label>Order / Job ref.</label><input type="text" id="m_ref" placeholder="ORD-2026-0001 / JOB-0001"></div>
+    <div class="form-group"><label>Vehicle / sent through</label><input type="text" id="m_veh" placeholder="Vehicle no. or person"></div>
+    <div class="form-group full"><label>Remarks</label><textarea id="m_rem"></textarea></div>
+    <div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;">
+      <button type="button" class="btn btn-ghost" onclick="resetMove()">Clear</button>
+      <button type="submit" class="btn btn-primary" id="mBtn">Save Challan</button>
+    </div>
+  </form>
+  </div>
+</div>
+
+<!-- ═══ REGISTER ═══ -->
+<div class="view" id="v_register">
+  <h2>Movement Register</h2>
+  <p class="sub">Every challan in order. Saved challans are locked — only the admin can correct them.</p>
+  <div class="filters">
+    <input type="text" id="rSrch" placeholder="Search challan, item, ref…" oninput="renderRegister()">
+    <select id="rParty" onchange="renderRegister()"></select>
+    <select id="rType" onchange="renderRegister()"><option value="">All types</option><option value="send">Sent out</option><option value="transfer">Transfer</option><option value="receive">Received back</option><option value="internal">Between our factories</option><option value="scrap">Scrap / loss</option></select>
+    <button class="btn btn-ghost btn-sm" onclick="exportRegister()" data-tip="Download the register as a CSV (Excel) file">↓ CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleLog()" data-tip="Every change or deletion the admin made to a saved challan">📋 Change log</button>
+  </div>
+  <div class="note" id="lockNote">🔒 Saved challans are locked. Goods already sent, transferred or received cannot be changed. If something was entered wrong, the <b>Admin</b> can unlock with the PIN and correct it — every correction is recorded in the change log with a reason.</div>
+  <div id="logBox" style="display:none;margin-bottom:16px;"><div class="table-wrap"><table><thead><tr><th>When</th><th>Action</th><th>Challan</th><th>What changed</th><th>Reason</th></tr></thead><tbody id="logBody"></tbody></table></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Actions</th><th>Challan</th><th>Date</th><th>Type</th><th>From → To</th><th>Item</th><th>Qty</th><th>Process</th><th>Expected back</th><th>Ref.</th><th>Vehicle</th><th>Remarks</th></tr></thead><tbody id="rBody"></tbody></table></div>
+  <div class="empty" id="rEmpty" style="display:none;"><b>No challans yet</b>Use “+ New Movement” to record goods going out.</div>
+</div>
+
+<!-- ═══ JOB WORKERS ═══ -->
+<div class="view" id="v_parties">
+  <h2>Job Workers</h2>
+  <p class="sub">Outside parties who do work on your goods.</p>
+  <div class="card" style="margin-bottom:16px;">
+  <form class="form-grid" id="pForm" onsubmit="return saveParty(event)">
+    <div class="form-group"><label>Party name *</label><input type="text" id="p_name" required></div>
+    <div class="form-group"><label>Process they do</label><input type="text" id="p_proc" list="procList" placeholder="Plating, Laser, Machining…"></div>
+    <div class="form-group"><label>Contact person</label><input type="text" id="p_contact"></div>
+    <div class="form-group"><label>Phone</label><input type="text" id="p_phone" placeholder="+91 …"></div>
+    <div class="form-group"><label>GSTIN</label><input type="text" id="p_gst"></div>
+    <div class="form-group"><label>Address / notes</label><input type="text" id="p_notes"></div>
+    <div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;">
+      <button type="button" class="btn btn-ghost" onclick="resetParty()">Clear</button>
+      <button type="submit" class="btn btn-primary" id="pBtn">+ Add Job Worker</button>
+    </div>
+  </form>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>Actions</th><th>Party</th><th>Process</th><th>Contact</th><th>Phone</th><th>GSTIN</th><th>Goods with them</th><th>Notes</th></tr></thead><tbody id="pBody"></tbody></table></div>
+  <div class="empty" id="pEmpty" style="display:none;"><b>No job workers yet</b>Add the parties you send goods to.</div>
+</div>
+
+</div>
+
+<datalist id="itemList"></datalist>
+<datalist id="procList"><option>Electroless nickel plating</option><option>Chrome plating</option><option>Black finish</option><option>Laser engraving</option><option>Machining</option><option>Heat treatment</option><option>Grinding</option><option>Painting</option><option>Strain gauge bonding</option><option>Wiring</option></datalist>
+<datalist id="unitList"><option>pcs</option><option>kg</option><option>set</option><option>box</option><option>mtr</option></datalist>
+
+<div class="toast" id="toast">✓ Saved</div>
+<div id="tipBox" role="tooltip"></div>
+<div class="modal-bg" id="dlgBg"><div class="modal">
+  <h3 id="dlgTitle"></h3><p id="dlgMsg"></p>
+  <input type="password" id="dlgIn1" inputmode="numeric" autocomplete="off">
+  <input type="password" id="dlgIn2" inputmode="numeric" autocomplete="off">
+  <textarea id="dlgText" placeholder="Reason…"></textarea>
+  <div class="err" id="dlgErr"></div>
+  <div class="row"><button class="btn btn-ghost btn-sm" id="dlgCancel">Cancel</button><button class="btn btn-primary btn-sm" id="dlgOk">OK</button></div>
+</div></div>
+
+<script>
+// ═══ Storage ═══
+const PK='jw_parties',MK='jw_moves';
+// Our own premises. Baroda is the main factory (goods start and finish here);
+// Ahmedabad is tracked like a location, so you can see what is lying there.
+const HOME='Baroda Factory',OWN=['Baroda Factory','Ahmedabad Factory'];
+const isOwn=n=>OWN.includes(n);
+const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch(e){return [];}};
+const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
+(function migrate(){try{const ms=JSON.parse(localStorage.getItem('jw_moves'))||[];let ch=false;ms.forEach(m=>{if(m.from==='Our Premises'){m.from=HOME;ch=true;}if(m.to==='Our Premises'){m.to=HOME;ch=true;}});if(ch)localStorage.setItem('jw_moves',JSON.stringify(ms));}catch(e){}})();
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().split('T')[0];
+const fmtD=d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+const daysSince=d=>Math.floor((new Date(today())-new Date(d))/86400000);
+const toast=m=>{const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+const num=n=>(Math.round(n*1000)/1000).toLocaleString('en-IN');
+
+const TYPES={
+  send:    {label:'Send out',             tag:'t-send',    c:'#ec4899',help:'Our factory → a job worker',             from:'own',  to:'party'},
+  transfer:{label:'Transfer',             tag:'t-transfer',c:'#3b82f6',help:'One job worker → another job worker',    from:'party',to:'party'},
+  receive: {label:'Receive back',         tag:'t-receive', c:'#22c55e',help:'A job worker → our factory',             from:'party',to:'own'},
+  internal:{label:'Between our factories',tag:'t-internal',c:'#06b6d4',help:'Baroda ↔ Ahmedabad factory',             from:'own',  to:'own'},
+  scrap:   {label:'Scrap / loss',         tag:'t-scrap',   c:'#ef4444',help:'Rejected or lost at a job worker or Ahmedabad',from:'holder',to:'none'}
+};
+
+// ═══ Admin lock ═══
+// Saved challans are locked. Only the admin (with PIN) can edit or delete them.
+const AK='jw_admin_pin',LK='jw_audit',ADMIN_MIN=15;
+async function hashPin(pin){const txt='sentire-jw|'+pin;
+  try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(txt));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+  catch(e){let h=5381;for(const c of txt)h=((h<<5)+h+c.charCodeAt(0))|0;return 'x'+h;}}
+const isAdmin=()=>parseInt(sessionStorage.getItem('jw_admin_until')||'0')>Date.now();
+function setAdmin(on){if(on)sessionStorage.setItem('jw_admin_until',String(Date.now()+ADMIN_MIN*60000));else sessionStorage.removeItem('jw_admin_until');paintAdmin();renderAll();}
+function paintAdmin(){const on=isAdmin(),b=document.getElementById('adminBtn');b.textContent=on?'🔓 Admin unlocked':'🔒 Locked';b.classList.toggle('on',on);
+  b.dataset.tip=on?'Admin mode is on. Click to lock again (locks itself after '+ADMIN_MIN+' minutes).':'Saved challans are locked. Admin can unlock them with the PIN.';
+  document.getElementById('pinChangeBtn').style.display=on?'':'none';}
+setInterval(()=>{const b=document.getElementById('adminBtn');if(b&&b.classList.contains('on')&&!isAdmin()){paintAdmin();renderAll();}},20000);
+// Small dialog: mode 'pin' | 'newpin' | 'text'
+function dialog({title,msg,mode,placeholder}){return new Promise(res=>{
+  const bg=document.getElementById('dlgBg'),i1=document.getElementById('dlgIn1'),i2=document.getElementById('dlgIn2'),tx=document.getElementById('dlgText'),er=document.getElementById('dlgErr');
+  document.getElementById('dlgTitle').textContent=title;document.getElementById('dlgMsg').textContent=msg||'';er.textContent='';
+  i1.value=i2.value=tx.value='';i1.style.display=mode==='text'?'none':'';i2.style.display=mode==='newpin'?'':'none';tx.style.display=mode==='text'?'':'none';
+  i1.placeholder=mode==='newpin'?'New PIN (at least 4 digits)':'Admin PIN';i2.placeholder='Type the PIN again';tx.placeholder=placeholder||'Reason…';
+  bg.classList.add('show');setTimeout(()=>(mode==='text'?tx:i1).focus(),50);
+  const done=v=>{bg.classList.remove('show');ok.onclick=cancel.onclick=null;document.removeEventListener('keydown',key);res(v);};
+  const ok=document.getElementById('dlgOk'),cancel=document.getElementById('dlgCancel');
+  ok.onclick=()=>{if(mode==='text'){if(!tx.value.trim()){er.textContent='Please write a reason.';return;}return done(tx.value.trim());}
+    if(mode==='newpin'){if(!/^\d{4,}$/.test(i1.value)){er.textContent='Use at least 4 digits.';return;}if(i1.value!==i2.value){er.textContent='The two PINs do not match.';return;}}
+    if(!i1.value){er.textContent='Enter the PIN.';return;}done(i1.value);};
+  cancel.onclick=()=>done(null);
+  const key=e=>{if(e.key==='Enter'&&mode!=='text'){e.preventDefault();ok.onclick();}if(e.key==='Escape')done(null);};document.addEventListener('keydown',key);});}
+async function requireAdmin(why){if(isAdmin())return true;
+  const saved=localStorage.getItem(AK);
+  if(!saved){const pin=await dialog({title:'Create admin PIN',msg:'No admin PIN is set yet. Create one now — only people who know it can change or delete saved challans. Keep it safe: it cannot be recovered.',mode:'newpin'});
+    if(!pin)return false;localStorage.setItem(AK,await hashPin(pin));setAdmin(true);toast('✓ Admin PIN created');return true;}
+  for(let tries=0;tries<3;tries++){const pin=await dialog({title:'Admin only',msg:(why||'This challan is locked.')+' Enter the admin PIN to continue.',mode:'pin'});
+    if(!pin)return false;if(await hashPin(pin)===saved){setAdmin(true);return true;}alert('Wrong PIN.');}
+  return false;}
+async function toggleAdmin(){if(isAdmin()){setAdmin(false);toast('🔒 Locked');}else if(await requireAdmin('Unlock admin mode.'))toast('🔓 Admin unlocked for '+ADMIN_MIN+' minutes');}
+async function changePin(){if(!isAdmin()&&!await requireAdmin())return;const pin=await dialog({title:'Change admin PIN',msg:'Enter the new PIN twice.',mode:'newpin'});if(!pin)return;localStorage.setItem(AK,await hashPin(pin));toast('✓ Admin PIN changed');}
+function audit(action,before,after,reason){const log=g(LK);log.push({at:new Date().toISOString(),action,challan:(before||after).challan,before,after,reason});s(LK,log);}
+function diffText(a,b){if(!b)return 'Deleted: '+[a.item,num(a.qty)+' '+a.unit,a.from+' → '+(a.to||'scrap'),fmtD(a.date)].join(' · ');
+  const names={date:'Date',from:'From',to:'To',item:'Item',qty:'Qty',unit:'Unit',process:'Process',expected:'Expected back',orderRef:'Ref',vehicle:'Vehicle',remarks:'Remarks',type:'Type',challan:'Challan'};
+  const ch=Object.keys(names).filter(k=>String(a[k]??'')!==String(b[k]??'')).map(k=>`${names[k]}: ${a[k]||'—'} → ${b[k]||'—'}`);return ch.length?ch.join(' · '):'No field changed';}
+let logOpen=false;
+function toggleLog(){logOpen=!logOpen;document.getElementById('logBox').style.display=logOpen?'':'none';renderLog();}
+function renderLog(){const log=g(LK).slice().reverse();document.getElementById('logBody').innerHTML=log.length?log.map(l=>`<tr><td style="font-family:var(--mono);white-space:nowrap;">${new Date(l.at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td><td><span class="tag ${l.action==='delete'?'t-bad':'t-edited'}">${l.action==='delete'?'Deleted':'Edited'}</span></td><td style="font-family:var(--mono);">${esc(l.challan)}</td><td style="white-space:normal;max-width:420px;">${esc(diffText(l.before,l.after))}</td><td style="white-space:normal;max-width:240px;">${esc(l.reason)}</td></tr>`).join(''):'<tr><td colspan="5" style="color:var(--text-muted);">No changes have been made to saved challans.</td></tr>';}
+
+// ═══ Balances: replay every challan in date order (first in, first out) ═══
+// Each lot remembers when it first left our premises — that is the date that matters for GST.
+function computeLots(){
+  const lots={};// lots[place][item] = [{qty,unit,origDate,inDate,expected,challan,proc}]
+  const warnings=[];
+  const moves=g(MK).slice().sort((a,b)=>a.date===b.date?(a.created||0)-(b.created||0):a.date<b.date?-1:1);
+  const bucket=(p,i)=>{lots[p]=lots[p]||{};return lots[p][i]=lots[p][i]||[];};
+  const take=(p,i,qty,m)=>{const q=bucket(p,i);const out=[];let need=qty;
+    while(need>1e-9&&q.length){const l=q[0];const t=Math.min(l.qty,need);out.push({...l,qty:t});l.qty-=t;need-=t;if(l.qty<=1e-9)q.shift();}
+    if(need>1e-9){warnings.push({challan:m.challan,party:p,item:i,short:need});out.push({qty:need,unit:m.unit,origDate:m.date,inDate:m.date,expected:m.expected,challan:m.challan});}
+    return out;};
+  for(const m of moves){const qty=parseFloat(m.qty)||0;if(!qty||!m.item)continue;const item=m.item.trim();
+    // Where the goods come from: Baroda is our main stock, so nothing to deduct there
+    const taken=m.from===HOME?[{qty,unit:m.unit,origDate:m.date}]:take(m.from,item,qty,m);
+    if(m.type==='scrap'||!m.to||m.to===HOME)continue;
+    // Where they go. The GST clock starts when goods leave OUR premises for a job worker.
+    taken.forEach(l=>bucket(m.to,item).push({qty:l.qty,unit:m.unit||l.unit,origDate:isOwn(m.from)?m.date:l.origDate,inDate:m.date,expected:m.expected||'',challan:m.challan,proc:m.process}));
+  }
+  return {lots,warnings};
+}
+function balanceAt(party,item,excludeId){let bal=0;
+  g(MK).forEach(m=>{if(m.id===excludeId||(m.item||'').trim()!==item)return;const q=parseFloat(m.qty)||0;if(m.to===party&&m.type!=='scrap')bal+=q;if(m.from===party)bal-=q;});
+  return bal;}
+function holdings(){
+  const {lots,warnings}=computeLots();const rows=[];
+  for(const p in lots)for(const i in lots[p]){const q=lots[p][i].filter(l=>l.qty>1e-9);if(!q.length)continue;
+    const total=q.reduce((a,l)=>a+l.qty,0);
+    const oldest=q.reduce((a,l)=>l.origDate<a?l.origDate:a,q[0].origDate);
+    const exps=q.map(l=>l.expected).filter(Boolean).sort();
+    rows.push({party:p,item:i,qty:total,unit:q[0].unit||'pcs',oldest,lastIn:q.reduce((a,l)=>l.inDate>a?l.inDate:a,q[0].inDate),expected:exps[0]||'',proc:q[q.length-1].proc||'',lots:q});}
+  return {rows,warnings};
+}
+function statusOf(r){const d=daysSince(r.oldest);
+  if(isOwn(r.party)){if(r.expected&&r.expected<today())return {cls:'t-bad',txt:'Overdue '+daysSince(r.expected)+'d',level:2};return {cls:'t-own',txt:'At our factory',level:0};}
+  if(d>365)return {cls:'t-bad',txt:'Over 1 year',level:3};
+  if(r.expected&&r.expected<today())return {cls:'t-bad',txt:'Overdue '+daysSince(r.expected)+'d',level:2};
+  if(d>300)return {cls:'t-warn',txt:'Near 1 year',level:1};
+  return {cls:'t-ok',txt:'On time',level:0};}
+
+// ═══ WHERE ARE MY GOODS ═══
+function renderWhere(){
+  const {rows:allRows,warnings}=holdings();const q=(document.getElementById('wSrch').value||'').toLowerCase();
+  const rows=allRows;const outside=allRows.filter(r=>!isOwn(r.party));const atAhd=allRows.filter(r=>isOwn(r.party));
+  const parties=[...new Set(rows.map(r=>r.party))];
+  const overdue=rows.filter(r=>r.expected&&r.expected<today()).length;
+  const nearYear=outside.filter(r=>daysSince(r.oldest)>300).length;
+  const pcs=list=>list.filter(r=>(r.unit||'pcs')==='pcs').reduce((a,r)=>a+r.qty,0);
+  const totPcs=pcs(outside);
+  document.getElementById('wStats').innerHTML=[
+    {n:new Set(outside.map(r=>r.party)).size,l:'Job workers holding our goods'},
+    {n:num(totPcs),l:'Pieces at job workers (pcs only)'},
+    {n:num(pcs(atAhd)),l:'Pieces at Ahmedabad factory'},
+    {n:overdue,l:'Past expected return date',cls:overdue?'alert':''},
+    {n:nearYear,l:'Out more than 300 days (GST 1-year limit)',cls:nearYear?'warn':''},
+    {n:warnings.length,l:'Challans that do not add up',cls:warnings.length?'alert':''}
+  ].map(x=>`<div class="stat-card ${x.cls||''}"><div class="num">${x.n}</div><div class="lab">${x.l}</div></div>`).join('');
+  const pinfo=Object.fromEntries(g(PK).map(p=>[p.name,p]));
+  let html='';
+  if(warnings.length){html+=`<div class="note" style="border-color:rgba(239,68,68,.4);"><b style="color:var(--red);">Check these challans:</b> ${warnings.map(w=>`${esc(w.challan)} takes ${num(w.short)} more “${esc(w.item)}” from ${esc(w.party)} than was with them`).join(' · ')}. Fix the quantity or the party in the Register.</div>`;}
+  const shown=parties.filter(p=>!q||p.toLowerCase().includes(q)||rows.some(r=>r.party===p&&r.item.toLowerCase().includes(q)));
+  if(!shown.length){html+=`<div class="empty"><b>${rows.length?'Nothing matches your search':'No goods are outside Baroda right now'}</b>${rows.length?'':'When you send goods to a job worker or to Ahmedabad, they will appear here.'}</div>`;}
+  shown.sort((a,b)=>(isOwn(a)-isOwn(b))||(Math.max(...rows.filter(r=>r.party===b).map(r=>statusOf(r).level))-Math.max(...rows.filter(r=>r.party===a).map(r=>statusOf(r).level))));
+  for(const p of shown){const pr=rows.filter(r=>r.party===p&&(!q||p.toLowerCase().includes(q)||r.item.toLowerCase().includes(q)));const info=pinfo[p]||{};
+    const phone=(info.phone||'').replace(/[^0-9+]/g,'');const wa=phone.startsWith('+')?phone.slice(1):phone;
+    html+=`<div class="party-card${isOwn(p)?' own':''}"><div class="party-head"><div><h3>${esc(p)} ${isOwn(p)?'<span class="tag t-own">OUR FACTORY</span>':''}</h3><div class="proc">${isOwn(p)?'Goods lying here until they go back to Baroda':esc(info.process||pr[0]?.proc||'')}</div></div><div class="sp"></div>
+      ${wa&&!isOwn(p)?`<a class="mini g" href="https://wa.me/${wa}?text=${encodeURIComponent('Hello, please confirm the stock of our goods lying with you:\n'+pr.map(r=>'• '+r.item+': '+num(r.qty)+' '+r.unit).join('\n'))}" target="_blank" data-tip="Ask this party on WhatsApp to confirm the stock they hold" style="text-decoration:none;">💬 Confirm stock</a>`:''}
+      <button class="mini" onclick="openRegister('${esc(p).replace(/'/g,"\\'")}')" data-tip="See every challan with this party">📜 History</button></div>
+      <div style="overflow-x:auto;"><table><thead><tr><th>Item</th><th>${isOwn(p)?'Qty here':'Qty with them'}</th><th>${isOwn(p)?'Arrived':'First sent'}</th><th>${isOwn(p)?'Days here':'Days out'}</th><th>Expected back</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${pr.map(r=>{const st=statusOf(r);const ip=esc(p).replace(/'/g,"\\'"),ii=esc(r.item).replace(/'/g,"\\'");return `<tr><td><strong>${esc(r.item)}</strong></td><td style="font-family:var(--mono);font-weight:700;">${num(r.qty)} ${esc(r.unit)}</td><td style="font-family:var(--mono);">${fmtD(r.oldest)}</td><td style="font-family:var(--mono);">${daysSince(r.oldest)}</td><td style="font-family:var(--mono);">${fmtD(r.expected)}</td><td><span class="tag ${st.cls}">${st.txt}</span></td>
+        <td>${isOwn(p)?`<button class="mini g" onclick="quick('internal','${ip}','${ii}',${r.qty},'${esc(r.unit)}')" data-tip="Goods went back from Ahmedabad to Baroda factory">↩ Back to Baroda</button><button class="mini b" onclick="quick('send','${ip}','${ii}',${r.qty},'${esc(r.unit)}')" data-tip="Send these goods from Ahmedabad to a job worker">→ Send to job worker</button>`:`<button class="mini g" onclick="quick('receive','${ip}','${ii}',${r.qty},'${esc(r.unit)}')" data-tip="Goods came back to Baroda or Ahmedabad factory">↩ Receive</button><button class="mini b" onclick="quick('transfer','${ip}','${ii}',${r.qty},'${esc(r.unit)}')" data-tip="Goods moved from this party straight to another party">→ Transfer</button>`}<button class="mini r" onclick="quick('scrap','${ip}','${ii}',0,'${esc(r.unit)}')" data-tip="Record rejected or lost pieces at this party">✕ Scrap</button></td></tr>`;}).join('')}
+      </tbody></table></div></div>`;}
+  document.getElementById('wList').innerHTML=html;
+}
+
+// ═══ NEW MOVEMENT ═══
+let mType='send',editId=null;
+function partyNames(){const set=new Set(g(PK).map(p=>p.name).filter(n=>!isOwn(n)));g(MK).forEach(m=>{[m.from,m.to].forEach(x=>{if(x&&!isOwn(x))set.add(x);});});return [...set].sort((a,b)=>a.localeCompare(b));}
+function optionsFor(kind){return kind==='own'?OWN:kind==='holder'?[...partyNames(),'Ahmedabad Factory']:partyNames();}
+function fillSelect(id,list,val,placeholder){const el=document.getElementById(id);el.innerHTML=(placeholder?`<option value="">${placeholder}</option>`:'')+list.map(x=>`<option${x===val?' selected':''}>${esc(x)}</option>`).join('');if(val&&!list.includes(val)){el.insertAdjacentHTML('beforeend',`<option selected>${esc(val)}</option>`);}}
+function setType(t,keep){mType=t;const T=TYPES[t];
+  document.getElementById('typePick').innerHTML=Object.entries(TYPES).map(([k,v])=>`<button type="button" class="type-btn${k===t?' active':''}" style="--c:${v.c}" onclick="setType('${k}')"><b>${v.label}</b><small>${v.help}</small></button>`).join('');
+  const parties=partyNames();const f=keep?document.getElementById('m_from').value:'',to=keep?document.getElementById('m_to').value:'';
+  const ph=k=>k==='own'?'':k==='holder'?'— Select job worker or Ahmedabad —':parties.length?'— Select job worker —':'— Add a job worker first —';
+  fillSelect('m_from',optionsFor(T.from),f||(T.from==='own'?HOME:''),ph(T.from));
+  if(T.to!=='none')fillSelect('m_to',optionsFor(T.to),to||(T.to==='own'?(t==='internal'?'Ahmedabad Factory':HOME):''),ph(T.to));
+  document.getElementById('m_toBox').style.display=T.to==='none'?'none':'';
+  document.getElementById('m_to').required=T.to!=='none';
+  document.getElementById('m_fromLbl').textContent=T.from==='own'?'From our factory *':T.from==='holder'?'At (job worker / Ahmedabad) *':'From job worker *';
+  document.getElementById('m_toLbl').textContent=T.to==='own'?'To our factory *':'To job worker *';
+  document.getElementById('m_procBox').style.display=T.to==='party'?'':'none';
+  document.getElementById('m_expBox').style.display=(T.to==='party'||t==='internal')?'':'none';
+  document.getElementById('mBtn').textContent=editId?'Update Challan':'Save Challan';
+  updAvail();}
+function nextChallan(){let mx=0;g(MK).forEach(m=>{const x=(m.challan||'').match(/JW-(\d+)/);if(x)mx=Math.max(mx,parseInt(x[1]));});return 'JW-'+String(mx+1).padStart(4,'0');}
+function updAvail(){const el=document.getElementById('m_avail');
+  const p=document.getElementById('m_from').value,i=document.getElementById('m_item').value.trim();
+  if(!p||p===HOME){el.textContent='';el.className='avail';return;}
+  if(!p||!i){el.textContent='';el.className='avail';return;}
+  const bal=balanceAt(p,i,editId),q=parseFloat(document.getElementById('m_qty').value)||0;
+  el.textContent=`With ${p}: ${num(bal)} ${document.getElementById('m_unit').value||''}`+(q>bal+1e-9?` — you are entering more than this`:'');
+  el.className='avail '+(q>bal+1e-9?'bad':'ok');}
+function refreshItems(){const set=new Set();g(MK).forEach(m=>m.item&&set.add(m.item.trim()));g('inv_items').forEach(i=>i.name&&set.add(i.name));document.getElementById('itemList').innerHTML=[...set].sort().map(x=>`<option value="${esc(x)}">`).join('');}
+function resetMove(){editId=null;document.getElementById('mTitle').textContent='New Movement';document.getElementById('mForm').reset();document.getElementById('m_date').value=today();document.getElementById('m_unit').value='pcs';document.getElementById('m_challan').value=nextChallan();document.getElementById('mTitle').textContent='New Movement';setType(mType);}
+function saveMove(e){e.preventDefault();const T=TYPES[mType];
+  const m={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:mType,
+    challan:document.getElementById('m_challan').value.trim()||nextChallan(),date:document.getElementById('m_date').value,
+    from:document.getElementById('m_from').value,to:T.to==='none'?'':document.getElementById('m_to').value,
+    item:document.getElementById('m_item').value.trim(),qty:parseFloat(document.getElementById('m_qty').value)||0,unit:document.getElementById('m_unit').value.trim()||'pcs',
+    process:T.to==='party'?document.getElementById('m_proc').value.trim():'',expected:(T.to==='party'||mType==='internal')?document.getElementById('m_exp').value:'',
+    orderRef:document.getElementById('m_ref').value.trim(),vehicle:document.getElementById('m_veh').value.trim(),remarks:document.getElementById('m_rem').value.trim(),created:Date.now()};
+  if(!m.from||(T.to!=='none'&&!m.to))return alert('Please select where the goods go from and to.'),false;
+  if(m.from===m.to)return alert('From and To cannot be the same place.'),false;
+  if(m.qty<=0)return alert('Enter a quantity.'),false;
+  if(m.from!==HOME){const bal=balanceAt(m.from,m.item,editId);if(m.qty>bal+1e-9&&!confirm(`Only ${num(bal)} ${m.unit} of “${m.item}” is recorded with ${m.from}.\n\nSave ${num(m.qty)} anyway?`))return false;}
+  const all=g(MK);
+  if(editId){
+    if(!isAdmin()){alert('Admin mode has locked again. Unlock with the PIN and try again.');paintAdmin();return false;}
+    const i=all.findIndex(x=>x.id===editId);if(i<0)return false;
+    const before=all[i];const changed=diffText(before,m);
+    if(changed==='No field changed'){toast('Nothing changed');editId=null;resetMove();showV('register');return false;}
+    finishEdit(all,i,before,m,changed);return false;}
+  all.push(m);s(MK,all);
+  // Remember the job worker in the master list
+  const ps=g(PK);[m.from,m.to].forEach(n=>{if(n&&!isOwn(n)&&!ps.some(p=>p.name===n))ps.push({id:Date.now().toString(36)+n.length,name:n,process:m.process||''});});s(PK,ps);
+  toast(editId?'✓ Challan updated':'✓ Challan '+m.challan+' saved');editId=null;resetMove();refreshItems();renderAll();showV('where');return false;}
+async function finishEdit(all,i,before,m,changed){
+  const reason=await dialog({title:'Reason for change',msg:'Challan '+before.challan+': '+changed,mode:'text',placeholder:'Why is this being corrected?'});
+  if(!reason)return;
+  m.created=before.created;m.editedAt=new Date().toISOString();m.editCount=(before.editCount||0)+1;all[i]=m;s(MK,all);audit('edit',before,m,reason);
+  toast('✓ Challan corrected (recorded in change log)');editId=null;resetMove();refreshItems();renderAll();showV('register');}
+function quick(type,party,item,qty,unit){editId=null;showV('move');document.getElementById('mForm').reset();document.getElementById('m_date').value=today();document.getElementById('m_challan').value=nextChallan();setType(type);
+  document.getElementById('m_from').value=party;document.getElementById('m_item').value=item;document.getElementById('m_unit').value=unit||'pcs';if(qty)document.getElementById('m_qty').value=qty;
+  if(type==='internal')document.getElementById('m_to').value=HOME;
+  document.getElementById('mTitle').textContent=TYPES[type].label+' — from '+party;updAvail();
+  (type==='transfer'?document.getElementById('m_to'):document.getElementById('m_qty')).focus();}
+async function editMove(id){const m=g(MK).find(x=>x.id===id);if(!m)return;if(!await requireAdmin('Challan '+m.challan+' is locked — goods already moved.'))return;editId=id;showV('move');setType(m.type);
+  const set=(k,v)=>document.getElementById(k).value=v??'';
+  set('m_challan',m.challan);set('m_date',m.date);
+  fillSelect('m_from',optionsFor(TYPES[m.type].from),m.from);if(m.to)fillSelect('m_to',optionsFor(TYPES[m.type].to),m.to);
+  set('m_item',m.item);set('m_qty',m.qty);set('m_unit',m.unit);set('m_proc',m.process);set('m_exp',m.expected);set('m_ref',m.orderRef);set('m_veh',m.vehicle);set('m_rem',m.remarks);
+  document.getElementById('mTitle').textContent='Edit Challan '+m.challan;document.getElementById('mBtn').textContent='Update Challan';updAvail();}
+async function delMove(id){const m=g(MK).find(x=>x.id===id);if(!m)return;if(!await requireAdmin('Challan '+m.challan+' is locked — goods already moved.'))return;
+  if(!confirm('Delete challan '+m.challan+'?\n\nBalances will be recalculated without it.'))return;
+  const reason=await dialog({title:'Reason for deleting',msg:'Challan '+m.challan+' will be removed. The details stay in the change log.',mode:'text',placeholder:'Why is this challan being deleted?'});if(!reason)return;
+  s(MK,g(MK).filter(x=>x.id!==id));audit('delete',m,null,reason);toast('Challan deleted (recorded in change log)');renderAll();}
+
+// ═══ REGISTER ═══
+function openRegister(party){document.getElementById('rParty').value=party;showV('register');}
+function renderRegister(){const parties=[...OWN,...partyNames()];const cur=document.getElementById('rParty').value;
+  document.getElementById('rParty').innerHTML='<option value="">All places</option>'+parties.map(p=>`<option${p===cur?' selected':''}>${esc(p)}</option>`).join('');
+  const q=(document.getElementById('rSrch').value||'').toLowerCase(),t=document.getElementById('rType').value,p=document.getElementById('rParty').value;
+  const list=g(MK).filter(m=>(!t||m.type===t)&&(!p||m.from===p||m.to===p)&&(!q||[m.challan,m.item,m.orderRef,m.remarks,m.from,m.to,m.vehicle].join(' ').toLowerCase().includes(q)))
+    .sort((a,b)=>a.date===b.date?(b.created||0)-(a.created||0):a.date<b.date?1:-1);
+  document.getElementById('rEmpty').style.display=g(MK).length?'none':'block';const admin=isAdmin();if(logOpen)renderLog();
+  document.getElementById('rBody').innerHTML=list.map(m=>{const T=TYPES[m.type]||TYPES.send;return `<tr>
+    <td>${admin?`<button class="mini" onclick="editMove('${m.id}')" data-tip="Admin: correct this challan">✏️</button><button class="mini r" onclick="delMove('${m.id}')" data-tip="Admin: delete this challan">🗑</button>`:`<button class="mini lock" onclick="editMove('${m.id}')" data-tip="Locked — only admin can change a saved challan">🔒</button>`}</td>
+    <td style="font-family:var(--mono);font-weight:600;color:#f472b6;">${esc(m.challan)}${m.editCount?` <span class="tag t-edited" data-tip="Corrected by admin ${m.editCount} time(s) — see Change log">edited</span>`:''}</td><td style="font-family:var(--mono);">${fmtD(m.date)}</td>
+    <td><span class="tag ${T.tag}">${T.label}</span></td>
+    <td class="route">${esc(m.from)}<span class="arr">→</span>${m.type==='scrap'?'<span style="color:var(--red);">Scrap / loss</span>':esc(m.to)}</td>
+    <td><strong>${esc(m.item)}</strong></td><td style="font-family:var(--mono);font-weight:700;">${num(m.qty)} ${esc(m.unit)}</td>
+    <td>${esc(m.process)||'—'}</td><td style="font-family:var(--mono);">${fmtD(m.expected)}</td><td style="font-family:var(--mono);font-size:11px;">${esc(m.orderRef)||'—'}</td><td>${esc(m.vehicle)||'—'}</td><td style="white-space:normal;max-width:220px;">${esc(m.remarks)||'—'}</td></tr>`;}).join('');}
+function exportRegister(){const all=g(MK);if(!all.length)return alert('No challans yet.');
+  const cols=['challan','date','type','from','to','item','qty','unit','process','expected','orderRef','vehicle','remarks'];
+  let csv='Challan,Date,Type,From,To,Item,Qty,Unit,Process,Expected back,Ref,Vehicle,Remarks\n';
+  all.forEach(m=>{csv+=cols.map(c=>'"'+String(c==='type'?(TYPES[m.type]?.label||m.type):(m[c]??'')).replace(/"/g,'""')+'"').join(',')+'\n';});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='job_work_register_'+today()+'.csv';a.click();}
+
+// ═══ JOB WORKERS ═══
+let pEdit=null;
+function resetParty(){pEdit=null;document.getElementById('pForm').reset();document.getElementById('pBtn').textContent='+ Add Job Worker';}
+function saveParty(e){e.preventDefault();const name=document.getElementById('p_name').value.trim();if(!name)return false;
+  const ps=g(PK);const rec={id:pEdit||Date.now().toString(36),name,process:document.getElementById('p_proc').value.trim(),contact:document.getElementById('p_contact').value.trim(),phone:document.getElementById('p_phone').value.trim(),gstin:document.getElementById('p_gst').value.trim().toUpperCase(),notes:document.getElementById('p_notes').value.trim()};
+  if(pEdit){const i=ps.findIndex(p=>p.id===pEdit);if(i>=0){const old=ps[i].name;
+      if(old!==name&&g(MK).some(m=>m.from===old||m.to===old)&&!isAdmin()){alert('Renaming '+old+' changes saved challans. Only admin can do this — click 🔒 Locked at the top and enter the PIN first.');return false;}
+      ps[i]=rec;
+      if(old!==name){const ms=g(MK);ms.forEach(m=>{if(m.from===old)m.from=name;if(m.to===old)m.to=name;});s(MK,ms);}}}
+  else{if(ps.some(p=>p.name.toLowerCase()===name.toLowerCase()))return alert('This job worker already exists.'),false;ps.push(rec);}
+  s(PK,ps);toast('✓ Job worker saved');resetParty();renderAll();return false;}
+function editParty(id){const p=g(PK).find(x=>x.id===id);if(!p)return;pEdit=id;const set=(k,v)=>document.getElementById(k).value=v||'';
+  set('p_name',p.name);set('p_proc',p.process);set('p_contact',p.contact);set('p_phone',p.phone);set('p_gst',p.gstin);set('p_notes',p.notes);document.getElementById('pBtn').textContent='Update Job Worker';window.scrollTo({top:0,behavior:'smooth'});}
+function delParty(id){const p=g(PK).find(x=>x.id===id);if(!p)return;
+  if(g(MK).some(m=>m.from===p.name||m.to===p.name))return alert(p.name+' has challans in the register, so it cannot be deleted. Rename it instead if needed.');
+  if(!confirm('Delete '+p.name+'?'))return;s(PK,g(PK).filter(x=>x.id!==id));renderAll();}
+function renderParties(){const {rows}=holdings();const ps=g(PK).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('pEmpty').style.display=ps.length?'none':'block';
+  document.getElementById('pBody').innerHTML=ps.map(p=>{const h=rows.filter(r=>r.party===p.name);return `<tr>
+    <td><button class="mini" onclick="editParty('${p.id}')" data-tip="Edit this job worker">✏️</button><button class="mini r" onclick="delParty('${p.id}')" data-tip="Delete this job worker">🗑</button></td>
+    <td><strong>${esc(p.name)}</strong></td><td>${esc(p.process)||'—'}</td><td>${esc(p.contact)||'—'}</td><td style="font-family:var(--mono);">${esc(p.phone)||'—'}</td><td style="font-family:var(--mono);">${esc(p.gstin)||'—'}</td>
+    <td>${h.length?h.map(r=>`${esc(r.item)}: <b>${num(r.qty)} ${esc(r.unit)}</b>`).join('<br>'):'<span style="color:var(--text-muted);">Nothing</span>'}</td><td style="white-space:normal;max-width:220px;">${esc(p.notes)||'—'}</td></tr>`;}).join('');}
+
+// ═══ Views ═══
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('active',e.id==='v_'+v));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  if(v==='where')renderWhere();if(v==='register')renderRegister();if(v==='parties')renderParties();if(v==='move'&&!editId&&!document.getElementById('m_item').value)resetMove();}
+function renderAll(){renderWhere();renderRegister();renderParties();}
+window.addEventListener('storage',renderAll);
+
+// Hover labels
+(function(){const box=document.getElementById('tipBox');let cur=null;
+  document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]');if(el===cur)return;cur=el;if(!el){box.classList.remove('show');return;}
+    box.textContent=el.dataset.tip;box.classList.add('show');const r=el.getBoundingClientRect();const w=box.offsetWidth,h=box.offsetHeight;
+    box.style.left=Math.max(8,Math.min(r.left+r.width/2-w/2,innerWidth-w-8))+'px';box.style.top=(r.top-h-8<8?r.bottom+8:r.top-h-8)+'px';});
+  document.addEventListener('scroll',()=>{cur=null;box.classList.remove('show');},true);})();
+
+paintAdmin();refreshItems();resetMove();renderAll();
+</script>
+<script src="voice_engine.js"></script>
+</body>
+</html>
