@@ -55,7 +55,7 @@ Client names are confidential (NDA). Never put real client names in code, sample
 | `reminders_agent.js` | Reads a spoken or pasted sentence and turns it into a reminder (date, repeat, type). |
 | `reminders_sw.js`, `reminders.webmanifest`, `reminders-192.png`, `reminders-512.png` | Make Reminders installable on a phone and able to receive "Share" from WhatsApp. |
 | `auth.js`, `auth_config.js` | Login gate. Loaded first in the `<head>` of every app page, right after the Supabase library. `auth_config.js` holds the Supabase Project URL and publishable key. |
-| `supabase_setup.sql` | Run once in the Supabase SQL Editor. Creates the `profiles` table and the login functions. |
+| `supabase_setup.sql`, `supabase_update_2_rights.sql` | Run once each, in this order, in the Supabase SQL Editor. Create the `profiles` table, the login functions and the per-user app rights. |
 
 Outside libraries are loaded from CDNs: jsPDF (PDF), SheetJS `xlsx` (Excel import/export), `@supabase/supabase-js` v2 (login), Google Fonts (DM Sans, JetBrains Mono).
 
@@ -97,7 +97,7 @@ Pages call these with `fetch(url, {method:'POST', body: JSON.stringify(...)})` a
 
 There are two separate systems. Do not confuse them.
 
-1. **Site login (new, on Supabase):** `login.html` + `auth.js` + `supabase_setup.sql`. One Admin and up to four Users, each with a login ID and password. Supabase Auth holds the accounts; the table `public.profiles` holds login ID, name and role. Each account has an internal e-mail address that nobody sees; the page looks it up from the login ID and then signs in with Supabase. All user management goes through database functions (`setup_admin`, `admin_add_user`, `admin_update_user`, `admin_remove_user`) that check the caller is the Admin. Only the Admin can open `users.html`. The login is **off** while the two values in `auth_config.js` are empty.
+1. **Site login (new, on Supabase):** `login.html` + `auth.js` + `supabase_setup.sql`. One Admin and up to four Users, each with a login ID and password. Supabase Auth holds the accounts; the table `public.profiles` holds login ID, name and role. Each account has an internal e-mail address that nobody sees; the page looks it up from the login ID and then signs in with Supabase. All user management goes through database functions (`setup_admin`, `admin_add_user`, `admin_update_user`, `admin_remove_user`) that check the caller is the Admin. Only the Admin can open `users.html`. **Rights:** `profiles.apps` lists the app pages a user may open (empty = all); the Admin sets it on the Users page (`admin_set_apps`, from `supabase_update_2_rights.sql`). `auth.js` hides those apps on the Main Page (`SentireAuth.filterApps`) and covers a blocked page with a notice (`SentireAuth.can`). Rights are per app only; there is no view-only mode yet. The login is **off** while the two values in `auth_config.js` are empty.
 2. **Approver PINs (older):** kept in Masters (`st_approvers`). Roles are Admin, Sub Admin and Authorised. Any one of them approves Laser, Packing and Bill steps by choosing their name and typing their PIN. Job Work has its own admin PIN (`jw_admin_pin`) to unlock saved challans.
 
 While the business data is still in `localStorage`, the site login is only a gate in the browser: the page files are public on GitHub, so it keeps ordinary visitors out but is not strong security. Once data moves into Supabase, the database access rules (Row Level Security, using `public.is_member()` and `public.is_admin()`) give real protection. Passwords and data are never in the repository.

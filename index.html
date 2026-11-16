@@ -161,6 +161,7 @@ const APPS=[
   {key:'cohort',     file:'cohort.html',               name:'Cohort',              short:'Cohort',     ic:'CH',c:'#8b5cf6',desc:'Business dashboard: management, sales, customers, marketing, operations, ideas to grow income, and Ask your data'},
   {key:'masters',    file:'masters.html',              name:'Masters',             short:'Masters',    ic:'MS',c:'#64748b',desc:'Clients & payment days, transporters, approvers, company, holidays, reminder rules'}
 ];
+if(window.SentireAuth&&SentireAuth.filterApps)SentireAuth.filterApps(APPS); // rights: hide apps this person may not open
 const HOME={key:'home',name:'Main Page',short:'Main',ic:'⌂',c:'#3b82f6'};
 const byKey=k=>k==='home'?HOME:APPS.find(a=>a.key===k);
 const byFile=f=>f==='index.html'||f==='hub.html'?HOME:APPS.find(a=>a.file===f);
@@ -244,7 +245,7 @@ function refreshStats(){
     {k:'inventory',label:'Low-stock items',val:low,sub:'at or below reorder level',c:'#f59e0b',alert:low>0},
     {k:'accounts',label:'This month',val:inr(inc-exp),sub:'in '+inr(inc)+' · out '+inr(exp),c:'#06b6d4'}
   ];
-  document.getElementById('kpis').innerHTML=cards.map(x=>`<button class="kpi${x.alert?' alert':''}" style="--c:${x.c}" onclick="go('${x.k}')"><div class="k-label">${x.label}</div><div class="k-val">${x.val}</div><div class="k-sub">${x.sub}</div></button>`).join('');
+  document.getElementById('kpis').innerHTML=cards.filter(x=>byKey(x.k)).map(x=>`<button class="kpi${x.alert?' alert':''}" style="--c:${x.c}" onclick="go('${x.k}')"><div class="k-label">${x.label}</div><div class="k-val">${x.val}</div><div class="k-sub">${x.sub}</div></button>`).join('');
   const setBadge=(k,n)=>{const b=document.getElementById('b-'+k);if(b){b.textContent=n;b.classList.toggle('show',n>0);}};
   setBadge('orders',awaiting+chase);setBadge('production',apv+pickups);setBadge('reminders',(rs.today||0)+(rs.overdue||0));setBadge('inventory',low);setBadge('jobwork',jwOverdue);
 }
@@ -252,7 +253,7 @@ window.addEventListener('storage',()=>{if(current==='home')refreshStats();});
 
 // Greeting
 const h=new Date().getHours();
-document.getElementById('greet').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', Abhishek';
+document.getElementById('greet').textContent=(h<12?'Good morning':h<17?'Good afternoon':'Good evening')+', '+((window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'Abhishek');
 document.getElementById('today').textContent=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
 // ═══ Voice commands (Chrome) ═══

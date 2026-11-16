@@ -31,6 +31,14 @@
       });
     },
     remember: function (u) { remember(u); A.user = u; },
+    // Rights: may this person open this app page? The Admin, and a user with no list, may open everything.
+    can: function (file) {
+      var u = A.user;
+      if (!A.enabled || !u || u.role === 'Admin' || !Array.isArray(u.apps)) return true;
+      return u.apps.indexOf(file) >= 0;
+    },
+    // Main Page: drop the apps this person may not open from its app list.
+    filterApps: function (list) { for (var i = list.length - 1; i >= 0; i--) if (!A.can(list[i].file)) list.splice(i, 1); return list; },
     logout: function () {
       var done = function () { forget(); toLogin(); };
       if (A.client) A.client.auth.signOut().then(done, done); else done();
@@ -43,6 +51,22 @@
   var u = cached();
   if (u) A.user = u; else hide();
 
+  // An app page this person has no right to open is covered with a notice.
+  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
+  function checkRight() {
+    if (blocked || OPEN_TO_ALL[page] || A.can(page)) return;
+    blocked = true;
+    var put = function () {
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0c0f14;color:#e8ecf4;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;';
+      d.innerHTML = '<div style="font-size:18px;font-weight:600">You do not have access to this app</div><div style="font-size:13px;color:#7a8599">Ask the Admin if you need it.</div>' +
+        (window.top === window ? '<a href="index.html" style="color:#3b82f6;font-size:14px">← Main Page</a>' : '');
+      document.body.innerHTML = ''; document.body.appendChild(d);
+    };
+    if (document.body) put(); else document.addEventListener('DOMContentLoaded', put);
+  }
+  if (u) checkRight();
+
   if (!A.client) {                                // the Supabase library did not load (no internet)
     if (!u) toLogin();
     A.ready = Promise.resolve(u);
@@ -51,7 +75,7 @@
       if (!(r.data && r.data.session)) { forget(); toLogin(); return null; }
       return A.rpc('my_profile').then(function (p) {
         if (!p) { A.logout(); return null; }       // login was removed by the Admin
-        A.remember(p); show(); return p;
+        A.remember(p); checkRight(); show(); return p;
       });
     }).catch(function () {                        // no internet: carry on if this device was logged in
       if (u) { show(); return u; }

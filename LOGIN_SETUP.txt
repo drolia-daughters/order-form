@@ -33,11 +33,19 @@ PART 3 — Recommended: close public sign-up
    switch OFF "Allow new users to sign up" → Save.
    The site does not need it: only the Admin adds people, on the Users page.
 
+PART 4 — Rights: which apps each user can open (once)
+------------------------------------------------------
+10. Supabase → SQL Editor → New query → paste ALL of supabase_update_2_rights.sql → Run.
+11. On the site: Main Page → Users → Edit a user → tick the apps that person may open → Save.
+    All boxes ticked = every app. The Admin always has every app.
+    The person sees the change the next time they open or refresh the site.
+
 HOW IT WORKS
 ------------
 • Admin: uses everything, and can open "Users" to change anyone's login ID, name or
   password (also the Admin's own), add a user or remove a user.
-• Users: use everything except the "Users" page.
+• Users: use the apps the Admin ticked for them (all apps if nothing was changed), never the "Users" page.
+  Apps they may not open are hidden from their Main Page and show "You do not have access".
 • A person stays logged in on a device until they click "Log out" on the Main Page.
 • When the Admin changes someone's password, that person is logged out everywhere
   within about an hour and must use the new password.
