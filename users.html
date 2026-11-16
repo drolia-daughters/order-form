@@ -44,7 +44,7 @@ input:focus{outline:none;border-color:var(--accent);}
 <body>
 <div class="wrap">
   <div class="top"><h1>Users</h1><span class="sp"></span><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
-  <p class="sub">One Admin and up to four users. Only the Admin can open this page. Change a login ID, name, password or <b>rights</b> (which apps the person can open) with <b>Edit</b> — the person uses the new details from their next login. After a password change that person is logged out on all their devices within about an hour.</p>
+  <p class="sub">One Admin and up to ten users. Only the Admin can open this page. Change a login ID, name, password or <b>rights</b> (which apps the person can open) with <b>Edit</b> — the person uses the new details from their next login. After a password change that person is logged out on all their devices within about an hour.</p>
   <div class="msg" id="msg"></div>
   <div id="list"></div>
   <button class="btn pri" id="addBtn" onclick="edit(null)" hidden>+ Add user</button>
@@ -62,7 +62,7 @@ input:focus{outline:none;border-color:var(--accent);}
 
 <script>
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
-var users = [], max = 4, editing = null;
+var users = [], max = 10, editing = null;
 // The apps a user can be given. Keep in step with the APPS list in index.html.
 var APPS = [['orders.html', 'Order Sheet'], ['marketing_crm.html', 'Marketing CRM'], ['factory_production.html', 'Factory Production'], ['job_work.html', 'Job Work'],
   ['loadcell_calculator.html', 'Loadcell Calculator'], ['inventory_management.html', 'Inventory'], ['accounts_reports.html', 'Accounts & Reports'],

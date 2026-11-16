@@ -40,3 +40,17 @@ revoke all on function public.admin_set_apps(uuid, text[]) from public, anon;
 grant execute on function public.my_profile()                 to authenticated;
 grant execute on function public.admin_list_users()           to authenticated;
 grant execute on function public.admin_set_apps(uuid, text[]) to authenticated;
+
+-- Allow up to 10 users (was 4)
+create or replace function public.admin_add_user(p_login_id text, p_name text, p_password text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.is_admin() then raise exception 'Only the Admin can do this.'; end if;
+  lock table public.profiles in exclusive mode;
+  if (select count(*) from public.profiles where role = 'User') >= 10 then
+    raise exception 'You already have 10 users. Remove one first.';
+  end if;
+  perform public._create_login(p_login_id, p_name, p_password, 'User');
+end $$;
+revoke all on function public.admin_add_user(text, text, text) from public, anon;
+grant execute on function public.admin_add_user(text, text, text) to authenticated;

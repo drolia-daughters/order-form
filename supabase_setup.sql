@@ -129,8 +129,8 @@ language plpgsql security definer set search_path = '' as $$
 begin
   if not public.is_admin() then raise exception 'Only the Admin can do this.'; end if;
   lock table public.profiles in exclusive mode;
-  if (select count(*) from public.profiles where role = 'User') >= 4 then
-    raise exception 'You already have 4 users. Remove one first.';
+  if (select count(*) from public.profiles where role = 'User') >= 10 then
+    raise exception 'You already have 10 users. Remove one first.';
   end if;
   perform public._create_login(p_login_id, p_name, p_password, 'User');
 end $$;

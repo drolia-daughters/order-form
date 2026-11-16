@@ -25,7 +25,7 @@ PART 2 — Create the Admin (once)
    DO THIS STRAIGHT AWAY — whoever opens the site first becomes the Admin.
 7. Type your name, a login ID (for example: admin) and a password. Click "Create Admin".
 8. On the Main Page click "Users" (top right, Admin only) → "+ Add user" for each of
-   the four people. Tell each person their login ID and password.
+   the people. Tell each person their login ID and password.
 
 PART 3 — Recommended: close public sign-up
 ------------------------------------------
