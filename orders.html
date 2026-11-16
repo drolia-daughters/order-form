@@ -99,6 +99,14 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
 .pay-btn.paid{background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,.3);}
 .pay-count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--red);color:#fff;font-size:10px;font-family:var(--mono);line-height:16px;}
 .pay-count:empty{display:none;}
+
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px;}.ov.open{display:flex;}
+.ovbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:760px;padding:22px;}
+.ovbox h3{font-size:18px;margin-bottom:4px;}.ovbox .ovsub{color:var(--text-dim);font-size:12px;margin-bottom:14px;}
+.ovsec{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--text-dim);margin:16px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 16px;}.ovgrid div{font-size:13px;}.ovgrid span{display:block;font-size:10px;color:var(--text-dim);font-family:var(--mono);text-transform:uppercase;}
+.ovtbl{width:100%;border-collapse:collapse;font-size:12px;}.ovtbl th,.ovtbl td{border:1px solid var(--border);padding:6px 8px;text-align:left;}.ovtbl th{background:var(--surface-2);font-size:10px;text-transform:uppercase;color:var(--text-dim);}
+.ovbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
 </style>
 </head>
 <body>
@@ -526,7 +534,7 @@ function renderDB(){const db=gdb(),tb=document.getElementById('dbBody'),em=docum
     const tEmail=o.transporterEmail||tc[o.transporterName]?.email||'';const tPhone=o.transporterPhone||tc[o.transporterName]?.phone||'';
     const tClean=tPhone.replace(/[^0-9+]/g,'');const tWa=ST.waPhone(tPhone);
     let tHtml='';if(tEmail)tHtml+=`<a class="contact-btn contact-email" href="mailto:${E(tEmail)}?subject=Pickup%20${o.orderNo}" target="_blank">📧</a>`;if(tWa)tHtml+=`<a class="contact-btn contact-whatsapp" href="https://wa.me/${tWa}" target="_blank">💬</a><a class="contact-btn contact-call" href="tel:${tClean}">📞</a>`;if(!tEmail&&!tPhone)tHtml='—';
-    let actionBtns=`<button class="btn-edit-row" data-tip="Edit this order (items, dates, L.R. no., changes)" onclick="editOrder(${ri})">✏️</button><button class="btn-edit-row" data-tip="Print this order sheet (half A4)" onclick="printOrder(${ri})" style="color:var(--cyan);background:rgba(6,182,212,0.1);border-color:rgba(6,182,212,0.3);">🖨</button>`;
+    let actionBtns=`<button class="btn-edit-row" data-tip="View all details of this order" onclick="viewOrder(${ri})" style="color:var(--blue);background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);">👁</button><button class="btn-edit-row" data-tip="Edit this order (items, dates, L.R. no., changes)" onclick="editOrder(${ri})">✏️</button><button class="btn-edit-row" data-tip="Print this order sheet (half A4)" onclick="printOrder(${ri})" style="color:var(--cyan);background:rgba(6,182,212,0.1);border-color:rgba(6,182,212,0.3);">🖨</button>`;
     if(isCancelled){actionBtns+='';}
     else if(isDone){actionBtns+=`<button class="btn-edit-row" style="color:#25d366;background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);" data-tip="Resend the despatch WhatsApp to the customer" onclick="ST.offerDespatch('${E(o.orderNo)}')">💬</button><button class="btn-undo-done" data-tip="Undo — move back to Pending" onclick="markPending(${ri})">↩</button>`;}
     else if(isAwaiting){actionBtns+=`<button class="btn-approve" data-tip="Check this order and approve it — it then goes to Factory Production" onclick="approveOrder(${ri})">👍 Approve</button><button class="btn-delete-row" data-tip="Cancel this order (order number is kept)" onclick="cancelOrder(${ri})">❌</button>`;}
@@ -617,5 +625,34 @@ init();
     box.textContent=el.dataset.tip;el.setAttribute('aria-label',el.dataset.tip);box.classList.add('show');place(el);});
   document.addEventListener('scroll',()=>{cur=null;box.classList.remove('show');},true);
 })();
+</script>
+
+<div class="ov" id="ov" onclick="if(event.target===this)closeView()"><div class="ovbox" id="ovbox"></div></div>
+<script>
+// ─── VIEW ORDER: every detail of one order in a readable page ───
+function viewOrder(ri){const o=gdb()[ri];if(!o)return;const E=ST.esc;
+  const g=(l,v)=>(v===undefined||v===null||v==='')?'':'<div><span>'+E(l)+'</span>'+E(String(v))+'</div>';
+  const d=x=>x?ST.fmtDate(x):'';
+  const pj=ST.jobs().find(j=>j.orderRef===o.orderNo);const pi=ST.payInfo(o);
+  const status=o.status==='cancelled'?'Cancelled':o.status==='completed'?'Despatched':o.status==='awaiting'?'Awaiting approval':('In production'+(pj&&pj.stage?' — '+pj.stage:''));
+  const its=ST.items(o);
+  const itemRows=its.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td></tr>').join('');
+  const known=new Set(['orderNo','date','deliveryDate','partyName','location','clientEmail','clientPhone','items','loadcellType','quantity','capacity','wire','itemsText','laserLogo','logoImage','productionRemarks','transporterName','transporterId','transporterEmail','transporterPhone','lrNumber','trackingLink','dod','paymentMode','creditDays','orderRemarks','wiringBy','packingBy','testingBy','status','billNo','billTotal','boxes','weight','approvedAt','reminders','escalatedAt','paidDate','paymentDone']);
+  const more=Object.keys(o).filter(k=>!known.has(k)&&typeof o[k]!=='object'&&o[k]!==''&&o[k]!==null&&String(o[k]).length<200&&!/image|logo|photo|base64/i.test(k)).map(k=>g(k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase()),o[k])).join('');
+  const logo=o.logoImage?'<img src="'+o.logoImage+'" style="max-height:90px;border-radius:6px;background:#fff;padding:4px;margin-top:6px;">':'';
+  document.getElementById('ovbox').innerHTML=
+   '<h3>Order '+E(o.orderNo)+' — '+E(o.partyName)+'</h3><div class="ovsub">'+E(status)+'</div>'
+   +'<div class="ovsec">Order</div><div class="ovgrid">'+g('Order No',o.orderNo)+g('Order date',d(o.date)||o.date)+g('Delivery date',d(o.deliveryDate))+g('Despatched on',d(o.dod))+g('Total quantity',o.quantity)+g('Job no',pj&&pj.jobNo)+g('Bill no',o.billNo)+g('Bill total',o.billTotal?ST.inr(o.billTotal):'')+g('Approved on',o.approvedAt?d(String(o.approvedAt).slice(0,10)):'')+'</div>'
+   +'<div class="ovsec">Customer</div><div class="ovgrid">'+g('Party',o.partyName)+g('Location',o.location)+g('Email',o.clientEmail)+g('Phone',o.clientPhone)+'</div>'
+   +'<div class="ovsec">Items</div><table class="ovtbl"><tr><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th></tr>'+(itemRows||'<tr><td colspan="5">No items</td></tr>')+'</table>'
+   +'<div class="ovsec">Branding &amp; production</div><div class="ovgrid">'+g('Laser logo / text',o.laserLogo)+g('Wiring by',o.wiringBy)+g('Packing by',o.packingBy)+g('Testing by',o.testingBy)+g('Production remarks',o.productionRemarks)+'</div>'+logo
+   +'<div class="ovsec">Transport</div><div class="ovgrid">'+g('Transporter',o.transporterName)+g('Transporter email',o.transporterEmail)+g('Transporter phone',o.transporterPhone)+g('L.R. number',o.lrNumber)+g('Boxes',o.boxes)+g('Weight (kg)',o.weight)+g('Tracking link',o.trackingLink)+'</div>'
+   +'<div class="ovsec">Payment</div><div class="ovgrid">'+g('Payment mode',o.paymentMode)+g('Credit days',o.creditDays)+g('Due date',pi&&pi.due?ST.fmtDate(pi.due):'')+g('Payment status',pi&&pi.action==='paid'?'Paid'+(o.paidDate?' on '+d(String(o.paidDate).slice(0,10)):''):(pi&&pi.label)||'')+g('Reminders sent',pi&&pi.sent)+g('Escalated',o.escalatedAt?'Yes':'')+'</div>'
+   +(o.orderRemarks?'<div class="ovsec">Order remarks</div><div style="font-size:13px;white-space:pre-wrap;">'+E(o.orderRemarks)+'</div>':'')
+   +(more?'<div class="ovsec">Other details</div><div class="ovgrid">'+more+'</div>':'')
+   +'<div class="ovbtns"><button class="btn" onclick="closeView();editOrder('+ri+')">✏️ Edit</button><button class="btn" onclick="printOrder('+ri+')">🖨 Print</button><button class="btn btn-export" onclick="closeView()">Close</button></div>';
+  document.getElementById('ov').classList.add('open');}
+function closeView(){document.getElementById('ov').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeView();});
 </script>
 </body></html>
