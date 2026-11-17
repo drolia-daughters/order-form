@@ -84,6 +84,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
 .items-tbl td{padding:4px 6px;border:0;vertical-align:middle;}
 .items-tbl td.it-n{width:26px;color:var(--text-muted);font-family:var(--mono);font-size:11px;text-align:center;}
 .items-tbl input{width:100%;}
+.items-tbl.hide-rate .rate-col{display:none;}
 .it-del{width:34px;height:40px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:var(--red);cursor:pointer;font-size:16px;}
 .items-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px;flex-wrap:wrap;}
 .btn-add-item{padding:8px 14px;border-radius:6px;border:1px dashed var(--accent);background:rgba(59,130,246,.08);color:var(--accent);font-weight:600;cursor:pointer;font-family:var(--sans);font-size:13px;}
@@ -137,7 +138,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
     <!-- ITEMS: several loadcell lines in one order -->
     <div class="form-group full-width"><label><span class="sl">7</span> Items — Type of Loadcell · Qty · Capacity · Wire</label>
       <div class="items-wrap">
-        <table class="items-tbl"><thead><tr><th>#</th><th>Type of Loadcell</th><th>Qty (pcs.)</th><th>Capacity</th><th>Wire (type/mtr.)</th><th></th></tr></thead><tbody id="itemsBody"></tbody></table>
+        <table class="items-tbl" id="itemsTbl"><thead><tr><th>#</th><th>Type of Loadcell</th><th>Qty (pcs.)</th><th>Capacity</th><th>Wire (type/mtr.)</th><th class="rate-col" title="Only you and the Admins can see this">Price / pc (₹) 🔒</th><th></th></tr></thead><tbody id="itemsBody"></tbody></table>
         <div class="items-foot"><button type="button" class="btn-add-item" onclick="addItemRow()" data-tip="Customer wants another type? Add it here (e.g. DLC 12 pcs + AS 10 pcs)">+ Add another item</button> <button type="button" class="btn-add-item" onclick="addNewStockItem()" data-tip="Item not in the list? Add it here with its inventory details" style="border-color:var(--green,#22c55e);color:var(--green,#22c55e);background:rgba(34,197,94,.08);">+ New item (not in list)</button><span id="itemsTotal"></span></div>
       </div>
       <datalist id="lcTypes"><option value="ALC"><option value="DLC"><option value="AS"><option value="DS"><option value="REG"><option value="CUT"><option value="JUMBO"><option value="S.E"><option value="S TYPE"></datalist>
@@ -195,7 +196,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
     </div>
   </div>
   <div class="table-wrap"><table><thead><tr>
-    <th><input type="checkbox" data-tip="Tick all for printing" onclick="toggleAllPrint(this)"></th><th>Actions</th><th>Status</th><th>Order#</th><th>Date</th><th>Party</th><th>Client Contact</th><th>Location</th><th>Loadcell</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Logo</th><th>Transporter</th><th>Tr. Contact</th><th>L.R.</th><th>DOD</th><th>Payment</th><th>Track</th><th>Remarks</th><th>Wiring</th><th>Packing</th><th>Testing</th>
+    <th><input type="checkbox" data-tip="Tick all for printing" onclick="toggleAllPrint(this)"></th><th>Actions</th><th>Status</th><th>Order#</th><th>Date</th><th>Party</th><th>Client Contact</th><th>Location</th><th>Loadcell</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Price/pc ₹ 🔒</th><th>Logo</th><th>Transporter</th><th>Tr. Contact</th><th>L.R.</th><th>DOD</th><th>Payment</th><th>Track</th><th>Remarks</th><th>Wiring</th><th>Packing</th><th>Testing</th>
   </tr></thead><tbody id="dbBody"></tbody></table>
   <div class="empty-state" id="emptyState"><div class="icon">📋</div><p>No orders yet.</p></div></div>
 </div>
@@ -257,11 +258,15 @@ async function addNewStockItem(){const E=ST.esc;
   const b=document.getElementById('itemsBody');let row=b.rows[b.rows.length-1];const ti=row&&row.querySelector('.it-type');if(ti&&ti.value)row=addItemRow({});
   if(row){row.querySelector('.it-type').value=r.n;row.querySelector('.it-qty').focus();}updItemsTotal();showToast('success');}
 
-function itemRowHtml(it,i){it=it||{};return `<tr><td class="it-n">${i+1}</td><td><input class="it-type" list="lcTypes" placeholder="DLC" value="${ST.esc(it.type||'')}" oninput="updItemsTotal()"></td><td style="width:120px;"><input class="it-qty" type="number" min="1" placeholder="12" value="${ST.esc(it.qty||'')}" oninput="updItemsTotal()"></td><td><input class="it-cap" placeholder="33T / 2.5 MV" value="${ST.esc(it.capacity||'')}"></td><td><input class="it-wire" placeholder="Blue - 16 Mtrs" value="${ST.esc(it.wire||'')}"></td><td style="width:44px;"><button type="button" class="it-del" data-tip="Remove this item" onclick="delItemRow(this)">×</button></td></tr>`;}
-function setItems(items){document.getElementById('itemsBody').innerHTML=(items&&items.length?items:[{}]).map(itemRowHtml).join('');updItemsTotal();}
+function itemRowHtml(it,i){it=it||{};return `<tr><td class="it-n">${i+1}</td><td><input class="it-type" list="lcTypes" placeholder="DLC" value="${ST.esc(it.type||'')}" oninput="updItemsTotal()"></td><td style="width:120px;"><input class="it-qty" type="number" min="1" placeholder="12" value="${ST.esc(it.qty||'')}" oninput="updItemsTotal()"></td><td><input class="it-cap" placeholder="33T / 2.5 MV" value="${ST.esc(it.capacity||'')}"></td><td><input class="it-wire" placeholder="Blue - 16 Mtrs" value="${ST.esc(it.wire||'')}"></td><td class="rate-col" style="width:120px;"><input class="it-rate" type="number" min="0" step="any" placeholder="optional" value="${ST.esc(it.rate||'')}"></td><td style="width:44px;"><button type="button" class="it-del" data-tip="Remove this item" onclick="delItemRow(this)">×</button></td></tr>`;}
+// Price per piece: seen only by the person who took the order and by Admins (hidden in everyone else's screen)
+const isAdminMe=()=>!window.SentireAuth||!SentireAuth.enabled||!SentireAuth.user||SentireAuth.user.role==='Admin';
+const canRate=o=>isAdminMe()||(!!o&&!!o.createdBy&&o.createdBy===meName());
+const noRate=x=>{const y=Object.assign({},x);delete y.rate;return y;};
+function setItems(items,showRate){document.getElementById('itemsTbl').classList.toggle('hide-rate',showRate===false);document.getElementById('itemsBody').innerHTML=(items&&items.length?items:[{}]).map(itemRowHtml).join('');updItemsTotal();}
 function addItemRow(it){const b=document.getElementById('itemsBody');b.insertAdjacentHTML('beforeend',itemRowHtml(it,b.rows.length));updItemsTotal();const r=b.rows[b.rows.length-1];if(!it)r.querySelector('.it-type').focus();return r;}
 function delItemRow(btn){const b=document.getElementById('itemsBody');if(b.rows.length<=1){btn.closest('tr').querySelectorAll('input').forEach(x=>x.value='');}else btn.closest('tr').remove();[...b.rows].forEach((r,i)=>r.querySelector('.it-n').textContent=i+1);updItemsTotal();}
-function getItems(){return [...document.querySelectorAll('#itemsBody tr')].map(r=>({type:normType(r.querySelector('.it-type').value),qty:r.querySelector('.it-qty').value.trim(),capacity:r.querySelector('.it-cap').value.trim(),wire:r.querySelector('.it-wire').value.trim()})).filter(x=>x.type||x.qty||x.capacity||x.wire);}
+function getItems(){return [...document.querySelectorAll('#itemsBody tr')].map(r=>({type:normType(r.querySelector('.it-type').value),qty:r.querySelector('.it-qty').value.trim(),capacity:r.querySelector('.it-cap').value.trim(),wire:r.querySelector('.it-wire').value.trim(),rate:r.querySelector('.it-rate').value.trim()})).filter(x=>x.type||x.qty||x.capacity||x.wire);}
 function updItemsTotal(){const it=getItems();const tot=it.reduce((s,x)=>s+(parseFloat(x.qty)||0),0);document.getElementById('itemsTotal').textContent=it.length>1?it.length+' items · total '+tot+' pcs':'';}
 // Voice: "loadcell DLC" fills the last row (or adds a row if it already has a type); quantity/capacity/wire fill the last row
 function orderVoiceItem(f,v){const b=document.getElementById('itemsBody');let r=b.rows[b.rows.length-1];
@@ -459,7 +464,7 @@ function editOrder(ri){const db=gdb(),o=db[ri];if(!o)return;editingIndex=ri;show
   const pL=g(PK);if(o.partyName&&!pL.includes(o.partyName)){pL.push(o.partyName);s(PK,pL);popDD('partyName',PK);}
   document.getElementById('partyName').value=o.partyName||'';document.getElementById('location').value=o.location||'';
   document.getElementById('clientEmail').value=o.clientEmail||'';document.getElementById('clientPhone').value=o.clientPhone||'';
-  setItems(ST.items(o).map(x=>Object.assign({},x)));
+  setItems(ST.items(o).map(x=>Object.assign({},x)),canRate(o));
   document.getElementById('deliveryDate').value=o.deliveryDate||'';document.getElementById('deliveryDate')._stCheck&&document.getElementById('deliveryDate')._stCheck();
   document.getElementById('laserLogo').value=o.laserLogo||'';
   if(o.logoImage){logoBase64=o.logoImage;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';}else removeLogo();
@@ -494,7 +499,7 @@ function approveOrder(ri){const db=gdb(),o=db[ri];if(!o||o.status!=='awaiting')r
   let job=jobs.find(j=>j.orderRef===o.orderNo);
   if(!job){let mx=0;jobs.forEach(j=>{const m=(j.jobNo||'').match(/(\d+)$/);if(m)mx=Math.max(mx,parseInt(m[1]));});
     const now=new Date().toISOString();
-    job={jobNo:'JOB-'+String(mx+1).padStart(4,'0'),orderRef:o.orderNo,party:o.partyName||'',type:o.loadcellType||'',qty:o.quantity||'',cap:o.capacity||'',wire:o.wire||'',items:ST.items(o).map(x=>Object.assign({},x)),target:o.deliveryDate||'',transporter:o.transporterName||'',priority:'Normal',worker:'',stage:'Received',remarks:[o.laserLogo?'Laser: '+o.laserLogo:'',o.productionRemarks||''].filter(Boolean).join(' · '),startDate:now.split('T')[0],history:[{stage:'Received',date:now,note:'Order '+o.orderNo+' approved'}]};
+    job={jobNo:'JOB-'+String(mx+1).padStart(4,'0'),orderRef:o.orderNo,party:o.partyName||'',type:o.loadcellType||'',qty:o.quantity||'',cap:o.capacity||'',wire:o.wire||'',items:ST.items(o).map(noRate),target:o.deliveryDate||'',transporter:o.transporterName||'',priority:'Normal',worker:'',stage:'Received',remarks:[o.laserLogo?'Laser: '+o.laserLogo:'',o.productionRemarks||''].filter(Boolean).join(' · '),startDate:now.split('T')[0],history:[{stage:'Received',date:now,note:'Order '+o.orderNo+' approved'}]};
     jobs.push(job);localStorage.setItem('prod_jobs',JSON.stringify(jobs));}
   o.status='pending';o.approvedAt=new Date().toISOString();o.approvedBy=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'';o.jobNo=job.jobNo;sdb(db);renderDB();
   alert('✓ Order '+o.orderNo+' approved.\n\nIt is now in Factory Production as '+job.jobNo+' (stage: Received).');}
@@ -526,7 +531,7 @@ async function submitOrder(e){e.preventDefault();
     const order=Object.assign({},prev,form);order.timestamp=prev.timestamp;order.status=prev.status||'pending';
     db[editingIndex]=order;sdb(db);
     // Keep the production job in step with item / delivery changes made before despatch
-    ST.updateJobByOrder(order.orderNo,j=>{if(j.stage==='Dispatched')return;j.items=items.map(x=>Object.assign({},x));j.type=sum.loadcellType;j.qty=sum.quantity;j.cap=sum.capacity;j.wire=sum.wire;if(order.deliveryDate)j.target=order.deliveryDate;if(order.transporterName)j.transporter=order.transporterName;});
+    ST.updateJobByOrder(order.orderNo,j=>{if(j.stage==='Dispatched')return;j.items=items.map(noRate);j.type=sum.loadcellType;j.qty=sum.quantity;j.cap=sum.capacity;j.wire=sum.wire;if(order.deliveryDate)j.target=order.deliveryDate;if(order.transporterName)j.transporter=order.transporterName;});
     showToast('warn');
     // L.R. + despatch date entered for the first time → despatched → inform the customer
     const lrNew=order.lrNumber&&order.dod&&(!prev.lrNumber||!prev.dod)&&order.status!=='cancelled'&&order.status!=='awaiting';
@@ -582,10 +587,10 @@ function renderDB(){const db=gdb(),vis=db.filter(canSee),tb=document.getElementB
     const its=ST.items(o);const multi=its.length>1;
     const tType=its.map(x=>x.type?String(x.type).split(', ').map(t=>'<span class="tag tag-blue">'+E(t)+'</span>').join(' '):'—').join('<br>');
     const tQty=multi?its.map(x=>'<strong>'+E(x.qty||'—')+'</strong>').join('<br>')+'<div class="it-tot">= '+E(o.quantity)+'</div>':'<strong>'+(E(o.quantity)||'—')+'</strong>';
-    const tCap=its.map(x=>E(x.capacity)||'—').join('<br>'),tWire=its.map(x=>E(x.wire)||'—').join('<br>');
+    const tRate=canRate(o)?its.map(x=>x.rate?'₹ '+E(x.rate):'—').join('<br>'):'🔒';const tCap=its.map(x=>E(x.capacity)||'—').join('<br>'),tWire=its.map(x=>E(x.wire)||'—').join('<br>');
     const bw=(o.boxes||o.weight)?`<div class="mini-note">${o.boxes?o.boxes+' box':''}${o.weight?' · '+o.weight+' kg':''}</div>`:'';
     const rowStyle=isCancelled?'opacity:0.35;text-decoration:line-through;':(isDone?'opacity:0.6;':'');
-    return `<tr class="${isAwaiting?'row-awaiting':''}" style="${rowStyle}"><td style="text-decoration:none;"><input type="checkbox" class="print-sel" value="${ri}" onchange="updatePrintSel()" data-tip="Tick to include in Print Selected"></td><td style="white-space:nowrap;text-decoration:none;">${actionBtns}</td><td style="text-decoration:none;">${st}</td><td><span class="order-num">${E(o.orderNo)}</span>${o.billNo?'<div class="mini-note">🧾 '+E(o.billNo)+'</div>':''}</td><td class="date-display">${E(o.date)}${o.deliveryDate?'<div class="mini-note">🚚 '+ST.fmtDate(o.deliveryDate)+'</div>':''}</td><td><strong>${E(o.partyName)}</strong></td><td style="white-space:normal;">${cHtml}</td><td>${E(o.location)||'—'}</td><td>${tType}</td><td>${tQty}</td><td>${tCap}</td><td>${tWire}</td><td>${logo}</td><td>${E(o.transporterName)||'—'}</td><td style="white-space:normal;">${tHtml}</td><td style="font-family:var(--mono);font-size:10px;">${E(o.lrNumber)||'—'}${bw}</td><td class="date-display">${E(o.dod)||'—'}</td><td style="white-space:normal;min-width:120px;">${payHtml}</td><td>${trk}</td><td>${E(o.orderRemarks)||'—'}</td><td>${E(o.wiringBy)||'—'}</td><td>${E(o.packingBy)||'—'}</td><td>${E(o.testingBy)||'—'}</td></tr>`;
+    return `<tr class="${isAwaiting?'row-awaiting':''}" style="${rowStyle}"><td style="text-decoration:none;"><input type="checkbox" class="print-sel" value="${ri}" onchange="updatePrintSel()" data-tip="Tick to include in Print Selected"></td><td style="white-space:nowrap;text-decoration:none;">${actionBtns}</td><td style="text-decoration:none;">${st}</td><td><span class="order-num">${E(o.orderNo)}</span>${o.billNo?'<div class="mini-note">🧾 '+E(o.billNo)+'</div>':''}</td><td class="date-display">${E(o.date)}${o.deliveryDate?'<div class="mini-note">🚚 '+ST.fmtDate(o.deliveryDate)+'</div>':''}</td><td><strong>${E(o.partyName)}</strong></td><td style="white-space:normal;">${cHtml}</td><td>${E(o.location)||'—'}</td><td>${tType}</td><td>${tQty}</td><td>${tCap}</td><td>${tWire}</td><td>${tRate}</td><td>${logo}</td><td>${E(o.transporterName)||'—'}</td><td style="white-space:normal;">${tHtml}</td><td style="font-family:var(--mono);font-size:10px;">${E(o.lrNumber)||'—'}${bw}</td><td class="date-display">${E(o.dod)||'—'}</td><td style="white-space:normal;min-width:120px;">${payHtml}</td><td>${trk}</td><td>${E(o.orderRemarks)||'—'}</td><td>${E(o.wiringBy)||'—'}</td><td>${E(o.packingBy)||'—'}</td><td>${E(o.testingBy)||'—'}</td></tr>`;
   }).join('');updatePrintSel();if(document.getElementById('payView').classList.contains('visible'))renderPay();}
 
 // ─── PAYMENTS: reminders to client, escalation to Admin & Sub Admin ───
@@ -675,7 +680,8 @@ function viewOrder(ri){const o=gdb()[ri];if(!o)return;const E=ST.esc;
   const pj=ST.jobs().find(j=>j.orderRef===o.orderNo);const pi=ST.payInfo(o);
   const status=o.status==='cancelled'?'Cancelled':o.status==='completed'?'Despatched':o.status==='awaiting'?'Awaiting approval':('In production'+(pj&&pj.stage?' — '+pj.stage:''));
   const its=ST.items(o);
-  const itemRows=its.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td></tr>').join('');
+  const showR=canRate(o);let amt=0;
+  const itemRows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0);amt+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td>'+(showR?'<td>'+(x.rate?'₹ '+E(x.rate):'—')+'</td><td>'+(a?'₹ '+a.toLocaleString('en-IN'):'—')+'</td>':'')+'</tr>';}).join('')+(showR&&amt?'<tr><td colspan="6" style="text-align:right"><b>Total (qty × price)</b></td><td><b>₹ '+amt.toLocaleString('en-IN')+'</b></td></tr>':'');
   const known=new Set(['orderNo','date','deliveryDate','partyName','location','clientEmail','clientPhone','items','loadcellType','quantity','capacity','wire','itemsText','laserLogo','logoImage','productionRemarks','transporterName','transporterId','transporterEmail','transporterPhone','lrNumber','trackingLink','dod','paymentMode','creditDays','orderRemarks','wiringBy','packingBy','testingBy','status','billNo','billTotal','boxes','weight','approvedAt','reminders','escalatedAt','paidDate','paymentDone']);
   const more=Object.keys(o).filter(k=>!known.has(k)&&typeof o[k]!=='object'&&o[k]!==''&&o[k]!==null&&String(o[k]).length<200&&!/image|logo|photo|base64/i.test(k)).map(k=>g(k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase()),o[k])).join('');
   const logo=o.logoImage?'<img src="'+o.logoImage+'" style="max-height:90px;border-radius:6px;background:#fff;padding:4px;margin-top:6px;">':'';
@@ -683,7 +689,7 @@ function viewOrder(ri){const o=gdb()[ri];if(!o)return;const E=ST.esc;
    '<h3>Order '+E(o.orderNo)+' — '+E(o.partyName)+'</h3><div class="ovsub">'+E(status)+'</div>'
    +'<div class="ovsec">Order</div><div class="ovgrid">'+g('Order No',o.orderNo)+g('Order date',d(o.date)||o.date)+g('Delivery date',d(o.deliveryDate))+g('Despatched on',d(o.dod))+g('Total quantity',o.quantity)+g('Job no',pj&&pj.jobNo)+g('Bill no',o.billNo)+g('Bill total',o.billTotal?ST.inr(o.billTotal):'')+g('Approved on',o.approvedAt?d(String(o.approvedAt).slice(0,10)):'')+'</div>'
    +'<div class="ovsec">Customer</div><div class="ovgrid">'+g('Party',o.partyName)+g('Location',o.location)+g('Email',o.clientEmail)+g('Phone',o.clientPhone)+'</div>'
-   +'<div class="ovsec">Items</div><table class="ovtbl"><tr><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th></tr>'+(itemRows||'<tr><td colspan="5">No items</td></tr>')+'</table>'
+   +'<div class="ovsec">Items</div><table class="ovtbl"><tr><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th>'+(showR?'<th>Price/pc</th><th>Amount</th>':'')+'</tr>'+(itemRows||'<tr><td colspan="5">No items</td></tr>')+'</table>'
    +'<div class="ovsec">Branding &amp; production</div><div class="ovgrid">'+g('Laser logo / text',o.laserLogo)+g('Wiring by',o.wiringBy)+g('Packing by',o.packingBy)+g('Testing by',o.testingBy)+g('Production remarks',o.productionRemarks)+'</div>'+logo
    +'<div class="ovsec">Transport</div><div class="ovgrid">'+g('Transporter',o.transporterName)+g('Transporter email',o.transporterEmail)+g('Transporter phone',o.transporterPhone)+g('L.R. number',o.lrNumber)+g('Boxes',o.boxes)+g('Weight (kg)',o.weight)+g('Tracking link',o.trackingLink)+'</div>'
    +'<div class="ovsec">Payment</div><div class="ovgrid">'+g('Payment mode',o.paymentMode)+g('Credit days',o.creditDays)+g('Due date',pi&&pi.due?ST.fmtDate(pi.due):'')+g('Payment status',pi&&pi.action==='paid'?'Paid'+(o.paidDate?' on '+d(String(o.paidDate).slice(0,10)):''):(pi&&pi.label)||'')+g('Reminders sent',pi&&pi.sent)+g('Escalated',o.escalatedAt?'Yes':'')+'</div>'
