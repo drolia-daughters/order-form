@@ -176,7 +176,10 @@ function billDetails(no){const j=getJob(no);if(!j||!ST.canBill())return;const o=
     '</div>'+sec('Items &amp; rates')+
     '<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:left;opacity:.7"><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Rate/pc</th><th>Amount</th></tr>'+rows+'<tr><td colspan="6" style="text-align:right"><b>Total (before tax)</b></td><td><b>'+(tot?ST.inr(tot):'—')+'</b></td></tr></table>'+
     '<div style="font-size:13px;line-height:1.6">'+sec('Packing')+(j.boxes||j.weight?D('Boxes',j.boxes)+D('Approx. weight',j.weight?j.weight+' kg':''):'<i>Not packed yet — boxes &amp; weight will show here once packing saves them.</i>')+
-    sec('Transport')+(tn?D('Transporter',tn):'<i>No transporter chosen yet — it is chosen at the Pickup step and will show here.</i>')+'</div>',
+    sec('Payment — please cross-check')+(()=>{const pi=ST.payInfo(o)||{},ac=ST.advanceCheck(o),m=o.paymentMode||pi.mode||'';
+      return D('Payment mode',m||'— not set —')+(m==='Credit'?D('Credit days',o.creditDays||pi.days)+D('Due date',pi.due?ST.fmtDate(pi.due):'after despatch'):'')+
+      (m==='Advance'?D('Advance received',ac.adv?ST.inr(ac.adv):'₹0 — none recorded')+D('Advance % of order value',ac.total?ac.pct+'%  (minimum '+ST.ADV_MIN+'%)':'')+D('Balance to collect (before tax)',ac.total?ST.inr(Math.max(0,ac.total-ac.adv)):'')+D('Advance rule',ac.noPrice?'cannot check — price not entered':(ac.ok?'✓ '+ST.ADV_MIN+'% or more received':'✖ below '+ST.ADV_MIN+'%'+(j.laserOverride?' — laser approved by Admin '+j.laserOverride.by:''))):'')+
+      D('Payment status',pi.action==='paid'?'Paid'+(o.paidDate?' on '+ST.fmtDate(String(o.paidDate).slice(0,10)):''):(m==='Advance'?(ac.adv?'Part received':'Not received'):'Not paid yet'))+D('Bill no / total',o.billNo?(o.billNo+(o.billTotal?' · '+ST.inr(o.billTotal):'')):'');})()+'</div>',
     buttons:[{label:'Close',value:null}]}).catch(()=>{});}
 // Packing: enter boxes + weight, then approval
 async function packDetails(no){const j=getJob(no);if(!j||j.stage!=='Packing')return;
