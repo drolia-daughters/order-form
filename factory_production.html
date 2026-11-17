@@ -157,6 +157,7 @@ async function notifyAcs(no){const j=getJob(no);if(!j)return;const o=orderOf(j),
   if(!ph){toast('Laser done. Accounts WhatsApp number not set — Admin: Users page → tick Accounts (ACS).');return;}
   const its=itemsOf(j),L=['*'+ST.company().name+' — Laser done, please prepare the bill*','','*Party:* '+j.party,'*Order:* '+(j.orderRef||'—')+'  ·  *Job:* '+j.jobNo];
   its.forEach(i=>L.push('• '+(i.type||'—')+' × '+(i.qty||'—')+' pcs'+(i.capacity?' · '+i.capacity:'')+(i.wire?' · '+i.wire:'')));
+  const jj=getJob(no)||j;if(jj.boxes||jj.weight)L.push('*Packing:* '+(jj.boxes||'—')+' box(es) · '+(jj.weight||'—')+' kg');
   if(o&&o.paymentMode)L.push('*Payment:* '+o.paymentMode+(o.paymentMode==='Credit'&&o.creditDays?' ('+o.creditDays+' days)':''));if(j.target)L.push('*Delivery:* '+fmtD(j.target));
   L.push('','Rates & amounts: open Command Center → Factory Production → 💰 Bill details (only you can see them).','Send the bill to the factory so the goods can be despatched.');
   const r=await ST.modal({title:'📲 Tell Accounts (ACS) — prepare the bill',sub:'WhatsApp to '+ph,html:'<div class="st-lines">'+E(L.join('\n'))+'</div>',buttons:[{label:'Later',value:null},{label:'💬 Send WhatsApp to ACS',cls:'ok',onClick:()=>{ST.openWA(ph,L.join('\n'));return true;}}]});
@@ -165,7 +166,7 @@ async function notifyAcs(no){const j=getJob(no);if(!j)return;const o=orderOf(j),
 function billDetails(no){const j=getJob(no);if(!j||!ST.canBill())return;const o=orderOf(j);if(!o){alert('This job has no linked order.');return;}
   const its=ST.items(o);let tot=0;const rows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0);tot+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td><td>'+(x.rate?ST.inr(x.rate):'<i>not entered</i>')+'</td><td>'+(a?ST.inr(a):'—')+'</td></tr>';}).join('');
   ST.modal({title:'💰 Bill details — '+E(o.orderNo),sub:E(o.partyName)+(o.location?' · '+E(o.location):''),wide:true,
-    html:'<div style="font-size:13px;line-height:1.6">Job '+E(j.jobNo)+' · Payment: <b>'+E(o.paymentMode||'—')+'</b>'+(o.paymentMode==='Credit'&&o.creditDays?' ('+E(o.creditDays)+' days)':'')+' · Delivery: '+E(o.deliveryDate?ST.fmtDate(o.deliveryDate):'—')+'<br>Laser / logo: '+E(o.laserLogo||(o.logoImage?'logo image':'—'))+(o.clientPhone?'<br>Client phone: '+E(o.clientPhone):'')+'</div>'+
+    html:'<div style="font-size:13px;line-height:1.6">Job '+E(j.jobNo)+(j.boxes||j.weight?' · Packing: <b>'+E(j.boxes||'—')+' box(es), '+E(j.weight||'—')+' kg</b>':'')+' · Payment: <b>'+E(o.paymentMode||'—')+'</b>'+(o.paymentMode==='Credit'&&o.creditDays?' ('+E(o.creditDays)+' days)':'')+' · Delivery: '+E(o.deliveryDate?ST.fmtDate(o.deliveryDate):'—')+'<br>Laser / logo: '+E(o.laserLogo||(o.logoImage?'logo image':'—'))+(o.clientPhone?'<br>Client phone: '+E(o.clientPhone):'')+'</div>'+
     '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px"><tr style="text-align:left;opacity:.7"><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Rate/pc</th><th>Amount</th></tr>'+rows+'<tr><td colspan="6" style="text-align:right"><b>Total (before tax)</b></td><td><b>'+(tot?ST.inr(tot):'—')+'</b></td></tr></table>'+(o.paymentMode==='Advance'&&o.advanceReceived?'':''),
     buttons:[{label:'Close',value:null}]}).catch(()=>{});}
 // Packing: enter boxes + weight, then approval
@@ -174,7 +175,9 @@ async function packDetails(no){const j=getJob(no);if(!j||j.stage!=='Packing')ret
     buttons:[{label:'Cancel',value:null},{label:'Save — ask for approval',cls:'pri',onClick:(ov,err)=>{const b=ov.querySelector('#pk_b').value,w=ov.querySelector('#pk_w').value;if(!(parseFloat(b)>0)){err.textContent='Enter the number of boxes.';return false;}if(!(parseFloat(w)>0)){err.textContent='Enter the approximate weight.';return false;}return {b,w,by:ov.querySelector('#pk_by').value.trim()};}}]});
   if(!r)return;mutate(no,x=>{x.boxes=r.b;x.weight=r.w;x.packedBy=r.by;x.packedAt=new Date().toISOString();if(x.approvals)delete x.approvals.packing;hist(x,'Packing','Packed: '+r.b+' boxes, '+r.w+' kg — waiting for approval');});
   if(j.orderRef)ST.updateOrder(j.orderRef,o=>{o.boxes=r.b;o.weight=r.w;if(r.by)o.packingBy=r.by;});
-  toast('📦 Saved — waiting for packing approval');refreshAll();}
+  toast('📦 Saved — waiting for packing approval');refreshAll();
+  if(!(getJob(no)||{}).acsNotifiedAt)notifyAcs(no);   // ACS was not sent the WhatsApp after laser → send it now, with boxes & weight
+}
 async function approvePacking(no){const j=getJob(no);if(!j||j.stage!=='Packing'||!j.packedAt)return;
   const r=await ST.approve({title:'Approve PACKING — '+no,action:'Packing approval',ref:no,lines:lines(j,['Boxes: '+j.boxes+'   ·   Approx. weight: '+j.weight+' kg','Transporter: '+(trOf(j)||'— (choose on next screen)'),'After approval the pickup WhatsApp goes to the transporter.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.packing=r;x.stage='Ready';hist(x,'Ready','Packing approved by '+r.by+' ('+r.role+')');});
@@ -323,6 +326,7 @@ async function stepBack(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.
 function flags(j){const a=j.approvals||{};const f=[];
   if(j.stage==='Testing')f.push('<span class="flag wait">🔐 needs laser approval</span>');
   if(a.laser&&STAGE_IDX[j.stage]>=4)f.push('<span class="flag ok" title="'+E(a.laser.by+' · '+new Date(a.laser.at).toLocaleString('en-IN'))+'">✓ laser: '+E(a.laser.by)+'</span>');
+  if(ST.canBill()&&j.orderRef&&STAGE_IDX[j.stage]>=5&&j.stage!=='Dispatched'&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
   if(j.stage==='Packing'&&!j.packedAt)f.push('<span class="flag warn">enter boxes & weight</span>');
   if(j.stage==='Packing'&&j.packedAt)f.push('<span class="flag wait">🔐 needs packing approval</span>');
   if(a.packing&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packing: '+E(a.packing.by)+'</span>');
