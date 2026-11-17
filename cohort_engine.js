@@ -100,7 +100,7 @@ CE.model=function(code){const P=CE.pool();const per=CE.period(code);const t=ST.t
   M.cycleM=zeros();const cycN=zeros();cyc.forEach(x=>{const k=mk(x.o.dod);if(k in idx){M.cycleM[idx[k]]+=x.d;cycN[idx[k]]++;}});M.cycleM=M.cycleM.map((v,i)=>cycN[i]?Math.round(v/cycN[i]*10)/10:0);
   const withTarget=desp.filter(o=>o.deliveryDate);M.onTime=withTarget.length?Math.round(withTarget.filter(o=>o.dod.slice(0,10)<=o.deliveryDate).length/withTarget.length*100):null;
   M.late=P.orders.filter(o=>o.deliveryDate&&o.status!=='completed'&&o.status!=='cancelled'&&o.deliveryDate<t).map(o=>({o,days:ST.daysBetween(o.deliveryDate,t),job:J.find(j=>j.orderRef===o.orderNo)}));
-  M.waiting={laser:J.filter(j=>j.stage==='Testing').length,packing:J.filter(j=>j.stage==='Packing'&&j.packedAt).length,bill:J.filter(j=>j.stage==='Ready'&&!(j.approvals&&j.approvals.bill)).length,pickup:J.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt).length,orders:P.orders.filter(o=>o.status==='awaiting').length};
+  M.waiting={laser:J.filter(j=>j.stage==='Testing').length,packing:0,bill:J.filter(j=>j.stage==='Ready'&&!(j.approvals&&j.approvals.bill)).length,pickup:J.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt).length,orders:P.orders.filter(o=>o.status==='awaiting').length};
   // marketing
   const L=P.leads.filter(l=>!l.createdAt||inPer(l.createdAt)||code==='all');M.leads=L;
   const FUN=['New','Contacted','Interested','Quote Sent','Converted'];const rank=s=>{const i=FUN.indexOf(s);return i<0?(s==='Lost'?-1:0):i;};
