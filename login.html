@@ -77,14 +77,12 @@ function plain(e) {                       // turn a technical error into a plain
 }
 // Check the ID + password with Supabase, then make sure this person has a profile.
 function signIn(id, password) {
-  return A.rpc('login_email', { p_login_id: id }).then(function (email) {
-    return A.client.auth.signInWithPassword({ email: email, password: password });
+  return A.callFn('secure-login', { login_id: id, password: password }).then(function (r) {
+    if (r.status === 429) throw new Error(r.json.message || 'Too many wrong tries. Wait 15 minutes and try again.');
+    if (!r.json.session) throw new Error('Wrong login ID or password.');
+    return A.client.auth.setSession(r.json.session);
   }).then(function (r) {
-    if (r.error) {
-      if (r.error.status === 429) throw new Error('Too many tries. Wait a few minutes and try again.');
-      if (/invalid login credentials/i.test(r.error.message || '')) throw new Error('Wrong login ID or password.');
-      throw new Error(plain(r.error));
-    }
+    if (r.error) throw new Error(plain(r.error));
     return A.rpc('my_profile');
   }).then(function (p) {
     if (!p) return A.client.auth.signOut().then(function () { throw new Error('Wrong login ID or password.'); });
