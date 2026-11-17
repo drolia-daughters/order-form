@@ -104,6 +104,7 @@ ST.modal=function({title,sub,html,wide,buttons}){return new Promise(res=>{
 // ─── APPROVAL: Admin, Sub Admin or Authorised person picks their name and enters their PIN ───
 ST.ROLES=['Admin','Sub Admin','Authorised'];
 ST.approve=async function({title,lines,ref,action,roles}){
+  if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove()){alert('Only the Admin, Sub Admin or an approver can approve.');return null;}
   roles=roles||ST.ROLES;
   let list=ST.approvers().filter(a=>roles.includes(a.role));
   if(!ST.approvers().length){

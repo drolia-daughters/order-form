@@ -485,6 +485,7 @@ function cancelOrder(ri){if(!confirm('Cancel this order? The order number will b
 
 // ─── APPROVAL: a person must approve each order before it goes to production ───
 function approveOrder(ri){const db=gdb(),o=db[ri];if(!o||o.status!=='awaiting')return;
+  if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove()){alert('Only the Admin, Sub Admin or an approver can approve orders.');return;}
   const its=ST.items(o);const summary='APPROVE ORDER '+o.orderNo+'\n\nParty: '+(o.partyName||'—')+'\nItems:\n'+its.map(x=>'  • '+(x.type||'?')+' × '+(x.qty||'?')+' pcs'+(x.capacity?' · '+x.capacity:'')+(x.wire?' · '+x.wire:'')).join('\n')+(its.length>1?'\n  Total: '+o.quantity+' pcs':'')+'\nDelivery date: '+(ST.fmtDate(o.deliveryDate)||'—')+'\nLaser/Logo: '+(o.laserLogo||(o.logoImage?'Logo image attached':'—'))+'\nPayment: '+(o.paymentMode||'—')+(o.paymentMode==='Credit'&&o.creditDays?' ('+o.creditDays+' days)':'')+'\nProduction remarks: '+(o.productionRemarks||'—')+'\n\nOnce approved, this order goes to Factory Production.';
   if(!confirm(summary))return;
 
@@ -495,7 +496,7 @@ function approveOrder(ri){const db=gdb(),o=db[ri];if(!o||o.status!=='awaiting')r
     const now=new Date().toISOString();
     job={jobNo:'JOB-'+String(mx+1).padStart(4,'0'),orderRef:o.orderNo,party:o.partyName||'',type:o.loadcellType||'',qty:o.quantity||'',cap:o.capacity||'',wire:o.wire||'',items:ST.items(o).map(x=>Object.assign({},x)),target:o.deliveryDate||'',transporter:o.transporterName||'',priority:'Normal',worker:'',stage:'Received',remarks:[o.laserLogo?'Laser: '+o.laserLogo:'',o.productionRemarks||''].filter(Boolean).join(' · '),startDate:now.split('T')[0],history:[{stage:'Received',date:now,note:'Order '+o.orderNo+' approved'}]};
     jobs.push(job);localStorage.setItem('prod_jobs',JSON.stringify(jobs));}
-  o.status='pending';o.approvedAt=new Date().toISOString();o.jobNo=job.jobNo;sdb(db);renderDB();
+  o.status='pending';o.approvedAt=new Date().toISOString();o.approvedBy=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'';o.jobNo=job.jobNo;sdb(db);renderDB();
   alert('✓ Order '+o.orderNo+' approved.\n\nIt is now in Factory Production as '+job.jobNo+' (stage: Received).');}
 
 async function submitOrder(e){e.preventDefault();
@@ -552,7 +553,7 @@ function renderDB(){const db=gdb(),tb=document.getElementById('dbBody'),em=docum
   if(!db.length){tb.innerHTML='';em.style.display='block';updatePrintSel();return;}em.style.display='none';
   const tc=gm(TCK),cc=gm(CCK);const jobs={};ST.jobs().forEach(j=>{if(j.orderRef)jobs[j.orderRef]=j;});const E=ST.esc;
   tb.innerHTML=db.slice().reverse().map((o,i)=>{const ri=db.length-1-i;const isDone=o.status==='completed';const isCancelled=o.status==='cancelled';const isAwaiting=o.status==='awaiting';const pj=jobs[o.orderNo];
-    const apv=o.approvedAt?`<span class="approved-by">👍 Approved ${new Date(o.approvedAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</span>`:'';
+    const apv=o.approvedAt?`<span class="approved-by">👍 Approved ${new Date(o.approvedAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}${o.approvedBy?' by '+E(o.approvedBy):''}</span>`:'';
     const st=isCancelled?'<span class="tag tag-red">✕ Cancelled</span>'+apv:(isDone?'<span class="tag tag-green">✓ Despatched</span>'+apv:(isAwaiting?'<span class="tag tag-purple">🕒 Awaiting Approval</span>':'<span class="tag tag-orange">🏭 '+(pj?E(pj.stage):'In Production')+'</span>'+(pj?'<div class="mini-note">'+E(pj.jobNo)+'</div>':'')+apv));
     const logo=o.logoImage?`<img class="db-logo-thumb" src="${o.logoImage}" onclick="openLightbox('${o.logoImage.replace(/'/g,"\\'")}')" />`:(E(o.laserLogo)||'—');
     const trk=o.trackingLink?`<a class="track-btn" href="${E(o.trackingLink)}" target="_blank">🚚</a><input class="edit-link-input" id="trackInput_${i}" value="${E(o.trackingLink)}" style="margin-top:2px;"><button class="save-link-btn" data-tip="Save tracking link" onclick="saveTrackingLink(${i})">✓</button>`:`<input class="edit-link-input" id="trackInput_${i}" placeholder="URL..." value=""><button class="save-link-btn" data-tip="Save tracking link" onclick="saveTrackingLink(${i})">✓</button>`;

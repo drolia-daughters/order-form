@@ -33,6 +33,8 @@ label{display:block;font-size:12px;color:var(--text-dim);margin:12px 0 5px;}
 input{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:10px 12px;font-size:14px;font-family:inherit;}
 input:focus{outline:none;border-color:var(--accent);}
 .apps{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:4px;}
+.chk{display:flex !important;align-items:center;gap:8px;margin:6px 0 0 !important;font-size:13px !important;color:var(--text) !important;cursor:pointer;}.chk input{width:auto;}
+.hint{font-size:11px;color:var(--text-dim);margin-top:6px;line-height:1.4;}
 .apps label{display:flex;align-items:center;gap:7px;margin:0;font-size:13px;color:var(--text);cursor:pointer;}
 .apps input{width:auto;}
 .rights{font-size:12px;color:var(--text-dim);margin-top:4px;}
@@ -44,7 +46,7 @@ input:focus{outline:none;border-color:var(--accent);}
 <body>
 <div class="wrap">
   <div class="top"><h1>Users</h1><span class="sp"></span><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
-  <p class="sub">One Admin and up to ten users. Only the Admin can open this page. Change a login ID, name, password or <b>rights</b> (which apps the person can open) with <b>Edit</b> — the person uses the new details from their next login. After a password change that person is logged out on all their devices within about an hour.</p>
+  <p class="sub">One Admin and up to ten more logins. Only the Admin can open this page. Tick <b>approve</b> and/or <b>delete</b> under Edit to make someone a Sub Admin or an approver. Change a login ID, name, password or <b>rights</b> (which apps the person can open) with <b>Edit</b> — the person uses the new details from their next login. After a password change that person is logged out on all their devices within about an hour.</p>
   <div class="msg" id="msg"></div>
   <div id="list"></div>
   <button class="btn pri" id="addBtn" onclick="edit(null)" hidden>+ Add user</button>
@@ -55,6 +57,10 @@ input:focus{outline:none;border-color:var(--accent);}
   <label for="d_name">Name</label><input id="d_name" required>
   <label for="d_id">Login ID (3–20 letters or numbers, no spaces)</label><input id="d_id" autocapitalize="none" spellcheck="false" autocomplete="off" required>
   <label for="d_pw" id="d_pwl"></label><input id="d_pw" type="text" autocomplete="off">
+  <div id="d_perms"><label>Special rights</label>
+    <label class="chk"><input type="checkbox" id="d_apv"> Can <b>approve</b> orders and jobs</label>
+    <label class="chk"><input type="checkbox" id="d_del"> Can <b>delete</b></label>
+    <div class="hint">Sub Admin = both ticked. An approver who must not delete (e.g. User 10) = only “approve”. Everyone else takes orders and enters data.</div></div>
   <div id="d_rights"><label>Can open these apps &nbsp;<button type="button" class="lnk" onclick="tickAll(true)">tick all</button> · <button type="button" class="lnk" onclick="tickAll(false)">clear</button></label><div class="apps" id="d_apps"></div></div>
   <div class="msg err" id="d_err"></div>
   <div class="acts"><button type="button" class="btn" onclick="closeDlg()">Cancel</button><button class="btn pri" id="d_save">Save</button></div>
@@ -73,6 +79,13 @@ function rightsText(u) {
   var names = APPS.filter(function (a) { return u.apps.indexOf(a[0]) >= 0; }).map(function (a) { return a[1]; });
   return 'Can open: ' + (names.length ? names.join(', ') : 'nothing yet — click Edit');
 }
+function roleLabel(u) {
+  if (u.role === 'Admin') return 'Admin';
+  if (u.can_delete && u.can_approve) return 'Sub Admin';
+  if (u.can_approve) return 'Approver';
+  if (u.can_delete) return 'Can delete';
+  return 'User';
+}
 function tickAll(on) { [].forEach.call(document.querySelectorAll('#d_apps input'), function (c) { c.checked = on; }); }
 function chosenApps() {            // every box ticked = "all apps" (also covers apps added later)
   var got = [].filter.call(document.querySelectorAll('#d_apps input'), function (c) { return c.checked; }).map(function (c) { return c.value; });
@@ -85,7 +98,7 @@ function plain(e) { var m = (e && e.message) || ''; return /failed to fetch|netw
 function render() {
   var n = users.filter(function (u) { return u.role !== 'Admin'; }).length, h = '';
   users.forEach(function (u, i) {
-    h += '<div class="row"><div><b>' + esc(u.name) + '</b> <span class="tag ' + (u.role === 'Admin' ? 'adm' : '') + '">' + esc(u.role) + '</span><br><span class="id">Login ID: ' + esc(u.login_id) + '</span><div class="rights">' + esc(rightsText(u)) + '</div></div><span class="sp"></span>' +
+    h += '<div class="row"><div><b>' + esc(u.name) + '</b> <span class="tag ' + (u.role === 'Admin' || u.can_approve || u.can_delete ? 'adm' : '') + '">' + esc(roleLabel(u)) + '</span><br><span class="id">Login ID: ' + esc(u.login_id) + '</span><div class="rights">' + esc(rightsText(u)) + '</div></div><span class="sp"></span>' +
       '<button class="btn" onclick="edit(' + i + ')">Edit</button>' + (u.role === 'Admin' ? '' : '<button class="btn del" onclick="removeUser(' + i + ')">Remove</button>') + '</div>';
   });
   for (var k = n; k < max; k++) h += '<div class="empty">User ' + (k + 1) + ' — not created yet</div>';
@@ -98,7 +111,8 @@ function edit(i) {
   $('d_name').value = editing ? editing.name : ''; $('d_id').value = editing ? editing.login_id : ''; $('d_pw').value = '';
   $('d_pwl').textContent = editing ? 'New password (leave empty to keep the present one)' : 'Password (at least 6 characters)';
   var isAdmin = editing && editing.role === 'Admin', has = editing && Array.isArray(editing.apps) ? editing.apps : null;
-  $('d_rights').hidden = !!isAdmin;
+  $('d_rights').hidden = !!isAdmin; $('d_perms').hidden = !!isAdmin;
+  $('d_apv').checked = !!(editing && editing.can_approve); $('d_del').checked = !!(editing && editing.can_delete);
   $('d_apps').innerHTML = APPS.map(function (a) { return '<label><input type="checkbox" value="' + a[0] + '"' + (!has || has.indexOf(a[0]) >= 0 ? ' checked' : '') + '>' + esc(a[1]) + '</label>'; }).join('');
   $('d_err').textContent = ''; $('ov').hidden = false; $('d_name').focus();
 }
@@ -118,6 +132,14 @@ $('frm').onsubmit = function (e) {
       var want = id.trim().toLowerCase(), hit = (rows || []).filter(function (r) { return r.login_id === want; })[0]; return hit && hit.user_id; });
     return uid.then(function (v) { if (v) return A.rpc('admin_set_apps', { p_user_id: v, p_apps: apps }); }).catch(function (er) {
       if (er.code === 'PGRST202' || /schema cache/i.test(er.message || '')) throw new Error('The login details were saved, but rights need one more database step: run supabase_update_2_rights.sql in Supabase.');
+      throw er; });
+  }).then(function () {
+    var ca = $('d_apv').checked, cd = $('d_del').checked;
+    if (isAdmin || (editing && !!editing.can_approve === ca && !!editing.can_delete === cd) || (wasNew && !ca && !cd)) return;
+    var uid = editing ? Promise.resolve(editing.user_id) : A.rpc('admin_list_users').then(function (rows) {
+      var want = id.trim().toLowerCase(), hit = (rows || []).filter(function (r) { return r.login_id === want; })[0]; return hit && hit.user_id; });
+    return uid.then(function (v) { if (v) return A.rpc('admin_set_perms', { p_user_id: v, p_can_delete: cd, p_can_approve: ca }); }).catch(function (er) {
+      if (er.code === 'PGRST202' || /schema cache/i.test(er.message || '')) throw new Error('The login details were saved, but these rights need one more database step: run supabase_update_4_permissions.sql in Supabase.');
       throw er; });
   }).then(function () {
     if (mine) return A.rpc('my_profile').then(function (p) { if (p) A.remember(p); });   // the Admin changed their own details

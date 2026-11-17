@@ -50,6 +50,15 @@ PART 5 — Shared live data (once)
     uploaded and merged in (nothing is overwritten). Do not clear the browser's data
     on a computer until it has been opened once after this update.
 
+PART 6 — Who may approve and who may delete (once)
+---------------------------------------------------
+13. Supabase → SQL Editor → New query → paste ALL of supabase_update_4_permissions.sql → Run.
+14. Users → Edit a person → under "Special rights":
+      Sub Admin  = tick "approve" and "delete"      (Kamna)
+      Approver   = tick only "approve"              (e.g. User 10, for holidays or no internet)
+      Others take orders and enter data; they can neither approve nor delete.
+    The Admin always has both. Approvals in Factory Production still ask for an approver's PIN too.
+
 HOW IT WORKS
 ------------
 • Admin: uses everything, and can open "Users" to change anyone's login ID, name or

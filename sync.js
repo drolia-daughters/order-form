@@ -19,7 +19,6 @@
   var meta = { v: {}, h: {} };                    // v: last version synced per key, h: fingerprint of what was synced
   var base = {};                                  // last synced value per key (in memory)
   var pending = {}, timer = null, pushing = false, retry = null;
-  var isAdmin = function () { return !!(A.user && A.user.role === 'Admin'); };
 
   try { var m0 = JSON.parse(nGet.call(localStorage, META) || 'null'); if (m0 && m0.v && m0.h) meta = m0; } catch (e) {}
   function saveMeta() { try { nSet.call(localStorage, META, JSON.stringify(meta)); } catch (e) {} }
@@ -106,7 +105,7 @@
     return A.client.rpc('kv_put', { p_key: k, p_value: local, p_base: meta.v[k] || 0 }).then(function (r) {
       if (r.error) {
         var msg = r.error.message || '';
-        if (/Only the Admin can delete/i.test(msg)) { tellDeny(k); return; }
+        if (/can delete/i.test(msg)) { tellDeny(k); return; }
         pending[k] = 1; scheduleRetry(); return;     // network or other trouble: keep it and try again
       }
       var d = r.data;
@@ -122,7 +121,7 @@
   function tellDeny(k) {                          // a non-admin tried to delete: put the real data back
     A.client.from('kv_store').select('value,version').eq('key', k).single().then(function (r) {
       if (r.data) { writeLocal(k, r.data.value); base[k] = r.data.value; meta.v[k] = r.data.version; meta.h[k] = fp(r.data.value); saveMeta(); }
-      banner('Only the Admin can delete. Your change was undone.', true); setTimeout(function () { location.reload(); }, 1500);
+      banner('Only the Admin or Sub Admin can delete. Your change was undone.', true); setTimeout(function () { location.reload(); }, 1500);
     });
   }
 
@@ -183,13 +182,18 @@
   }
 
   // ── Admin-only delete: hide the buttons, and block the functions, for everyone else ──
+  var APV = ['approveOrder', 'approveLaser', 'approvePacking', 'approveBill'];
   var DEL = ['cancelOrder', 'deletePartyName', 'deleteSavedLogo', 'delMove', 'delParty', 'deleteCompetitor', 'deleteLead', 'delEntry', 'delAppr', 'delHol', 'delBOM', 'delBatch', 'delRem'];
-  function lockDeletes() {
-    if (isAdmin()) return;
+  function lockList(list, allowed, text) {
+    if (allowed) return;
     var css = document.createElement('style');
-    css.textContent = DEL.map(function (f) { return '[onclick^="' + f + '("]'; }).join(',') + '{display:none !important;}';
+    css.textContent = list.map(function (f) { return '[onclick^="' + f + '("]'; }).join(',') + '{display:none !important;}';
     (document.head || document.documentElement).appendChild(css);
-    DEL.forEach(function (f) { if (typeof window[f] === 'function') window[f] = function () { alert('Only the Admin can delete.'); }; });
+    list.forEach(function (f) { if (typeof window[f] === 'function') window[f] = function () { alert(text); }; });
+  }
+  function lockDeletes() {
+    lockList(DEL, A.canDelete(), 'Only the Admin or Sub Admin can delete.');
+    lockList(APV, A.canApprove(), 'Only the Admin, Sub Admin or an approver can approve.');
   }
   A.ready.then(function () { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lockDeletes); else lockDeletes(); });
 
