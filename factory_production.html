@@ -110,7 +110,7 @@ const hist=(j,stage,note)=>{(j.history=j.history||[]).push({stage,date:new Date(
 const orderOf=j=>j.orderRef?ST.findOrder(j.orderRef):null;
 const itemsOf=j=>{const o=orderOf(j);return ST.items(o||{items:j.items,type:j.type,qty:j.qty,cap:j.cap,wire:j.wire});};
 const trOf=j=>{const o=orderOf(j);return (o&&o.transporterName)||j.transporter||'';};
-const refreshAll=()=>{renderDash();renderBoard();renderJobs();renderBanners();};
+const refreshAll=()=>{renderDash();renderBoard();renderJobs();renderBanners();advanceAlert();};
 
 /* ═══════════ JOB FORM (manual jobs) ═══════════ */
 function saveJob(e){e.preventDefault();const jobs=g(JK);const v=id=>document.getElementById(id).value;
@@ -399,7 +399,20 @@ function exportJobsCSV(){const jobs=g(JK);if(!jobs.length)return alert('No jobs.
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='production_'+ST.today()+'.csv';a.click();}
 
 ST.attachCalendar(document.getElementById('jf_target'));
-renderDash();renderBanners();
+// ─── ADVANCE PARTIES: pop-up for Admins / approvers when a job is ready for laser but the advance is not received ───
+let advShown='';
+function advanceAlert(){
+  if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove())return;     // only people who can approve laser
+  const hold=g(JK).filter(j=>j.stage==='Testing').map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok);
+  const sig=hold.map(x=>x.j.jobNo+':'+(x.ac.adv||0)).join('|');if(!hold.length||sig===advShown)return;advShown=sig;
+  const adm=ST.isAdmin();
+  const rows=hold.map(x=>'<div style="border:1px solid #ef4444;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 10px;margin:6px 0;"><b>'+E(x.j.jobNo)+' · '+E(x.j.party)+'</b> <span style="opacity:.7">('+E(x.j.orderRef||'')+')</span><br>'+E(ST.itemsShort(itemsOf(x.j)))+
+    (adm?'<br>'+(x.ac.noPrice?'Price per piece not entered — advance cannot be checked.':'Advance received <b>'+ST.inr(x.ac.adv)+'</b> of minimum <b>'+ST.inr(x.ac.min)+'</b> ('+ST.ADV_MIN+'% of '+ST.inr(x.ac.total)+')'):'')+'</div>').join('');
+  ST.modal({title:'⛔ ADVANCE NOT RECEIVED — do NOT approve Laser / Logo',sub:hold.length+' advance '+(hold.length>1?'parties are':'party is')+' ready for laser',
+    html:'<div style="font-size:13px;line-height:1.5">These jobs have finished testing, but the customer has <b>not paid the minimum '+ST.ADV_MIN+'% advance</b>. <b>Do not approve the Laser / Logo</b> until the Admin confirms the advance. Once the laser logo is done the goods cannot be sold to any other party.</div>'+rows,
+    buttons:[{label:'OK — I will not approve',cls:'pri',value:true}]}).catch(()=>{});
+}
+renderDash();renderBanners();advanceAlert();
 </script>
 <script src="voice_engine.js"></script>
 <style>
