@@ -71,7 +71,7 @@
   if (u) A.user = u; else hide();
 
   // An app page this person has no right to open is covered with a notice.
-  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
+  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'backup.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
   function checkRight() {
     if (blocked || OPEN_TO_ALL[page] || A.can(page)) return;
     blocked = true;
@@ -103,7 +103,7 @@
   }
 
   // ─── Security alert: the Admin sees a red bar on every page while there are unseen warning events ───
-  var ALERT_KINDS = { SUSPICIOUS_DATA: 1, login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1 };
+  var ALERT_KINDS = { SUSPICIOUS_DATA: 1, login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1, DATA_RESTORED: 1 };
   A.ready.then(function (me) {
     if (!me || me.role !== 'Admin' || page === 'security.html') return;
     var go = function () {
@@ -137,7 +137,7 @@
       who.style.cssText = 'font-size:12px;color:var(--text-dim);margin-left:6px;white-space:nowrap;';
       who.textContent = '👤 ' + me.name + (me.role === 'Admin' ? ' (Admin)' : me.can_bill ? ' (Accounts)' : me.can_delete && me.can_approve ? ' (Sub Admin)' : me.can_approve ? ' (Approver)' : '');
       bar.appendChild(who);
-      if (me.role === 'Admin') { btn('Users', function () { location.href = 'users.html'; }); btn('🛡 Security', function () { location.href = 'security.html'; }); }
+      if (me.role === 'Admin') { btn('Users', function () { location.href = 'users.html'; }); btn('🛡 Security', function () { location.href = 'security.html'; }); btn('💾 Backup', function () { location.href = 'backup.html'; }); }
       btn('Log out', A.logout);
     });
   }
