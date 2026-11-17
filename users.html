@@ -121,7 +121,7 @@ function edit(i, slot) {
   editing = i === null ? null : users[i]; newSlot = i === null ? (slot || null) : null;
   $('d_title').textContent = editing ? 'Edit ' + editing.name : (slot ? 'Add User ' + slot : 'Add user');
   $('d_name').value = editing ? editing.name : (slot ? 'User ' + slot : ''); $('d_id').value = editing ? editing.login_id : (slot ? 'u' + (slot < 10 ? '0' : '') + slot : ''); $('d_pw').value = '';
-  $('d_pwl').textContent = editing ? 'New password (leave empty to keep the present one)' : 'Password (at least 6 characters)';
+  $('d_pwl').textContent = editing ? 'New password (leave empty to keep the present one)' : 'Password (at least 8 characters, letters and a number)';
   var isAdmin = editing && editing.role === 'Admin', has = editing && Array.isArray(editing.apps) ? editing.apps : null;
   $('d_rights').hidden = !!isAdmin; $('d_perms').hidden = !!isAdmin;
   $('d_apv').checked = !!(editing ? editing.can_approve : slot === 10); $('d_del').checked = !!(editing && editing.can_delete);
