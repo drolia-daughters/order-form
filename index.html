@@ -229,7 +229,7 @@ function refreshStats(){
   const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
   // Production approvals + pickup messages + payments to chase
   const pj=load('prod_jobs');
-  const apv=pj.filter(j=>j.stage==='Testing'||(j.stage==='Packing'&&j.packedAt)||(j.stage==='Ready'&&!(j.approvals&&j.approvals.bill))).length;
+  const apv=pj.filter(j=>j.stage==='Testing').length;
   const pickups=pj.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt).length;
   const cut=(window.ST?ST.company().cutoff:'14:00')||'14:00';
   let rs={};try{rs=JSON.parse(localStorage.getItem('rem_summary'))||{};}catch(e){}

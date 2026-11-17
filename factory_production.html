@@ -62,7 +62,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 <div class="topbar"><div class="topbar-brand"><div class="icon">FP</div><h1>Factory Production</h1><span>PHASE 3</span></div>
 <div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
 <div class="main">
-<div class="flow">Flow: <b>Received → Assembly → Wiring → Testing</b> → <i>🔐 Laser approval</i> → <b>Laser</b> → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → <i>🔐 Bill approval</i> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
+<div class="flow">Flow: <b>Received → Assembly → Wiring → Testing</b> → <i>🔐 Laser approval</i> → <b>Laser</b> → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
 <div class="banner" id="pickupBanner"></div>
 <div class="apv-banner" id="apvBanner"></div>
 
@@ -233,7 +233,7 @@ function billFromJob(j){const bills=ST.get(ST.K.bills,[]);const ex=bills.find(b=
     buyer:{name:j.party,gstin,address:cl.address||'',place:o.location||cl.location||'',pincode:cl.pincode||'',stateCode:sc,phone:o.clientPhone||cl.phone||''},
     items:itemsOf(j).map(i=>({desc:'Load Cell '+(i.type||'')+(i.capacity?' '+i.capacity:''),hsn:c.hsn||'',qty:i.qty||'',unit:'NOS',rate:'',gst:c.gst==null?18:c.gst})),
     transport:{name:tname,id:t.transporterId||'',vehicle:'',distance:'',boxes:j.boxes||'',weight:j.weight||''}};}
-async function openBill(no){const j=getJob(no);if(!j)return;if(!(j.approvals&&j.approvals.bill)){alert('The bill must be approved first (🔐 Bill approval).');return;}
+async function openBill(no){const j=getJob(no);if(!j)return;
   let b=billFromJob(j);const c=ST.company();
   const itemRows=()=>b.items.map((i,k)=>`<tr><td><input data-k="${k}" data-f="desc" value="${E(i.desc)}"></td><td style="width:100px"><input data-k="${k}" data-f="hsn" value="${E(i.hsn)}" placeholder="HSN"></td><td style="width:70px"><input data-k="${k}" data-f="qty" type="number" value="${E(i.qty)}"></td><td style="width:110px"><input data-k="${k}" data-f="rate" type="number" step="0.01" value="${E(i.rate)}" placeholder="Rate ₹"></td><td style="width:70px"><input data-k="${k}" data-f="gst" type="number" step="0.01" value="${E(i.gst)}"></td><td style="width:110px;text-align:right;font-family:var(--mono)" class="amt">—</td></tr>`).join('');
   const html=`<div class="bill-grid">
@@ -252,7 +252,7 @@ async function openBill(no){const j=getJob(no);if(!j)return;if(!(j.approvals&&j.
     ov.querySelector('#b_sup').value=b.intra?'Intra-state (CGST+SGST)':'Inter-state (IGST)';
     ov.querySelector('#b_tot').innerHTML=`<span>Taxable ${ST.inr(b.taxable)}</span>${b.intra?`<span>CGST ${ST.inr(b.cgst)}</span><span>SGST ${ST.inr(b.sgst)}</span>`:`<span>IGST ${ST.inr(b.igst)}</span>`}<span>Round off ${b.roundOff}</span><b>Total ${ST.inr(b.total)}</b>`;
     ov.querySelector('#b_warn').innerHTML=billWarnings(b).map(w=>'⚠ '+E(w)).join('<br>');};
-  const p=ST.modal({title:'🧾 Bill & E-way bill — '+no,sub:'Approved by '+j.approvals.bill.by+' ('+j.approvals.bill.role+'). Fill rates now; missing details can be added later in Masters.',wide:true,html,
+  const p=ST.modal({title:'🧾 Bill & E-way bill — '+no,sub:'Fill rates now; missing details can be added later in Masters.',wide:true,html,
     buttons:[{label:'Close',value:null},
       {label:'📋 Copy e-way details',onClick:ov=>{read(ov);copyText(ewbText(b));return false;}},
       {label:'⬇ E-way bill JSON',onClick:(ov,err)=>{read(ov);const e=saveBill(b,no);err.style.color=e?'':'#22c55e';if(e){err.textContent=e;return false;}downloadEWB(b);err.textContent='✓ E-way bill JSON downloaded. Upload it on ewaybillgst.gov.in → Generate Bulk.';return false;}},
@@ -344,7 +344,6 @@ function flags(j){const a=j.approvals||{};const f=[];
   if(j.packedAt&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packed: '+E(j.boxes||'?')+' box</span>');
   if(j.stage==='Ready'&&!j.pickupMsgAt)f.push('<span class="flag bad">📲 pickup msg not sent</span>');
   if(j.pickupMsgAt&&j.stage==='Ready')f.push('<span class="flag ok">📲 pickup '+ST.fmtDate(j.pickupFor)+'</span>');
-  if(j.stage==='Ready'&&!a.bill)f.push('<span class="flag wait">🔐 needs bill approval</span>');
   if(j.billNo)f.push('<span class="flag ok">🧾 '+E(j.billNo)+'</span>');
   if(j.lrNumber)f.push('<span class="flag ok">L.R. '+E(j.lrNumber)+'</span>');
   return f.join('');}
@@ -356,7 +355,7 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
   if(j.stage==='Packing')h+=j.packedAt?B('','packingToReady','➡ Move to Ready','Packing already saved — move on to the pickup WhatsApp')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
   if(j.stage==='Ready'){h+=B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight');
-    h+=a.bill?B('bill','openBill','🧾 Bill / E-way','Bill and e-way bill'):B('apv','approveBill','🔐 Bill approval','Approve before making the bill');
+    h+=B('bill','openBill','🧾 Bill / E-way','Make the bill and e-way bill');
     h+=B('lr','enterLR','🚚 L.R. & Despatch','Enter L.R. — customer gets a WhatsApp');}
   if(j.stage==='Dispatched'){h+=B('wa','resendDespatch','💬 Customer','Resend despatch WhatsApp');if(j.billNo)h+=B('bill','openBill','🧾','Bill / e-way bill');}
   if(!compact){h+=B('pr','printJob','🖨️','Print job card (same as order sheet)')+B('wa','waJob','💬','Send job details on WhatsApp')+B('ed','editJob','✏️','Edit job details');
@@ -385,7 +384,7 @@ function renderDash(){const jobs=g(JK),today=ST.today();const active=jobs.filter
 function pendingActions(jobs){const out=[];jobs.forEach(j=>{const a=j.approvals||{};
   if(j.stage==='Testing')out.push({j,what:'🔐 Laser approval'});
   if(j.stage==='Ready'&&!j.pickupMsgAt)out.push({j,what:'📲 Pickup WhatsApp'});
-  if(j.stage==='Ready'&&!a.bill)out.push({j,what:'🔐 Bill approval'});});return out;}
+});return out;}
 // Banners: pickup messages before the cut-off (2 PM) and approvals waiting
 let alertedFor='';
 function renderBanners(){const jobs=g(JK);const pend=jobs.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt);const b=document.getElementById('pickupBanner');
