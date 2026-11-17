@@ -206,7 +206,8 @@ window.addEventListener('message',e=>{
 function load(k){try{return JSON.parse(localStorage.getItem(k))||[];}catch(e){return [];}}
 function refreshStats(){
   const orders=load('ordersheet_master_db');
-  const awaiting=orders.filter(o=>o.status==='awaiting').length;
+  const canApv=!window.SentireAuth||!SentireAuth.canApprove||SentireAuth.canApprove();
+  const awaiting=canApv?orders.filter(o=>o.status==='awaiting').length:0;   // only approvers see what waits for approval
   const overdue=window.ST?orders.filter(o=>{const x=ST.payInfo(o);return x.due&&x.over>0&&x.action!=='paid';}).length:orders.filter(o=>o.status!=='cancelled'&&o.paymentMode==='Credit'&&o.dod&&o.creditDays&&((Date.now()-new Date(o.dod))/86400000)>parseInt(o.creditDays)&&!o.paymentDone).length;
   const leads=load('crm_leads').filter(l=>l.status!=='Converted'&&l.status!=='Lost').length;
   const jobs=load('prod_jobs').filter(j=>j.stage!=='Dispatched').length;

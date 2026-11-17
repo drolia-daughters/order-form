@@ -533,7 +533,7 @@ async function submitOrder(e){e.preventDefault();
     if(lrNew){const pj=ST.jobs().find(j=>j.orderRef===order.orderNo);let ok=true;
       if(pj&&pj.stage!=='Ready'&&pj.stage!=='Dispatched')ok=confirm('In Factory Production this order is at stage "'+pj.stage+'" — it has not been packed and approved yet.\n\nMark it as DESPATCHED with L.R. '+order.lrNumber+' anyway?');
       if(ok){ST.recordDespatch(order.orderNo,{lr:order.lrNumber,dod:order.dod,transporter:order.transporterName,tracking:order.trackingLink});despatchNo=order.orderNo;}}
-  } else{if(db.some(o=>o.orderNo===form.orderNo))form.orderNo=genON();const order=Object.assign(form,{status:'awaiting',timestamp:new Date().toISOString()});db.push(order);sdb(db);
+  } else{if(db.some(o=>o.orderNo===form.orderNo))form.orderNo=genON();const order=Object.assign(form,{status:'awaiting',createdBy:meName(),timestamp:new Date().toISOString()});db.push(order);sdb(db);
     const su=gsu();if(su){try{await fetch(su,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(order)});showToast('success');}catch(err){showToast('error');}}else showToast('success');}
 
   renderDB();btn.disabled=false;cancelEdit();resetForm();
@@ -543,16 +543,19 @@ async function submitOrder(e){e.preventDefault();
 function resetForm(){document.getElementById('orderForm').reset();setItems([]);['deliveryDate','dod'].forEach(id=>{const el=document.getElementById(id);if(el._stCheck)el._stCheck();});document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();document.getElementById('trackingLink').dataset.auto='';document.getElementById('savedLogoArea').style.display='none';document.getElementById('creditDaysBox').style.display='none';removeLogo();}
 function saveTrackingLink(idx){const db=gdb(),ri=db.length-1-idx,inp=document.getElementById('trackInput_'+idx);if(inp){db[ri].trackingLink=inp.value.trim();sdb(db);renderDB();showToast('success');}}
 
-function renderDB(){const db=gdb(),tb=document.getElementById('dbBody'),em=document.getElementById('emptyState');
-  document.getElementById('totalOrders').textContent=db.length;document.getElementById('totalQty').textContent=db.filter(o=>o.status!=='cancelled').reduce((a,o)=>a+(parseFloat(o.quantity)||0),0);
-  const done=db.filter(o=>o.status==='completed').length;const cancelled=db.filter(o=>o.status==='cancelled').length;
-  const awaiting=db.filter(o=>o.status==='awaiting').length;document.getElementById('awaitingCount').textContent=awaiting;document.getElementById('doneCount').textContent=done;document.getElementById('pendingCount').textContent=db.length-done-cancelled-awaiting;
+// An order still waiting for approval is seen only by the people who may approve, and by the user who took it.
+const meName=()=>((window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'');
+const canSee=o=>o.status!=='awaiting'||!window.SentireAuth||!SentireAuth.canApprove||SentireAuth.canApprove()||(!!o.createdBy&&o.createdBy===meName());
+function renderDB(){const db=gdb(),vis=db.filter(canSee),tb=document.getElementById('dbBody'),em=document.getElementById('emptyState');
+  document.getElementById('totalOrders').textContent=vis.length;document.getElementById('totalQty').textContent=vis.filter(o=>o.status!=='cancelled').reduce((a,o)=>a+(parseFloat(o.quantity)||0),0);
+  const done=vis.filter(o=>o.status==='completed').length;const cancelled=vis.filter(o=>o.status==='cancelled').length;
+  const awaiting=vis.filter(o=>o.status==='awaiting').length;document.getElementById('awaitingCount').textContent=awaiting;document.getElementById('doneCount').textContent=done;document.getElementById('pendingCount').textContent=vis.length-done-cancelled-awaiting;
   const pis=db.map(o=>ST.payInfo(o));
   document.getElementById('overdueCount').textContent=pis.filter(x=>x.due&&x.over>0&&x.action!=='paid').length;
   document.getElementById('payCount').textContent=pis.filter(x=>x.action==='remind'||x.action==='escalate').length||'';
-  if(!db.length){tb.innerHTML='';em.style.display='block';updatePrintSel();return;}em.style.display='none';
+  if(!vis.length){tb.innerHTML='';em.style.display='block';updatePrintSel();return;}em.style.display='none';
   const tc=gm(TCK),cc=gm(CCK);const jobs={};ST.jobs().forEach(j=>{if(j.orderRef)jobs[j.orderRef]=j;});const E=ST.esc;
-  tb.innerHTML=db.slice().reverse().map((o,i)=>{const ri=db.length-1-i;const isDone=o.status==='completed';const isCancelled=o.status==='cancelled';const isAwaiting=o.status==='awaiting';const pj=jobs[o.orderNo];
+  tb.innerHTML=db.slice().reverse().map((o,i)=>{const ri=db.length-1-i;if(!canSee(o))return '';const isDone=o.status==='completed';const isCancelled=o.status==='cancelled';const isAwaiting=o.status==='awaiting';const pj=jobs[o.orderNo];
     const apv=o.approvedAt?`<span class="approved-by">👍 Approved ${new Date(o.approvedAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}${o.approvedBy?' by '+E(o.approvedBy):''}</span>`:'';
     const st=isCancelled?'<span class="tag tag-red">✕ Cancelled</span>'+apv:(isDone?'<span class="tag tag-green">✓ Despatched</span>'+apv:(isAwaiting?'<span class="tag tag-purple">🕒 Awaiting Approval</span>':'<span class="tag tag-orange">🏭 '+(pj?E(pj.stage):'In Production')+'</span>'+(pj?'<div class="mini-note">'+E(pj.jobNo)+'</div>':'')+apv));
     const logo=o.logoImage?`<img class="db-logo-thumb" src="${o.logoImage}" onclick="openLightbox('${o.logoImage.replace(/'/g,"\\'")}')" />`:(E(o.laserLogo)||'—');
