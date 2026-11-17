@@ -143,8 +143,11 @@ function advance(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]|
 const lines=(j,extra)=>{const o=orderOf(j);const its=itemsOf(j);return [j.jobNo+(j.orderRef?' · '+j.orderRef:''),'Party: '+j.party,'Items: '+ST.itemsShort(its)+(its.length>1?' (total '+its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)+' pcs)':'')].concat(extra||[]);};
 // Testing → Laser needs approval
 async function approveLaser(no){const j=getJob(no);if(!j||j.stage!=='Testing')return;const o=orderOf(j);
-  if(o){const ac=ST.advanceCheck(o);if(ac.needed&&!ac.ok){const adm=ST.isAdmin();
-    alert('🔒 Laser cannot be approved yet.\n\nThis is an ADVANCE order — at least '+ST.ADV_MIN+'% of the order value must be received first.'+(adm?(ac.noPrice?'\n\nThe order has no price per piece. Open Order Sheet → ✏️ Edit, fill the Price / pc and Advance received, then try again.':'\n\nOrder value: '+ST.inr(ac.total)+'\nMinimum advance ('+ST.ADV_MIN+'%): '+ST.inr(ac.min)+'\nAdvance received: '+ST.inr(ac.adv)+'\n\nOpen Order Sheet → ✏️ Edit and enter the Advance received.'):'\n\nPlease ask the Admin to confirm the advance payment.'));return;}}
+  if(o&&!j.laserOverride){const ac=ST.advanceCheck(o);if(ac.needed&&!ac.ok){const adm=ST.isAdmin();
+    const go=await ST.modal({title:'🔒 Laser cannot be approved yet',sub:E(j.jobNo)+' · '+E(j.party),
+      html:'<div style="font-size:13px;line-height:1.5">This is an <b>ADVANCE</b> order — at least <b>'+ST.ADV_MIN+'%</b> of the order value must be received first.'+(adm?(ac.noPrice?'<br><br>The order has no price per piece. Open Order Sheet → ✏️ Edit, fill the Price / pc and Advance received.':'<br><br>Order value: <b>'+ST.inr(ac.total)+'</b><br>Minimum advance ('+ST.ADV_MIN+'%): <b>'+ST.inr(ac.min)+'</b><br>Advance received: <b>'+ST.inr(ac.adv)+'</b>'):'<br><br>Please ask the Admin to confirm the advance payment.')+'</div>',
+      buttons:[{label:'Close',value:false},{label:'⚠ Approve anyway…',cls:'pri',value:true}]});
+    if(!go)return;if(!(await overrideAdvance([j])))return;}}
   const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.laser=r;x.stage='Laser';hist(x,'Laser','Laser approved by '+r.by+' ('+r.role+')');});toast('🔐 Laser approved by '+r.by);refreshAll();}
 function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!confirm('Laser marking done for '+no+' ('+j.party+')?\nIt moves to Packing.'))return;
@@ -400,17 +403,33 @@ function exportJobsCSV(){const jobs=g(JK);if(!jobs.length)return alert('No jobs.
 
 ST.attachCalendar(document.getElementById('jf_target'));
 // ─── ADVANCE PARTIES: pop-up for Admins / approvers when a job is ready for laser but the advance is not received ───
+// Approve-anyway: 2 confirmations, then an Admin's login ID + password. Returns true when the override is recorded.
+async function overrideAdvance(list){
+  const names=list.map(x=>E(x.jobNo)+' · '+E(x.party)).join('<br>');
+  const c1=await ST.modal({title:'⚠ Approve laser WITHOUT full advance?',sub:'Step 1 of 3',html:'<div style="font-size:13px;line-height:1.5">'+names+'<br><br>The advance is <b>below '+ST.ADV_MIN+'%</b>. Are you sure you want to approve the laser / logo anyway?</div>',buttons:[{label:'Cancel',value:false},{label:'Yes, continue',cls:'pri',value:true}]});
+  if(!c1)return false;
+  const c2=await ST.modal({title:'⚠ Are you REALLY sure?',sub:'Step 2 of 3',html:'<div style="font-size:13px;line-height:1.5">After the laser / logo is done, <b>the goods cannot be sold to any other party</b>.<br><br>Press OK only if you trust this party to pay.</div>',buttons:[{label:'Cancel',value:false},{label:'OK — I am sure',cls:'pri',value:true}]});
+  if(!c2)return false;
+  const who=await ST.modal({title:'🔐 Admin password needed',sub:'Step 3 of 3',html:'<label>Admin login ID</label><input id="ov_id" autocomplete="off" autocapitalize="none"><label>Admin password</label><input id="ov_pw" type="password" autocomplete="off">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Approve anyway',cls:'ok',onClick:async(ov,err)=>{const id=ov.querySelector('#ov_id').value,pw=ov.querySelector('#ov_pw').value;
+      if(!id||!pw){err.textContent='Enter the Admin login ID and password.';return false;}
+      try{return {by:await SentireAuth.verifyAdmin(id,pw)};}catch(e){err.textContent=e.message||'Wrong Admin login ID or password.';ov.querySelector('#ov_pw').value='';return false;}}}]});
+  if(!who)return false;
+  const me=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'';
+  list.forEach(x=>{const o=orderOf(x),ac=o?ST.advanceCheck(o):{};mutate(x.jobNo,y=>{y.laserOverride={by:who.by,pressedBy:me,at:new Date().toISOString(),adv:ac.adv||0};delete y.laserHold;hist(y,y.stage,'Laser advance rule OVERRIDDEN — Admin '+who.by+' confirmed'+(me?' (pressed by '+me+')':''));});});
+  toast('✓ Override saved by Admin '+who.by);return true;}
 let advShown='';
 function advanceAlert(){
   if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove())return;     // only people who can approve laser
-  const hold=g(JK).filter(j=>j.stage==='Testing').map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
+  const hold=g(JK).filter(j=>j.stage==='Testing').map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!x.j.laserOverride).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
   const sig=hold.map(x=>x.j.jobNo+':'+(x.ac.adv||0)).join('|');if(!hold.length||sig===advShown)return;advShown=sig;
   const adm=ST.isAdmin();
   const rows=hold.map(x=>'<div style="border:1px solid #ef4444;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 10px;margin:6px 0;"><b>'+E(x.j.jobNo)+' · '+E(x.j.party)+'</b> <span style="opacity:.7">('+E(x.j.orderRef||'')+')</span><br>'+E(ST.itemsShort(itemsOf(x.j)))+
     (adm?'<br>'+(x.ac.noPrice?'Price per piece not entered — advance cannot be checked.':'Advance received <b>'+ST.inr(x.ac.adv)+'</b> of minimum <b>'+ST.inr(x.ac.min)+'</b> ('+ST.ADV_MIN+'% of '+ST.inr(x.ac.total)+')'):'')+'</div>').join('');
   ST.modal({title:'⛔ ADVANCE NOT RECEIVED — do NOT approve Laser / Logo',sub:hold.length+' advance '+(hold.length>1?'parties are':'party is')+' ready for laser',
     html:'<div style="font-size:13px;line-height:1.5">These jobs have finished testing, but the customer has <b>not paid the minimum '+ST.ADV_MIN+'% advance</b>. <b>Do not approve the Laser / Logo</b> until the Admin confirms the advance. Once the laser logo is done the goods cannot be sold to any other party.</div>'+rows,
-    buttons:[{label:'Close',value:'close'},{label:'✖ NOT APPROVED — keep on hold',cls:'pri',value:'hold'}]}).then(v=>{
+    buttons:[{label:'Close',value:'close'},{label:'⚠ Approve anyway…',value:'any'},{label:'✖ NOT APPROVED — keep on hold',cls:'pri',value:'hold'}]}).then(async v=>{
+    if(v==='any'){if(await overrideAdvance(hold.map(x=>x.j))){toast('✓ Override saved — now press 🔐 Laser approval on the job');refreshAll();}return;}
     if(v!=='hold')return;const by=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'Admin';
     hold.forEach(x=>mutate(x.j.jobNo,y=>{y.laserHold={by,at:new Date().toISOString(),adv:x.ac.adv||0};hist(y,y.stage,'Laser NOT approved — advance not received (held by '+by+')');}));
     toast('✖ Laser NOT approved — '+hold.length+' job(s) kept on hold');refreshAll();}).catch(()=>{});

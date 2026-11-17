@@ -42,6 +42,23 @@
     canApprove: function () { var u = A.user; return !A.enabled || !u || u.role === 'Admin' || u.can_approve === true; },
     // Main Page: drop the apps this person may not open from its app list.
     filterApps: function (list) { for (var i = list.length - 1; i >= 0; i--) if (!A.can(list[i].file)) list.splice(i, 1); return list; },
+    // Check an Admin's login ID + password WITHOUT changing who is logged in here (used for override approvals).
+    verifyAdmin: function (loginId, password) {
+      if (!A.enabled || !window.supabase || !window.supabase.createClient) return Promise.reject(new Error('Could not reach the login service.'));
+      var c = window.supabase.createClient(URL_, KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'sentire-verify' } });
+      var bye = function () { try { c.auth.signOut({ scope: 'local' }); } catch (e) {} };
+      return c.rpc('login_email', { p_login_id: String(loginId || '').trim().toLowerCase() }).then(function (r) {
+        if (r.error || !r.data) throw new Error('Wrong Admin login ID or password.');
+        return c.auth.signInWithPassword({ email: r.data, password: password });
+      }).then(function (r) {
+        if (r.error) throw new Error('Wrong Admin login ID or password.');
+        return c.rpc('my_profile');
+      }).then(function (r) {
+        var p = r && r.data; bye();
+        if (!p || p.role !== 'Admin') throw new Error('That login is not an Admin.');
+        return p.name || 'Admin';
+      }, function (e) { bye(); throw e; });
+    },
     logout: function () {
       var done = function () { forget(); toLogin(); };
       if (A.client) A.client.auth.signOut().then(done, done); else done();
