@@ -403,14 +403,17 @@ ST.attachCalendar(document.getElementById('jf_target'));
 let advShown='';
 function advanceAlert(){
   if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove())return;     // only people who can approve laser
-  const hold=g(JK).filter(j=>j.stage==='Testing').map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok);
+  const hold=g(JK).filter(j=>j.stage==='Testing').map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
   const sig=hold.map(x=>x.j.jobNo+':'+(x.ac.adv||0)).join('|');if(!hold.length||sig===advShown)return;advShown=sig;
   const adm=ST.isAdmin();
   const rows=hold.map(x=>'<div style="border:1px solid #ef4444;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 10px;margin:6px 0;"><b>'+E(x.j.jobNo)+' · '+E(x.j.party)+'</b> <span style="opacity:.7">('+E(x.j.orderRef||'')+')</span><br>'+E(ST.itemsShort(itemsOf(x.j)))+
     (adm?'<br>'+(x.ac.noPrice?'Price per piece not entered — advance cannot be checked.':'Advance received <b>'+ST.inr(x.ac.adv)+'</b> of minimum <b>'+ST.inr(x.ac.min)+'</b> ('+ST.ADV_MIN+'% of '+ST.inr(x.ac.total)+')'):'')+'</div>').join('');
   ST.modal({title:'⛔ ADVANCE NOT RECEIVED — do NOT approve Laser / Logo',sub:hold.length+' advance '+(hold.length>1?'parties are':'party is')+' ready for laser',
     html:'<div style="font-size:13px;line-height:1.5">These jobs have finished testing, but the customer has <b>not paid the minimum '+ST.ADV_MIN+'% advance</b>. <b>Do not approve the Laser / Logo</b> until the Admin confirms the advance. Once the laser logo is done the goods cannot be sold to any other party.</div>'+rows,
-    buttons:[{label:'OK — I will not approve',cls:'pri',value:true}]}).catch(()=>{});
+    buttons:[{label:'Close',value:'close'},{label:'✖ NOT APPROVED — keep on hold',cls:'pri',value:'hold'}]}).then(v=>{
+    if(v!=='hold')return;const by=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'Admin';
+    hold.forEach(x=>mutate(x.j.jobNo,y=>{y.laserHold={by,at:new Date().toISOString(),adv:x.ac.adv||0};hist(y,y.stage,'Laser NOT approved — advance not received (held by '+by+')');}));
+    toast('✖ Laser NOT approved — '+hold.length+' job(s) kept on hold');refreshAll();}).catch(()=>{});
 }
 renderDash();renderBanners();advanceAlert();
 </script>
