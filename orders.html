@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Order Sheet — Live Form</title>
@@ -138,7 +138,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
     <div class="form-group full-width"><label><span class="sl">7</span> Items — Type of Loadcell · Qty · Capacity · Wire</label>
       <div class="items-wrap">
         <table class="items-tbl"><thead><tr><th>#</th><th>Type of Loadcell</th><th>Qty (pcs.)</th><th>Capacity</th><th>Wire (type/mtr.)</th><th></th></tr></thead><tbody id="itemsBody"></tbody></table>
-        <div class="items-foot"><button type="button" class="btn-add-item" onclick="addItemRow()" data-tip="Customer wants another type? Add it here (e.g. DLC 12 pcs + AS 10 pcs)">+ Add another item</button><span id="itemsTotal"></span></div>
+        <div class="items-foot"><button type="button" class="btn-add-item" onclick="addItemRow()" data-tip="Customer wants another type? Add it here (e.g. DLC 12 pcs + AS 10 pcs)">+ Add another item</button> <button type="button" class="btn-add-item" onclick="addNewStockItem()" data-tip="Item not in the list? Add it here with its inventory details" style="border-color:var(--green,#22c55e);color:var(--green,#22c55e);background:rgba(34,197,94,.08);">+ New item (not in list)</button><span id="itemsTotal"></span></div>
       </div>
       <datalist id="lcTypes"><option value="ALC"><option value="DLC"><option value="AS"><option value="DS"><option value="REG"><option value="CUT"><option value="JUMBO"><option value="S.E"><option value="S TYPE"></datalist>
     </div>
@@ -227,8 +227,36 @@ function addNewItem(t){const isP=t==='party',id=isP?'partyNewInput':'transporter
 function showHint(id){const h=document.getElementById(id);h.classList.add('show');setTimeout(()=>h.classList.remove('show'),3000);}
 
 // ─── ITEMS: one order can have several loadcell lines (e.g. DLC 12 pcs + AS 10 pcs) ───
-const LC_TYPES=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];
-const normType=v=>{v=String(v||'').trim();const k=LC_TYPES.find(x=>x.toLowerCase()===v.toLowerCase());return k||v;};
+const LC_TYPES_BASE=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];
+const TYK='ordersheet_lc_types';   // item types added with "+ New item" (shared by every user)
+const allTypes=()=>{const x=[...LC_TYPES_BASE];g(TYK).forEach(t=>{if(t&&!x.some(y=>y.toLowerCase()===String(t).toLowerCase()))x.push(t);});return x;};
+const normType=v=>{v=String(v||'').trim();const k=allTypes().find(x=>x.toLowerCase()===v.toLowerCase());return k||v;};
+function refreshTypeList(){const dl=document.getElementById('lcTypes');if(dl)dl.innerHTML=allTypes().map(t=>'<option value="'+ST.esc(t)+'">').join('');}
+// Item not in the list → add it (and, if wanted, its stock details in Inventory)
+async function addNewStockItem(){const E=ST.esc;
+  const r=await ST.modal({title:'New item',sub:'Adds it to the item list for every order. Tick the box to also create it in Inventory with its stock details.',
+    html:`<label>Item name / type</label><input id="ni_n" placeholder="e.g. DLC-X">
+      <label style="display:flex;gap:8px;align-items:center;text-transform:none;font-family:inherit;font-size:13px;margin-top:12px;"><input type="checkbox" id="ni_inv" checked style="width:auto;"> Also add to Inventory (stock list)</label>
+      <div id="ni_box"><label>Item code (blank = same as name)</label><input id="ni_c" placeholder="DLCX">
+      <label>Category</label><select id="ni_cat">${['Loadcell Body','Electronics','Wire','Hardware','Packaging','Raw Material','Other'].map(x=>'<option>'+x+'</option>').join('')}</select>
+      <label>Unit</label><select id="ni_u">${['Pcs','Kg','Meters','Rolls','Sets','Boxes','Liters'].map(x=>'<option>'+x+'</option>').join('')}</select>
+      <label>Opening stock</label><input id="ni_s" type="number" min="0" placeholder="0">
+      <label>Reorder level</label><input id="ni_r" type="number" min="0" placeholder="0">
+      <label>Cost per unit (₹)</label><input id="ni_k" type="number" min="0" step="0.01" placeholder="0">
+      <label>Supplier</label><input id="ni_sup" placeholder=""></div>`,
+    buttons:[{label:'Cancel',value:null},{label:'✓ Add item',cls:'pri',onClick:(ov,err)=>{const q=id=>(ov.querySelector('#'+id)||{}).value?.trim()||'';
+      const n=q('ni_n');if(!n){err.textContent='Enter the item name.';return false;}
+      if(allTypes().some(x=>x.toLowerCase()===n.toLowerCase())){err.textContent='This item is already in the list.';return false;}
+      const wantInv=ov.querySelector('#ni_inv').checked;const code=(q('ni_c')||n).toUpperCase().replace(/\s+/g,'');
+      if(wantInv&&g('inv_items').some(i=>String(i.code).toUpperCase()===code)){err.textContent='Inventory already has code '+code+' — change the code.';return false;}
+      return {n,wantInv,code,cat:q('ni_cat'),unit:q('ni_u'),stock:parseInt(q('ni_s'))||0,reorder:parseInt(q('ni_r'))||0,cost:parseFloat(q('ni_k'))||0,supplier:q('ni_sup')};}}]});
+  if(!r)return;
+  const t=g(TYK);t.push(r.n);s(TYK,t);
+  if(r.wantInv){const inv=g('inv_items');inv.push({code:r.code,name:r.n,category:r.cat,unit:r.unit,stock:r.stock,reorder:r.reorder,leadTime:50,cost:r.cost,supplier:r.supplier,moq:0,notes:'Added from Order Sheet',updated:ST.today()});s('inv_items',inv);}
+  refreshTypeList();
+  const b=document.getElementById('itemsBody');let row=b.rows[b.rows.length-1];const ti=row&&row.querySelector('.it-type');if(ti&&ti.value)row=addItemRow({});
+  if(row){row.querySelector('.it-type').value=r.n;row.querySelector('.it-qty').focus();}updItemsTotal();showToast('success');}
+
 function itemRowHtml(it,i){it=it||{};return `<tr><td class="it-n">${i+1}</td><td><input class="it-type" list="lcTypes" placeholder="DLC" value="${ST.esc(it.type||'')}" oninput="updItemsTotal()"></td><td style="width:120px;"><input class="it-qty" type="number" min="1" placeholder="12" value="${ST.esc(it.qty||'')}" oninput="updItemsTotal()"></td><td><input class="it-cap" placeholder="33T / 2.5 MV" value="${ST.esc(it.capacity||'')}"></td><td><input class="it-wire" placeholder="Blue - 16 Mtrs" value="${ST.esc(it.wire||'')}"></td><td style="width:44px;"><button type="button" class="it-del" data-tip="Remove this item" onclick="delItemRow(this)">×</button></td></tr>`;}
 function setItems(items){document.getElementById('itemsBody').innerHTML=(items&&items.length?items:[{}]).map(itemRowHtml).join('');updItemsTotal();}
 function addItemRow(it){const b=document.getElementById('itemsBody');b.insertAdjacentHTML('beforeend',itemRowHtml(it,b.rows.length));updItemsTotal();const r=b.rows[b.rows.length-1];if(!it)r.querySelector('.it-type').focus();return r;}
@@ -342,7 +370,7 @@ function genON(){
   db.forEach(o=>{if(o.orderNo){const m=o.orderNo.match(/(\d+)$/);if(m){const n=parseInt(m[1]);if(n>maxNum)maxNum=n;}}});
   return 'ORD-'+new Date().getFullYear()+'-'+(maxNum+1).toString().padStart(4,'0');
 }
-function init(){setItems([]);ST.attachCalendar(document.getElementById('deliveryDate'));ST.attachCalendar(document.getElementById('dod'));document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();if(gsu())document.getElementById('setupBanner').classList.add('hidden');learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
+function init(){refreshTypeList();setItems([]);ST.attachCalendar(document.getElementById('deliveryDate'));ST.attachCalendar(document.getElementById('dod'));document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();if(gsu())document.getElementById('setupBanner').classList.add('hidden');learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
 function handleLogoUpload(e){const f=e.target.files[0];if(!f||f.size>5e6)return;const r=new FileReader();r.onload=ev=>{logoBase64=ev.target.result;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';};r.readAsDataURL(f);}
 function removeLogo(){logoBase64='';document.getElementById('logoPreviewImg').src='';document.getElementById('logoPreview').classList.remove('visible');document.getElementById('uploadZone').style.display='block';document.getElementById('logoFileInput').value='';}
 const uz=document.getElementById('uploadZone');['dragenter','dragover'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('dragover');}));['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.remove('dragover');}));uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById('logoFileInput').files=e.dataTransfer.files;handleLogoUpload({target:{files:[f]}});}});
@@ -504,7 +532,7 @@ async function submitOrder(e){e.preventDefault();
     if(lrNew){const pj=ST.jobs().find(j=>j.orderRef===order.orderNo);let ok=true;
       if(pj&&pj.stage!=='Ready'&&pj.stage!=='Dispatched')ok=confirm('In Factory Production this order is at stage "'+pj.stage+'" — it has not been packed and approved yet.\n\nMark it as DESPATCHED with L.R. '+order.lrNumber+' anyway?');
       if(ok){ST.recordDespatch(order.orderNo,{lr:order.lrNumber,dod:order.dod,transporter:order.transporterName,tracking:order.trackingLink});despatchNo=order.orderNo;}}
-  } else{const order=Object.assign(form,{status:'awaiting',timestamp:new Date().toISOString()});db.push(order);sdb(db);
+  } else{if(db.some(o=>o.orderNo===form.orderNo))form.orderNo=genON();const order=Object.assign(form,{status:'awaiting',timestamp:new Date().toISOString()});db.push(order);sdb(db);
     const su=gsu();if(su){try{await fetch(su,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(order)});showToast('success');}catch(err){showToast('error');}}else showToast('success');}
 
   renderDB();btn.disabled=false;cancelEdit();resetForm();
@@ -574,6 +602,13 @@ function payRemind(no){if(ST.sendReminder(no)){showToast('success');renderDB();r
 function payEscalate(no){ST.escalate(no).then(()=>{renderDB();renderPay();});}
 function payPaid(no){if(!confirm('Mark payment for '+no+' as received?'))return;ST.markPaid(no);showToast('success');renderDB();renderPay();}
 document.addEventListener('st-changed',()=>{renderDB();});
+// Another user changed data: refresh the table and lists without touching what is being typed in the form.
+window.sentireRefresh=function(){
+  const keep=id=>{const el=document.getElementById(id);return el?el.value:''};const pv=keep('partyName'),tv=keep('transporterName');
+  popDD('partyName',PK);popDD('transporterName',TK);
+  const set=(id,v)=>{const el=document.getElementById(id);if(el&&v&&[...el.options].some(o=>o.value===v))el.value=v;};set('partyName',pv);set('transporterName',tv);
+  refreshTypeList();renderDB();
+  const on=document.getElementById('orderNo');if(on&&editingIndex<0&&gdb().some(o=>o.orderNo===on.value))on.value=genON();};
 
 // ─── PRINT ORDER — half A4 (two per A4 page), opens the printer dialog directly ───
 function printOrder(ri){const o=gdb()[ri];if(!o)return;const pj=ST.jobs().find(j=>j.orderRef===o.orderNo);ST.printOrderSheets([{order:o,opt:pj?{jobNo:pj.jobNo}:{}}],{name:'OrderSheet_'+o.orderNo});}

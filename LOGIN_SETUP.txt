@@ -40,6 +40,16 @@ PART 4 — Rights: which apps each user can open (once)
     All boxes ticked = every app. The Admin always has every app.
     The person sees the change the next time they open or refresh the site.
 
+PART 5 — Shared live data (once)
+---------------------------------
+12. Supabase → SQL Editor → New query → paste ALL of supabase_update_3_sync.sql → Run.
+    After this, every user on every computer sees the same orders, clients, stock, jobs and
+    accounts, and a change made on one screen appears on the others within a few seconds.
+    Only the Admin can delete anything; other users get "Only the Admin can delete".
+    The first time each computer opens the site, whatever that browser already holds is
+    uploaded and merged in (nothing is overwritten). Do not clear the browser's data
+    on a computer until it has been opened once after this update.
+
 HOW IT WORKS
 ------------
 • Admin: uses everything, and can open "Users" to change anyone's login ID, name or
