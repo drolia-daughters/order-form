@@ -60,6 +60,8 @@ input:focus{outline:none;border-color:var(--accent);}
   <div id="d_perms"><label>Special rights</label>
     <label class="chk"><input type="checkbox" id="d_apv"> Can <b>approve</b> orders and jobs</label>
     <label class="chk"><input type="checkbox" id="d_del"> Can <b>delete</b></label>
+    <label class="chk"><input type="checkbox" id="d_bill" onchange="$('d_acsbox').hidden=!this.checked"> <b>Accounts (ACS)</b> — sees order rates &amp; bill details, gets the WhatsApp after laser</label>
+    <div id="d_acsbox" hidden><label for="d_acsph">Accounts WhatsApp number</label><input id="d_acsph" inputmode="tel" placeholder="98xxxxxxxx"></div>
     <div class="hint">Sub Admin = both ticked. An approver who must not delete (e.g. User 10) = only “approve”. Everyone else takes orders and enters data.</div></div>
   <div id="d_rights"><label>Can open these apps &nbsp;<button type="button" class="lnk" onclick="tickAll(true)">tick all</button> · <button type="button" class="lnk" onclick="tickAll(false)">clear</button></label><div class="apps" id="d_apps"></div></div>
   <div class="msg err" id="d_err"></div>
@@ -81,6 +83,7 @@ function rightsText(u) {
 }
 function roleLabel(u) {
   if (u.role === 'Admin') return 'Admin';
+  if (u.can_bill) return 'Accounts (ACS)' + (u.can_approve ? ' + Approver' : '');
   if (u.can_delete && u.can_approve) return 'Sub Admin';
   if (u.can_approve) return 'Approver';
   if (u.can_delete) return 'Can delete';
@@ -122,6 +125,7 @@ function edit(i, slot) {
   var isAdmin = editing && editing.role === 'Admin', has = editing && Array.isArray(editing.apps) ? editing.apps : null;
   $('d_rights').hidden = !!isAdmin; $('d_perms').hidden = !!isAdmin;
   $('d_apv').checked = !!(editing ? editing.can_approve : slot === 10); $('d_del').checked = !!(editing && editing.can_delete);
+  $('d_bill').checked = !!(editing && editing.can_bill); $('d_acsbox').hidden = !$('d_bill').checked; $('d_acsph').value = $('d_bill').checked ? (localStorage.getItem('ordersheet_acs_phone') || '') : '';
   $('d_apps').innerHTML = APPS.map(function (a) { return '<label><input type="checkbox" value="' + a[0] + '"' + (!has || has.indexOf(a[0]) >= 0 ? ' checked' : '') + '>' + esc(a[1]) + '</label>'; }).join('');
   $('d_err').textContent = ''; $('ov').hidden = false; $('d_name').focus();
 }
@@ -155,6 +159,14 @@ $('frm').onsubmit = function (e) {
     return uid.then(function (v) { if (v) return A.rpc('admin_set_perms', { p_user_id: v, p_can_delete: cd, p_can_approve: ca }); }).catch(function (er) {
       if (er.code === 'PGRST202' || /schema cache/i.test(er.message || '')) throw new Error('The login details were saved, but these rights need one more database step: run supabase_update_4_permissions.sql in Supabase.');
       throw er; });
+  }).then(function () {
+    var cb = $('d_bill').checked;
+    if (isAdmin || (editing && !!editing.can_bill === cb) || (wasNew && !cb)) return;
+    var uid = editing ? Promise.resolve(editing.user_id) : A.rpc('admin_list_users').then(function (rows) {
+      var want = id.trim().toLowerCase(), hit = (rows || []).filter(function (r) { return r.login_id === want; })[0]; return hit && hit.user_id; });
+    return uid.then(function (v) { if (v) return A.rpc('admin_set_bill', { p_user_id: v, p_can_bill: cb }); });
+  }).then(function () {
+    if (!isAdmin && $('d_bill').checked) { var ph = $('d_acsph').value.trim(); if (ph) localStorage.setItem('ordersheet_acs_phone', ph); }
   }).then(function () {
     if (mine) return A.rpc('my_profile').then(function (p) { if (p) A.remember(p); });   // the Admin changed their own details
   }).then(load).then(function () {

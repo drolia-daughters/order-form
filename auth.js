@@ -39,6 +39,8 @@
     },
     // Who may delete / approve. The Admin always may; others only when the Admin ticked it for them (Users page).
     canDelete: function () { var u = A.user; return !A.enabled || !u || u.role === 'Admin' || u.can_delete === true; },
+    // Accounts (ACS): may see order rates and bill details. The Admin always may.
+    canBill: function () { var u = A.user; return !A.enabled || !u || u.role === 'Admin' || u.can_bill === true; },
     canApprove: function () { var u = A.user; return !A.enabled || !u || u.role === 'Admin' || u.can_approve === true; },
     // Main Page: drop the apps this person may not open from its app list.
     filterApps: function (list) { for (var i = list.length - 1; i >= 0; i--) if (!A.can(list[i].file)) list.splice(i, 1); return list; },
@@ -111,7 +113,7 @@
       function btn(text, fn) { var b = document.createElement('button'); b.className = 'tb-btn show'; b.textContent = text; b.onclick = fn; bar.appendChild(b); }
       var who = document.createElement('span');
       who.style.cssText = 'font-size:12px;color:var(--text-dim);margin-left:6px;white-space:nowrap;';
-      who.textContent = '👤 ' + me.name + (me.role === 'Admin' ? ' (Admin)' : me.can_delete && me.can_approve ? ' (Sub Admin)' : me.can_approve ? ' (Approver)' : '');
+      who.textContent = '👤 ' + me.name + (me.role === 'Admin' ? ' (Admin)' : me.can_bill ? ' (Accounts)' : me.can_delete && me.can_approve ? ' (Sub Admin)' : me.can_approve ? ' (Approver)' : '');
       bar.appendChild(who);
       if (me.role === 'Admin') btn('Users', function () { location.href = 'users.html'; });
       btn('Log out', A.logout);

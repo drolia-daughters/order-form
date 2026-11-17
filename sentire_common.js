@@ -321,6 +321,7 @@ ST.words=function(n){n=Math.round((+n||0)*100)/100;const a=['','One','Two','Thre
 
 // ─── ADVANCE ORDERS: laser approval only after at least 25% of the order value is received ───
 ST.ADV_MIN=25;
+ST.canBill=()=>!window.SentireAuth||!SentireAuth.canBill||SentireAuth.canBill();
 ST.isAdmin=()=>!window.SentireAuth||!SentireAuth.enabled||!SentireAuth.user||SentireAuth.user.role==='Admin';
 ST.advanceCheck=function(o){o=o||{};const mode=(ST.payInfo(o)||{}).mode;
   const r={needed:mode==='Advance',total:0,adv:0,min:0,pct:0,ok:true,noPrice:false};if(!r.needed)return r;
