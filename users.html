@@ -68,7 +68,7 @@ input:focus{outline:none;border-color:var(--accent);}
 
 <script>
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
-var users = [], max = 10, editing = null;
+var users = [], max = 10, editing = null, newSlot = null;
 // The apps a user can be given. Keep in step with the APPS list in index.html.
 var APPS = [['orders.html', 'Order Sheet'], ['marketing_crm.html', 'Marketing CRM'], ['factory_production.html', 'Factory Production'], ['job_work.html', 'Job Work'],
   ['loadcell_calculator.html', 'Loadcell Calculator'], ['inventory_management.html', 'Inventory'], ['accounts_reports.html', 'Accounts & Reports'],
@@ -96,17 +96,26 @@ function msg(t, ok) { var m = $('msg'); m.textContent = t || ''; m.className = '
 function plain(e) { var m = (e && e.message) || ''; return /failed to fetch|networkerror|load failed/i.test(m) ? 'Could not reach the login service. Check the internet and try again.' : (m || 'Something went wrong.'); }
 
 function render() {
-  var n = users.filter(function (u) { return u.role !== 'Admin'; }).length, h = '';
-  users.forEach(function (u, i) {
-    h += '<div class="row"><div><b>' + esc(u.name) + '</b> <span class="tag ' + (u.role === 'Admin' || u.can_approve || u.can_delete ? 'adm' : '') + '">' + esc(roleLabel(u)) + '</span><br><span class="id">Login ID: ' + esc(u.login_id) + '</span><div class="rights">' + esc(rightsText(u)) + '</div></div><span class="sp"></span>' +
+  var h = '', placed = {};
+  function row(u, i) {
+    return '<div class="row"><div><b>' + esc(u.name) + '</b> <span class="tag ' + (u.role === 'Admin' || u.can_approve || u.can_delete ? 'adm' : '') + '">' + esc(roleLabel(u)) + '</span>' + (u.slot ? ' <span class="id">· User ' + u.slot + '</span>' : '') + '<br><span class="id">Login ID: ' + esc(u.login_id) + '</span><div class="rights">' + esc(rightsText(u)) + '</div></div><span class="sp"></span>' +
       '<button class="btn" onclick="edit(' + i + ')">Edit</button>' + (u.role === 'Admin' ? '' : '<button class="btn del" onclick="removeUser(' + i + ')">Remove</button>') + '</div>';
-  });
-  for (var k = n; k < max; k++) h += '<div class="empty" style="display:flex;align-items:center;gap:10px"><span>User ' + (k + 1) + ' — not created yet</span><span class="sp"></span><button class="btn pri" onclick="edit(null,' + (k + 1) + ')">+ Add User ' + (k + 1) + '</button></div>';
-  $('list').innerHTML = h; $('addBtn').hidden = n >= max;
+  }
+  users.forEach(function (u, i) { if (u.role === 'Admin') h += row(u, i); });
+  var spare = users.map(function (u, i) { return u.role !== 'Admin' && !u.slot ? i : -1; }).filter(function (i) { return i >= 0; });
+  for (var k = 1; k <= max; k++) {            // each place is fixed: User 10 always stays in place 10
+    var at = -1; users.forEach(function (u, i) { if (u.role !== 'Admin' && u.slot === k) at = i; });
+    if (at < 0 && spare.length) at = spare.shift();   // an older login that has no place yet takes the next free one
+    h += at >= 0 ? row(users[at], at) : '<div class="empty" style="display:flex;align-items:center;gap:10px"><span>User ' + k + ' — not created yet</span><span class="sp"></span><button class="btn pri" onclick="edit(null,' + k + ')">+ Add User ' + k + '</button></div>';
+  }
+  $('list').innerHTML = h; $('addBtn').hidden = true;
 }
-function load() { return A.rpc('admin_list_users').then(function (rows) { users = rows || []; render(); }); }
+function load() { return A.rpc('admin_list_users').then(function (rows) {
+  users = rows || [];
+  return A.rpc('admin_slots').then(function (sl) { (sl || []).forEach(function (r) { users.forEach(function (u) { if (u.user_id === r.user_id) u.slot = r.slot; }); }); }, function () {}).then(render);
+}); }
 function edit(i, slot) {
-  editing = i === null ? null : users[i];
+  editing = i === null ? null : users[i]; newSlot = i === null ? (slot || null) : null;
   $('d_title').textContent = editing ? 'Edit ' + editing.name : (slot ? 'Add User ' + slot : 'Add user');
   $('d_name').value = editing ? editing.name : (slot ? 'User ' + slot : ''); $('d_id').value = editing ? editing.login_id : (slot ? 'u' + (slot < 10 ? '0' : '') + slot : ''); $('d_pw').value = '';
   $('d_pwl').textContent = editing ? 'New password (leave empty to keep the present one)' : 'Password (at least 6 characters)';
@@ -126,6 +135,11 @@ $('frm').onsubmit = function (e) {
     ? A.rpc('admin_update_user', { p_user_id: editing.user_id, p_login_id: id, p_name: name, p_password: pw || null })
     : A.rpc('admin_add_user', { p_login_id: id, p_name: name, p_password: pw });
   call.then(function () {
+    if (!wasNew || !newSlot) return;
+    return A.rpc('admin_list_users').then(function (rows) {
+      var want = id.trim().toLowerCase(), hit = (rows || []).filter(function (r) { return r.login_id === want; })[0];
+      if (hit) return A.rpc('admin_set_slot', { p_user_id: hit.user_id, p_slot: newSlot }); });
+  }).then(function () {
     // then save the rights (not for the Admin; not when nothing changed; a new user with every app needs no call)
     if (isAdmin || same || (wasNew && apps === null)) return;
     var uid = editing ? Promise.resolve(editing.user_id) : A.rpc('admin_list_users').then(function (rows) {
