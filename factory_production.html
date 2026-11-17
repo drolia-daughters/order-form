@@ -143,6 +143,8 @@ function advance(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]|
 const lines=(j,extra)=>{const o=orderOf(j);const its=itemsOf(j);return [j.jobNo+(j.orderRef?' · '+j.orderRef:''),'Party: '+j.party,'Items: '+ST.itemsShort(its)+(its.length>1?' (total '+its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)+' pcs)':'')].concat(extra||[]);};
 // Testing → Laser needs approval
 async function approveLaser(no){const j=getJob(no);if(!j||j.stage!=='Testing')return;const o=orderOf(j);
+  if(o){const ac=ST.advanceCheck(o);if(ac.needed&&!ac.ok){const adm=ST.isAdmin();
+    alert('🔒 Laser cannot be approved yet.\n\nThis is an ADVANCE order — at least '+ST.ADV_MIN+'% of the order value must be received first.'+(adm?(ac.noPrice?'\n\nThe order has no price per piece. Open Order Sheet → ✏️ Edit, fill the Price / pc and Advance received, then try again.':'\n\nOrder value: '+ST.inr(ac.total)+'\nMinimum advance ('+ST.ADV_MIN+'%): '+ST.inr(ac.min)+'\nAdvance received: '+ST.inr(ac.adv)+'\n\nOpen Order Sheet → ✏️ Edit and enter the Advance received.'):'\n\nPlease ask the Admin to confirm the advance payment.'));return;}}
   const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.laser=r;x.stage='Laser';hist(x,'Laser','Laser approved by '+r.by+' ('+r.role+')');});toast('🔐 Laser approved by '+r.by);refreshAll();}
 function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!confirm('Laser marking done for '+no+' ('+j.party+')?\nIt moves to Packing.'))return;

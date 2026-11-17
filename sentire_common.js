@@ -318,3 +318,12 @@ ST.words=function(n){n=Math.round((+n||0)*100)/100;const a=['','One','Two','Thre
   if(cr)parts.push(three(cr)+' Crore');if(la)parts.push(two(la)+' Lakh');if(th)parts.push(two(th)+' Thousand');if(r)parts.push(three(r));
   return 'Rupees '+(parts.join(' ')||'Zero')+(p?' and '+two(p)+' Paise':'')+' Only';};
 })();
+
+// ─── ADVANCE ORDERS: laser approval only after at least 25% of the order value is received ───
+ST.ADV_MIN=25;
+ST.isAdmin=()=>!window.SentireAuth||!SentireAuth.enabled||!SentireAuth.user||SentireAuth.user.role==='Admin';
+ST.advanceCheck=function(o){o=o||{};const mode=(ST.payInfo(o)||{}).mode;
+  const r={needed:mode==='Advance',total:0,adv:0,min:0,pct:0,ok:true,noPrice:false};if(!r.needed)return r;
+  r.total=ST.items(o).reduce((s,x)=>s+(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0),0);if(!r.total&&parseFloat(o.billTotal)>0)r.total=parseFloat(o.billTotal);
+  r.adv=parseFloat(o.advanceReceived)||0;r.min=r.total*ST.ADV_MIN/100;r.pct=r.total?Math.round(r.adv*1000/r.total)/10:0;
+  r.noPrice=!r.total;r.ok=!r.noPrice&&r.adv>=r.min-0.005;return r;};

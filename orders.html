@@ -147,7 +147,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
     <!-- PAYMENT MODE -->
     <div class="form-group"><label><span class="sl">11</span> Mode of Payment</label>
       <select id="paymentMode" onchange="onPaymentModeChange()"><option value="">— Select —</option><option value="Advance">Advance</option><option value="COD">COD</option><option value="Credit">Credit</option></select>
-      <div class="mini-note" style="margin-top:4px;">Default payment days for each client are set in Masters → Clients</div><div id="creditDaysBox" style="display:none;margin-top:8px;"><label style="font-size:11px;color:var(--orange);margin-bottom:4px;">Credit Days (e.g. 30, 45, 60)</label><input type="number" id="creditDays" placeholder="30" min="1" max="99" style="width:100px;"><div class="auto-hint" id="creditHint">↑ Auto-filled from client</div></div>
+      <div class="mini-note" style="margin-top:4px;">Default payment days for each client are set in Masters → Clients</div><div id="advanceBox" style="display:none;margin-top:8px;"><label style="font-size:11px;color:var(--green,#22c55e);margin-bottom:4px;">Advance received (₹) 🔒 Admin only</label><input type="number" id="advanceReceived" min="0" step="any" placeholder="0" style="width:160px;"><div class="mini-note" id="advanceNote" style="margin-top:4px;"></div></div><div id="creditDaysBox" style="display:none;margin-top:8px;"><label style="font-size:11px;color:var(--orange);margin-bottom:4px;">Credit Days (e.g. 30, 45, 60)</label><input type="number" id="creditDays" placeholder="30" min="1" max="99" style="width:100px;"><div class="auto-hint" id="creditHint">↑ Auto-filled from client</div></div>
     </div>
 
     <!-- LASER/LOGO -->
@@ -347,7 +347,9 @@ function onPartyChange(){const p=document.getElementById('partyName').value;
   }
 }
 
-function onPaymentModeChange(){const m=document.getElementById('paymentMode').value;document.getElementById('creditDaysBox').style.display=m==='Credit'?'block':'none';}
+function onPaymentModeChange(){const m=document.getElementById('paymentMode').value;document.getElementById('creditDaysBox').style.display=m==='Credit'?'block':'none';
+  document.getElementById('advanceBox').style.display=(m==='Advance'&&isAdminMe())?'block':'none';
+  const n=document.getElementById('advanceNote');if(n)n.textContent='Laser approval stays blocked until at least '+ST.ADV_MIN+'% of the order value (items qty × price) is received.';}
 
 function onTransporterChange(){const t=document.getElementById('transporterName').value;if(!t)return;
   const tc=gm(TCK);if(tc[t]){
@@ -475,7 +477,7 @@ function editOrder(ri){const db=gdb(),o=db[ri];if(!o)return;editingIndex=ri;show
   document.getElementById('transporterEmail').value=o.transporterEmail||'';document.getElementById('transporterPhone').value=o.transporterPhone||'';
   document.getElementById('lrNumber').value=o.lrNumber||'';document.getElementById('trackingLink').value=o.trackingLink||'';document.getElementById('trackingLink').dataset.auto='';
   document.getElementById('dod').value=o.dod||'';document.getElementById('dod')._stCheck&&document.getElementById('dod')._stCheck();
-  document.getElementById('paymentMode').value=o.paymentMode||'';onPaymentModeChange();document.getElementById('creditDays').value=o.creditDays||'';
+  document.getElementById('paymentMode').value=o.paymentMode||'';document.getElementById('advanceReceived').value=o.advanceReceived||'';onPaymentModeChange();document.getElementById('creditDays').value=o.creditDays||'';
   // Show saved logo if exists
   if(o.logoImage){logoBase64=o.logoImage;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';document.getElementById('savedLogoArea').style.display='none';}
   else{removeLogo();const cc=gm(CCK);if(cc[o.partyName]&&cc[o.partyName].logo){document.getElementById('savedLogoArea').style.display='block';document.getElementById('savedLogoImg').src=cc[o.partyName].logo;logoBase64=cc[o.partyName].logo;}else{document.getElementById('savedLogoArea').style.display='none';}}
@@ -515,6 +517,7 @@ async function submitOrder(e){e.preventDefault();
     items:items,loadcellType:sum.loadcellType,quantity:sum.quantity,capacity:sum.capacity,wire:sum.wire,itemsText:sum.itemsText,
     laserLogo:v('laserLogo'),logoImage:logoBase64,productionRemarks:v('productionRemarks'),transporterName:v('transporterName'),transporterId:v('transporterId'),transporterEmail:v('transporterEmail'),transporterPhone:v('transporterPhone'),
     lrNumber:v('lrNumber'),trackingLink:v('trackingLink'),dod:v('dod'),paymentMode:v('paymentMode'),creditDays:v('creditDays'),orderRemarks:v('orderRemarks'),wiringBy:v('wiringBy'),packingBy:v('packingBy'),testingBy:v('testingBy')};
+  if(isAdminMe())form.advanceReceived=v('advanceReceived');
   // Learn parties / transporters / client details
   if(form.partyName){const l=g(PK);if(!l.includes(form.partyName)){l.push(form.partyName);s(PK,l);popDD('partyName',PK);}}
   if(form.transporterName){const l=g(TK);if(!l.includes(form.transporterName)){l.push(form.transporterName);s(TK,l);popDD('transporterName',TK);}}
@@ -584,6 +587,7 @@ function renderDB(){const db=gdb(),vis=db.filter(canSee),tb=document.getElementB
       else payHtml=`<span class="tag tag-orange">Credit ${pi.days}d</span><br><span class="mini-note">due ${ST.fmtDate(pi.due)}${pi.over<0?' · '+(-pi.over)+'d left':' · today'}</span>`;}
     else if(pi.mode==='Credit')payHtml=`<span class="tag tag-orange">Credit ${pi.days||'?'}d</span>`;
     else if(pi.mode)payHtml=`<span class="tag tag-blue">${E(pi.mode)}</span>`;
+    if(pi.mode==='Advance'&&isAdminMe()){const ac=ST.advanceCheck(o);payHtml+=`<div class="mini-note" style="color:${ac.ok?'var(--green,#22c55e)':'var(--red,#ef4444)'}">Advance ${ac.adv?ST.inr(ac.adv):'₹0'}${ac.total?' / '+ac.pct+'%':''} ${ac.ok?'✓':'· need '+ST.ADV_MIN+'%'}</div>`;}
     const its=ST.items(o);const multi=its.length>1;
     const tType=its.map(x=>x.type?String(x.type).split(', ').map(t=>'<span class="tag tag-blue">'+E(t)+'</span>').join(' '):'—').join('<br>');
     const tQty=multi?its.map(x=>'<strong>'+E(x.qty||'—')+'</strong>').join('<br>')+'<div class="it-tot">= '+E(o.quantity)+'</div>':'<strong>'+(E(o.quantity)||'—')+'</strong>';
@@ -692,7 +696,7 @@ function viewOrder(ri){const o=gdb()[ri];if(!o)return;const E=ST.esc;
    +'<div class="ovsec">Items</div><table class="ovtbl"><tr><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th>'+(showR?'<th>Price/pc</th><th>Amount</th>':'')+'</tr>'+(itemRows||'<tr><td colspan="5">No items</td></tr>')+'</table>'
    +'<div class="ovsec">Branding &amp; production</div><div class="ovgrid">'+g('Laser logo / text',o.laserLogo)+g('Wiring by',o.wiringBy)+g('Packing by',o.packingBy)+g('Testing by',o.testingBy)+g('Production remarks',o.productionRemarks)+'</div>'+logo
    +'<div class="ovsec">Transport</div><div class="ovgrid">'+g('Transporter',o.transporterName)+g('Transporter email',o.transporterEmail)+g('Transporter phone',o.transporterPhone)+g('L.R. number',o.lrNumber)+g('Boxes',o.boxes)+g('Weight (kg)',o.weight)+g('Tracking link',o.trackingLink)+'</div>'
-   +'<div class="ovsec">Payment</div><div class="ovgrid">'+g('Payment mode',o.paymentMode)+g('Credit days',o.creditDays)+g('Due date',pi&&pi.due?ST.fmtDate(pi.due):'')+g('Payment status',pi&&pi.action==='paid'?'Paid'+(o.paidDate?' on '+d(String(o.paidDate).slice(0,10)):''):(pi&&pi.label)||'')+g('Reminders sent',pi&&pi.sent)+g('Escalated',o.escalatedAt?'Yes':'')+'</div>'
+   +'<div class="ovsec">Payment</div><div class="ovgrid">'+g('Payment mode',o.paymentMode)+(isAdminMe()&&pi&&pi.mode==='Advance'?(()=>{const ac=ST.advanceCheck(o);return g('Advance received',ac.adv?ST.inr(ac.adv):'₹0')+g('Order value',ac.total?ST.inr(ac.total):'price not entered')+g('Minimum advance ('+ST.ADV_MIN+'%)',ac.total?ST.inr(ac.min):'')+g('Laser approval',ac.ok?'Allowed':'Blocked');})():'')+g('Credit days',o.creditDays)+g('Due date',pi&&pi.due?ST.fmtDate(pi.due):'')+g('Payment status',pi&&pi.action==='paid'?'Paid'+(o.paidDate?' on '+d(String(o.paidDate).slice(0,10)):''):(pi&&pi.label)||'')+g('Reminders sent',pi&&pi.sent)+g('Escalated',o.escalatedAt?'Yes':'')+'</div>'
    +(o.orderRemarks?'<div class="ovsec">Order remarks</div><div style="font-size:13px;white-space:pre-wrap;">'+E(o.orderRemarks)+'</div>':'')
    +(more?'<div class="ovsec">Other details</div><div class="ovgrid">'+more+'</div>':'')
    +'<div class="ovbtns"><button class="btn" onclick="closeView();editOrder('+ri+')">✏️ Edit</button><button class="btn" onclick="printOrder('+ri+')">🖨 Print</button><button class="btn btn-export" onclick="closeView()">Close</button></div>';
