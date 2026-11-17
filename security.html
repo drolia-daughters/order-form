@@ -44,7 +44,7 @@ tr.warn td{background:rgba(239,68,68,.07);}tr.new td:first-child{border-left:3px
 <script>
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-var LABEL = { login_fail: ['Wrong password', 'o'], LOCKED_OUT: ['LOCKED OUT', 'r'], ROLE_CHANGED: ['ROLE CHANGED', 'r'], admin_login_ok: ['Admin login', 'g'], admin_check_ok: ['Admin password check', 'g'],
+var LABEL = { SUSPICIOUS_DATA: ['SUSPICIOUS DATA', 'r'], login_fail: ['Wrong password', 'o'], LOCKED_OUT: ['LOCKED OUT', 'r'], ROLE_CHANGED: ['ROLE CHANGED', 'r'], admin_login_ok: ['Admin login', 'g'], admin_check_ok: ['Admin password check', 'g'],
   password_changed: ['Password changed', 'o'], rights_changed: ['Rights changed', 'o'], user_added: ['User added', 'o'], user_removed: ['User removed', 'o'], login_id_changed: ['Login ID changed', 'o'] };
 function load() {
   A.client.from('security_log').select('id,at,kind,login_id,ip,detail,seen').order('at', { ascending: false }).limit(300).then(function (r) {

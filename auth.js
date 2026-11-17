@@ -103,7 +103,7 @@
   }
 
   // ─── Security alert: the Admin sees a red bar on every page while there are unseen warning events ───
-  var ALERT_KINDS = { login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1 };
+  var ALERT_KINDS = { SUSPICIOUS_DATA: 1, login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1 };
   A.ready.then(function (me) {
     if (!me || me.role !== 'Admin' || page === 'security.html') return;
     var go = function () {
