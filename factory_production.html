@@ -158,16 +158,25 @@ async function notifyAcs(no){const j=getJob(no);if(!j)return;const o=orderOf(j),
   const its=itemsOf(j),L=['*'+ST.company().name+' — Laser done, please prepare the bill*','','*Party:* '+j.party,'*Order:* '+(j.orderRef||'—')+'  ·  *Job:* '+j.jobNo];
   its.forEach(i=>L.push('• '+(i.type||'—')+' × '+(i.qty||'—')+' pcs'+(i.capacity?' · '+i.capacity:'')+(i.wire?' · '+i.wire:'')));
   const jj=getJob(no)||j;if(jj.boxes||jj.weight)L.push('*Packing:* '+(jj.boxes||'—')+' box(es) · '+(jj.weight||'—')+' kg');
+  const tnm=trOf(jj);if(tnm)L.push('*Transporter:* '+tnm);
   if(o&&o.paymentMode)L.push('*Payment:* '+o.paymentMode+(o.paymentMode==='Credit'&&o.creditDays?' ('+o.creditDays+' days)':''));if(j.target)L.push('*Delivery:* '+fmtD(j.target));
   L.push('','Rates & amounts: open Command Center → Factory Production → 💰 Bill details (only you can see them).','Send the bill to the factory so the goods can be despatched.');
   const r=await ST.modal({title:'📲 Tell Accounts (ACS) — prepare the bill',sub:'WhatsApp to '+ph,html:'<div class="st-lines">'+E(L.join('\n'))+'</div>',buttons:[{label:'Later',value:null},{label:'💬 Send WhatsApp to ACS',cls:'ok',onClick:()=>{ST.openWA(ph,L.join('\n'));return true;}}]});
   if(r)mutate(no,x=>{x.acsNotifiedAt=new Date().toISOString();hist(x,x.stage,'Accounts (ACS) informed on WhatsApp — bill to be prepared');});}
 // Bill details WITH rates — for Accounts (ACS) and Admins only
 function billDetails(no){const j=getJob(no);if(!j||!ST.canBill())return;const o=orderOf(j);if(!o){alert('This job has no linked order.');return;}
-  const its=ST.items(o);let tot=0;const rows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0);tot+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td><td>'+(x.rate?ST.inr(x.rate):'<i>not entered</i>')+'</td><td>'+(a?ST.inr(a):'—')+'</td></tr>';}).join('');
+  const its=ST.items(o),cl=ST.client(o.partyName)||{};let tot=0;
+  const rows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0);tot+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td><td>'+(x.rate?ST.inr(x.rate):'<i>not entered</i>')+'</td><td>'+(a?ST.inr(a):'—')+'</td></tr>';}).join('');
+  const tn=trOf(j),tc=tn?ST.transporter(tn):{};const D=(l,v)=>(v===undefined||v===null||v==='')?'':'<div><span style="opacity:.6">'+E(l)+':</span> <b>'+E(String(v))+'</b></div>';
+  const sec=t=>'<div style="margin:12px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.6">'+t+'</div>';
   ST.modal({title:'💰 Bill details — '+E(o.orderNo),sub:E(o.partyName)+(o.location?' · '+E(o.location):''),wide:true,
-    html:'<div style="font-size:13px;line-height:1.6">Job '+E(j.jobNo)+(j.boxes||j.weight?' · Packing: <b>'+E(j.boxes||'—')+' box(es), '+E(j.weight||'—')+' kg</b>':'')+' · Payment: <b>'+E(o.paymentMode||'—')+'</b>'+(o.paymentMode==='Credit'&&o.creditDays?' ('+E(o.creditDays)+' days)':'')+' · Delivery: '+E(o.deliveryDate?ST.fmtDate(o.deliveryDate):'—')+'<br>Laser / logo: '+E(o.laserLogo||(o.logoImage?'logo image':'—'))+(o.clientPhone?'<br>Client phone: '+E(o.clientPhone):'')+'</div>'+
-    '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:13px"><tr style="text-align:left;opacity:.7"><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Rate/pc</th><th>Amount</th></tr>'+rows+'<tr><td colspan="6" style="text-align:right"><b>Total (before tax)</b></td><td><b>'+(tot?ST.inr(tot):'—')+'</b></td></tr></table>'+(o.paymentMode==='Advance'&&o.advanceReceived?'':''),
+    html:'<div style="font-size:13px;line-height:1.6">'+
+    sec('Order')+D('Order no',o.orderNo)+D('Job no',j.jobNo)+D('Order date',o.date?ST.fmtDate(o.date):'')+D('Delivery date',o.deliveryDate?ST.fmtDate(o.deliveryDate):'')+D('Payment',(o.paymentMode||'—')+(o.paymentMode==='Credit'&&o.creditDays?' ('+o.creditDays+' days)':''))+D('Laser / logo',o.laserLogo||(o.logoImage?'Logo image attached':''))+D('Remarks',o.orderRemarks)+D('Production remarks',o.productionRemarks)+
+    sec('Customer')+D('Party',o.partyName)+D('Location',o.location||cl.location||cl.address)+D('Phone',o.clientPhone||cl.phone)+D('Email',o.clientEmail||cl.email)+D('GST no',cl.gst||cl.gstin)+
+    '</div>'+sec('Items &amp; rates')+
+    '<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="text-align:left;opacity:.7"><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th><th>Rate/pc</th><th>Amount</th></tr>'+rows+'<tr><td colspan="6" style="text-align:right"><b>Total (before tax)</b></td><td><b>'+(tot?ST.inr(tot):'—')+'</b></td></tr></table>'+
+    '<div style="font-size:13px;line-height:1.6">'+sec('Packing')+(j.boxes||j.weight?D('Boxes',j.boxes)+D('Approx. weight',j.weight?j.weight+' kg':''):'<i>Not packed yet — boxes &amp; weight will show here once packing saves them.</i>')+
+    sec('Transport — send the goods by')+(tn?D('Transporter',tn)+D('Transporter phone',tc.phone||o.transporterPhone)+D('Transporter email',tc.email||o.transporterEmail)+D('Transporter ID / GSTIN',tc.transporterId||o.transporterId)+D('Pickup requested for',j.pickupFor?ST.fmtDate(j.pickupFor):'')+D('L.R. number',o.lrNumber)+D('Despatch date',o.dod?ST.fmtDate(o.dod):'')+D('Tracking link',o.trackingLink):'<i>No transporter chosen yet — it is chosen at the Pickup step; this page shows it from then on.</i>')+'</div>',
     buttons:[{label:'Close',value:null}]}).catch(()=>{});}
 // Packing: enter boxes + weight, then approval
 async function packDetails(no){const j=getJob(no);if(!j||j.stage!=='Packing')return;
