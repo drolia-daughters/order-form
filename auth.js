@@ -71,7 +71,7 @@
   if (u) A.user = u; else hide();
 
   // An app page this person has no right to open is covered with a notice.
-  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
+  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
   function checkRight() {
     if (blocked || OPEN_TO_ALL[page] || A.can(page)) return;
     blocked = true;
@@ -102,6 +102,31 @@
     });
   }
 
+  // ─── Security alert: the Admin sees a red bar on every page while there are unseen warning events ───
+  var ALERT_KINDS = { login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1 };
+  A.ready.then(function (me) {
+    if (!me || me.role !== 'Admin' || page === 'security.html') return;
+    var go = function () {
+      A.client.from('security_log').select('id,at,kind,login_id,ip,detail').eq('seen', false).order('at', { ascending: false }).limit(300).then(function (r) {
+        if (r.error || !r.data) return;
+        var mine = ' by ' + me.login_id, bad = r.data.filter(function (e) {
+          if (!ALERT_KINDS[e.kind]) return false;
+          if (/^(rights_changed|user_added|user_removed|login_id_changed|password_changed)$/.test(e.kind) && String(e.detail || '').slice(-mine.length) === mine) return false;   // your own changes
+          return true;
+        });
+        if (!bad.length) return;
+        var worst = bad.filter(function (e) { return e.kind === 'LOCKED_OUT' || e.kind === 'ROLE_CHANGED'; }).length;
+        var fails = bad.filter(function (e) { return e.kind === 'login_fail'; }).length;
+        var bar = document.createElement('div');
+        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#b91c1c;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 14px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.4);cursor:pointer;';
+        bar.textContent = '🚨 SECURITY ALERT — ' + bad.length + ' warning' + (bad.length > 1 ? 's' : '') + ': ' + (fails ? fails + ' wrong login attempt' + (fails > 1 ? 's' : '') + '. ' : '') + (worst ? worst + ' serious (lock-out / role change). ' : '') + 'Click to open the Security page.';
+        bar.onclick = function () { location.href = 'security.html'; };
+        document.body.appendChild(bar); document.title = '🚨 ' + document.title;
+      });
+    };
+    if (document.readyState !== 'loading') go(); else document.addEventListener('DOMContentLoaded', go);
+  });
+
   // Main Page: show who is logged in, with Users (Admin only) and Log out.
   if (page === 'index.html') {
     var dom = new Promise(function (res) { if (document.readyState !== 'loading') res(); else document.addEventListener('DOMContentLoaded', res); });
@@ -112,7 +137,7 @@
       who.style.cssText = 'font-size:12px;color:var(--text-dim);margin-left:6px;white-space:nowrap;';
       who.textContent = '👤 ' + me.name + (me.role === 'Admin' ? ' (Admin)' : me.can_bill ? ' (Accounts)' : me.can_delete && me.can_approve ? ' (Sub Admin)' : me.can_approve ? ' (Approver)' : '');
       bar.appendChild(who);
-      if (me.role === 'Admin') btn('Users', function () { location.href = 'users.html'; });
+      if (me.role === 'Admin') { btn('Users', function () { location.href = 'users.html'; }); btn('🛡 Security', function () { location.href = 'security.html'; }); }
       btn('Log out', A.logout);
     });
   }

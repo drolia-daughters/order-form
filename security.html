@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Sentire Technologies — Security</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth_config.js"></script>
+<script src="auth.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding:24px;}
+.wrap{max-width:900px;margin:0 auto;}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+h1{font-size:22px;}.sp{flex:1;}
+p.sub{font-size:13px;color:var(--text-dim);line-height:1.5;margin-bottom:16px;}
+.btn{border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer;font-family:inherit;}
+.btn:hover{border-color:var(--accent);}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.card b{display:block;font-size:24px;}.card span{font-size:12px;color:var(--text-dim);}
+.card.bad b{color:var(--red);}.card.ok b{color:var(--green);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--text-dim);font-size:11px;text-transform:uppercase;padding:6px 8px;}
+td{padding:7px 8px;border-top:1px solid var(--border);vertical-align:top;}
+tr.warn td{background:rgba(239,68,68,.07);}tr.new td:first-child{border-left:3px solid var(--red);}
+.k{font-size:11px;border-radius:20px;padding:2px 9px;border:1px solid var(--border);white-space:nowrap;}
+.k.r{color:var(--red);border-color:var(--red);}.k.o{color:var(--orange);border-color:var(--orange);}.k.g{color:var(--green);border-color:var(--green);}
+.msg{font-size:13px;min-height:18px;margin:10px 0;color:var(--red);}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🛡 Security</h1><span class="sp"></span><button class="btn" id="seenBtn">✓ Mark all as seen</button><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
+  <p class="sub">Every wrong password, lock-out, Admin login, password change and change of rights is written here. Only Admins can see this page. A red bar shows on every page while something new needs your attention.</p>
+  <div class="msg" id="msg"></div>
+  <div class="cards" id="cards"></div>
+  <div class="box" id="how"><b>What protects the logins</b><br>• 5 wrong passwords on one login in 15 minutes → that login is locked for 15 minutes (and every try is logged).<br>• 20 wrong passwords from one internet address in 15 minutes → that address is blocked.<br>• The internal login address of each person is secret and never sent to the browser.<br>• Password check for “Approve anyway” is logged too.<br>If the lock-out hits the real Admin, the other Admin can still log in.</div>
+  <div id="list"></div>
+</div>
+<script>
+var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+var LABEL = { login_fail: ['Wrong password', 'o'], LOCKED_OUT: ['LOCKED OUT', 'r'], ROLE_CHANGED: ['ROLE CHANGED', 'r'], admin_login_ok: ['Admin login', 'g'], admin_check_ok: ['Admin password check', 'g'],
+  password_changed: ['Password changed', 'o'], rights_changed: ['Rights changed', 'o'], user_added: ['User added', 'o'], user_removed: ['User removed', 'o'], login_id_changed: ['Login ID changed', 'o'] };
+function load() {
+  A.client.from('security_log').select('id,at,kind,login_id,ip,detail,seen').order('at', { ascending: false }).limit(300).then(function (r) {
+    if (r.error) { $('msg').textContent = 'Only Admins can open this page.'; return; }
+    var rows = r.data || [], day = Date.now() - 864e5;
+    var f24 = rows.filter(function (x) { return x.kind === 'login_fail' && new Date(x.at) > day; }).length;
+    var lk = rows.filter(function (x) { return x.kind === 'LOCKED_OUT' && new Date(x.at) > day; }).length;
+    var rc = rows.filter(function (x) { return x.kind === 'ROLE_CHANGED' && new Date(x.at) > day; }).length;
+    var nw = rows.filter(function (x) { return !x.seen; }).length;
+    $('cards').innerHTML = '<div class="card ' + (f24 ? 'bad' : 'ok') + '"><b>' + f24 + '</b><span>wrong passwords, last 24 h</span></div><div class="card ' + (lk ? 'bad' : 'ok') + '"><b>' + lk + '</b><span>lock-outs, last 24 h</span></div><div class="card ' + (rc ? 'bad' : 'ok') + '"><b>' + rc + '</b><span>role changes, last 24 h</span></div><div class="card"><b>' + nw + '</b><span>new, not yet marked seen</span></div>';
+    $('list').innerHTML = rows.length ? '<table><tr><th>When</th><th>Event</th><th>Login</th><th>Address</th><th>Details</th></tr>' + rows.map(function (x) {
+      var l = LABEL[x.kind] || [x.kind, 'o'];
+      return '<tr class="' + (x.seen ? '' : 'new') + ' ' + (l[1] === 'r' ? 'warn' : '') + '"><td>' + esc(new Date(x.at).toLocaleString('en-IN')) + '</td><td><span class="k ' + l[1] + '">' + esc(l[0]) + '</span></td><td>' + esc(x.login_id) + '</td><td>' + esc(x.ip) + '</td><td>' + esc(x.detail) + '</td></tr>';
+    }).join('') + '</table>' : '<div class="box">Nothing recorded yet — that is good news.</div>';
+  });
+}
+$('seenBtn').onclick = function () { A.rpc('admin_security_seen').then(function () { load(); $('msg').style.color = 'var(--green)'; $('msg').textContent = '✓ Marked as seen.'; }).catch(function (e) { $('msg').textContent = e.message; }); };
+if (!A.enabled) $('msg').textContent = 'Login is not switched on.';
+else A.ready.then(function (me) { if (!me) return; if (me.role !== 'Admin') { $('msg').textContent = 'Only Admins can open this page.'; return; } load(); });
+</script>
+</body>
+</html>
