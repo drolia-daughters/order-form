@@ -101,18 +101,18 @@ function render() {
     h += '<div class="row"><div><b>' + esc(u.name) + '</b> <span class="tag ' + (u.role === 'Admin' || u.can_approve || u.can_delete ? 'adm' : '') + '">' + esc(roleLabel(u)) + '</span><br><span class="id">Login ID: ' + esc(u.login_id) + '</span><div class="rights">' + esc(rightsText(u)) + '</div></div><span class="sp"></span>' +
       '<button class="btn" onclick="edit(' + i + ')">Edit</button>' + (u.role === 'Admin' ? '' : '<button class="btn del" onclick="removeUser(' + i + ')">Remove</button>') + '</div>';
   });
-  for (var k = n; k < max; k++) h += '<div class="empty">User ' + (k + 1) + ' — not created yet</div>';
+  for (var k = n; k < max; k++) h += '<div class="empty" style="display:flex;align-items:center;gap:10px"><span>User ' + (k + 1) + ' — not created yet</span><span class="sp"></span><button class="btn pri" onclick="edit(null,' + (k + 1) + ')">+ Add User ' + (k + 1) + '</button></div>';
   $('list').innerHTML = h; $('addBtn').hidden = n >= max;
 }
 function load() { return A.rpc('admin_list_users').then(function (rows) { users = rows || []; render(); }); }
-function edit(i) {
+function edit(i, slot) {
   editing = i === null ? null : users[i];
-  $('d_title').textContent = editing ? 'Edit ' + editing.name : 'Add user';
-  $('d_name').value = editing ? editing.name : ''; $('d_id').value = editing ? editing.login_id : ''; $('d_pw').value = '';
+  $('d_title').textContent = editing ? 'Edit ' + editing.name : (slot ? 'Add User ' + slot : 'Add user');
+  $('d_name').value = editing ? editing.name : (slot ? 'User ' + slot : ''); $('d_id').value = editing ? editing.login_id : (slot ? 'u' + (slot < 10 ? '0' : '') + slot : ''); $('d_pw').value = '';
   $('d_pwl').textContent = editing ? 'New password (leave empty to keep the present one)' : 'Password (at least 6 characters)';
   var isAdmin = editing && editing.role === 'Admin', has = editing && Array.isArray(editing.apps) ? editing.apps : null;
   $('d_rights').hidden = !!isAdmin; $('d_perms').hidden = !!isAdmin;
-  $('d_apv').checked = !!(editing && editing.can_approve); $('d_del').checked = !!(editing && editing.can_delete);
+  $('d_apv').checked = !!(editing ? editing.can_approve : slot === 10); $('d_del').checked = !!(editing && editing.can_delete);
   $('d_apps').innerHTML = APPS.map(function (a) { return '<label><input type="checkbox" value="' + a[0] + '"' + (!has || has.indexOf(a[0]) >= 0 ? ' checked' : '') + '>' + esc(a[1]) + '</label>'; }).join('');
   $('d_err').textContent = ''; $('ov').hidden = false; $('d_name').focus();
 }
