@@ -202,7 +202,7 @@ function loadMode() {
     var here = HERE ? 'This computer: <b>' + esc(HERE.ip) + '</b> (' + esc([HERE.city, HERE.country].filter(Boolean).join(', ') || 'place not known') + ') — ' +
       (mine && mine.status === 'allowed' ? '<span class="k g">✓ saved as ' + esc(mine.label || 'saved') + '</span>' : '<span class="k o">not saved</span> <button class="btn sm green" onclick="saveIp(\'' + esc(HERE.ip) + '\')">Save this computer’s address</button>') : 'Finding this computer’s address…';
     $('modeBox').innerHTML = '<div class="mode"><span class="big ' + (on ? 'on' : 'off') + '">' + (on ? 'ON' : 'OFF') + '</span><span style="flex:1;min-width:240px">' +
-      (on ? 'People can log in <b>only from saved addresses</b>. A new address gets <b>Error 2 — contact your Admin</b>.' : 'Anyone with the right login ID and password can log in from anywhere, except from <b>blocked</b> addresses.') +
+      (on ? 'Users can log in <b>only from saved addresses</b>. A new address gets <b>Error 2 — contact your Admin</b>. The two Admins can still log in from anywhere.' : 'Anyone with the right login ID and password can log in from anywhere, except from <b>blocked</b> addresses.') +
       (SETTINGS.changed_by ? '<br><small class="dim">Last switched by ' + esc(SETTINGS.changed_by) + ', ' + esc(when(SETTINGS.changed_at)) + '</small>' : '') + '</span>' +
       '<button class="btn ' + (on ? '' : 'red') + '" id="modeBtn">' + (on ? 'Switch Inter mode OFF' : 'Switch Inter mode ON') + '</button></div>' +
       '<div style="margin-top:10px">' + here + '</div><div class="dim" style="margin-top:6px">Each person can be logged in on at most <b>' + (SETTINGS.max_devices || 2) + ' devices</b> at a time. A 3rd device is refused until they log out from one.</div>';
@@ -212,14 +212,8 @@ function loadMode() {
 function toggleMode() {
   var on = !SETTINGS.inter_mode;
   if (on) {
-    var mine = HERE && IPS[HERE.ip];
-    if (HERE && !(mine && mine.status === 'allowed')) {
-      var name = prompt('This computer’s address (' + HERE.ip + ') is not saved yet.\nIf you switch Inter mode on without saving it, you could lock yourself out.\n\nSave it now — give it a name (e.g. Office):', 'Office');
-      if (name === null) return;
-      return A.rpc('admin_ip_set', { p_ip: HERE.ip, p_label: name, p_status: 'allowed' }).then(function () { return switchMode(true); }).catch(function (e) { say(e.message); });
-    }
-    if (!confirm('Switch Inter mode ON?\n\nFrom now on, people can log in only from the saved addresses. Anyone else gets “Error 2 — contact your Admin”.\nPeople already logged in stay logged in.')) return;
-  } else if (!confirm('Switch Inter mode OFF?\n\nPeople can then log in from any address that is not blocked.')) return;
+    if (!confirm('Switch Inter mode ON?\n\nFrom now on, users can log in only from the saved addresses. Anyone else gets “Error 2 — contact your Admin”.\nThe two Admins can still log in from anywhere. People already logged in stay logged in.')) return;
+  } else if (!confirm('Switch Inter mode OFF?\n\nUsers can then log in from any address that is not blocked.')) return;
   switchMode(on);
 }
 function switchMode(on) {

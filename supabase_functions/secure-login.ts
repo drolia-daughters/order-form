@@ -10,7 +10,7 @@
 //         locate (Security page: fill in the place for addresses that have none yet) ·
 //         whoami (Security page: the address and place of the computer asking)
 // Login rules (supabase_update_8_ip_rules.sql): a blocked address, or a new address while Inter mode
-// is on, gets "Error 2"; nobody may be logged in on more than security_settings.max_devices (2) devices.
+// is on (users only — the Admins are not limited by Inter mode), gets "Error 2"; nobody may be logged in on more than security_settings.max_devices (2) devices.
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL_ = Deno.env.get("SUPABASE_URL")!, SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(URL_, SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -76,13 +76,15 @@ Deno.serve(async (req) => {
   const where = place(ip);                       // start the look-up now; it runs while the password is checked
   // Saved / blocked addresses and Inter mode (only for a real login, not for the Admin password check)
   let maxDevices = 2;
+  const { data: prof } = await admin.from("profiles").select("user_id, role, name, login_id").eq("login_id", id).maybeSingle();
   if (mode === "login") {
     const [{ data: set }, { data: rule }] = await Promise.all([
       admin.from("security_settings").select("inter_mode, max_devices").eq("id", 1).maybeSingle(),
       ip ? admin.from("ip_rules").select("status, label").eq("ip", ip).maybeSingle() : Promise.resolve({ data: null as any }),
     ]);
     if (set?.max_devices) maxDevices = set.max_devices;
-    const blocked = rule?.status === "blocked", notSaved = !!set?.inter_mode && rule?.status !== "allowed";
+    // Blocked addresses stop everybody. Inter mode (saved addresses only) applies to users, not to the Admins.
+    const blocked = rule?.status === "blocked", notSaved = !!set?.inter_mode && rule?.status !== "allowed" && prof?.role !== "Admin";
     if (blocked || notSaved) {
       await log(blocked ? "IP_BLOCKED" : "IP_NOT_ALLOWED", id, ip,
         blocked ? `Error 2 — login refused: this address is blocked${rule?.label ? " (" + rule.label + ")" : ""}` : "Error 2 — login refused: new address, Inter mode is on", await where);
@@ -99,7 +101,6 @@ Deno.serve(async (req) => {
     if ((recent.count ?? 0) === 0) await log("LOCKED_OUT", id, ip, `blocked after ${a.count} wrong tries on this login / ${b.count} from this address in ${WINDOW_MIN} min`, await where);
     return json({ error: "locked", message: `Too many wrong tries. Wait ${WINDOW_MIN} minutes and try again.` }, 429);
   }
-  const { data: prof } = await admin.from("profiles").select("user_id, role, name, login_id").eq("login_id", id).maybeSingle();
   let email = `none-${id.replace(/[^a-z0-9]/g, "")}@login.sentire.invalid`;
   if (prof) { const { data: u } = await admin.auth.admin.getUserById(prof.user_id); if (u?.user?.email) email = u.user.email; }
   const anon = createClient(URL_, ANON, { auth: { persistSession: false, autoRefreshToken: false } });

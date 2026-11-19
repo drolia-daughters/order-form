@@ -6,7 +6,7 @@
 --    A login that has not been used for 7 days no longer counts (it is ended).
 --  • ip_rules: internet addresses (IPs) the Admin / Sub Admin has saved by name
 --    ("allowed") or blocked. A blocked address can never log in → "Error 2".
---  • Inter mode: when switched on, people may log in ONLY from saved addresses.
+--  • Inter mode: when switched on, USERS may log in ONLY from saved addresses (the Admins are exempt).
 --    A new address gets "Error 2 — contact your Admin".
 --
 --  EMERGENCY (locked out by Inter mode): Supabase → SQL Editor → run
