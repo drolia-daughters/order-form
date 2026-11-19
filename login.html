@@ -79,6 +79,8 @@ function plain(e) {                       // turn a technical error into a plain
 function signIn(id, password) {
   return A.callFn('secure-login', { login_id: id, password: password }).then(function (r) {
     if (r.status === 429) throw new Error(r.json.message || 'Too many wrong tries. Wait 15 minutes and try again.');
+    if (r.status === 403 && r.json.code === 2) throw new Error(r.json.message || 'Error 2: You are not allowed to log in from this place. Contact your Admin.');
+    if (r.status === 409) throw new Error(r.json.message || 'You are already logged in on 2 devices. Kindly log out from one device and then try to log in again.');
     if (!r.json.session) throw new Error('Wrong login ID or password.');
     return A.client.auth.setSession(r.json.session);
   }).then(function (r) {

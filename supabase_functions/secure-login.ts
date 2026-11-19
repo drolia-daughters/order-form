@@ -7,13 +7,17 @@
 // The internal e-mail of a login is looked up here and never sent to the browser.
 //
 // Modes:  login (default) · verify (check an Admin password, no login is kept) ·
-//         locate (Security page: fill in the place for addresses that have none yet)
+//         locate (Security page: fill in the place for addresses that have none yet) ·
+//         whoami (Security page: the address and place of the computer asking)
+// Login rules (supabase_update_8_ip_rules.sql): a blocked address, or a new address while Inter mode
+// is on, gets "Error 2"; nobody may be logged in on more than security_settings.max_devices (2) devices.
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL_ = Deno.env.get("SUPABASE_URL")!, SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(URL_, SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const WINDOW_MIN = 15, MAX_PER_LOGIN = 5, MAX_PER_IP = 20;
+const ERR2 = "Error 2: You are not allowed to log in from this place. Contact your Admin.";
 type Place = { city: string | null; region: string | null; country: string | null };
 const NOWHERE: Place = { city: null, region: null, country: null };
 
@@ -45,6 +49,8 @@ Deno.serve(async (req) => {
   const ua = (req.headers.get("user-agent") || "").slice(0, 300);
   let body: any = {}; try { body = await req.json(); } catch (_) { return json({ error: "Bad request." }, 400); }
 
+  if (body.mode === "whoami") return json({ ip, ...(await place(ip)) });
+
   // ── Security page: look up the place of addresses that have none yet (Admin / Sub Admin only) ──
   if (body.mode === "locate") {
     const { data: who } = await admin.auth.getUser(String(body.token || ""));
@@ -68,6 +74,21 @@ Deno.serve(async (req) => {
   const mode = body.mode === "verify" ? "verify" : "login";
   if (!id || !password) return json({ error: "Wrong login ID or password." }, 401);
   const where = place(ip);                       // start the look-up now; it runs while the password is checked
+  // Saved / blocked addresses and Inter mode (only for a real login, not for the Admin password check)
+  let maxDevices = 2;
+  if (mode === "login") {
+    const [{ data: set }, { data: rule }] = await Promise.all([
+      admin.from("security_settings").select("inter_mode, max_devices").eq("id", 1).maybeSingle(),
+      ip ? admin.from("ip_rules").select("status, label").eq("ip", ip).maybeSingle() : Promise.resolve({ data: null as any }),
+    ]);
+    if (set?.max_devices) maxDevices = set.max_devices;
+    const blocked = rule?.status === "blocked", notSaved = !!set?.inter_mode && rule?.status !== "allowed";
+    if (blocked || notSaved) {
+      await log(blocked ? "IP_BLOCKED" : "IP_NOT_ALLOWED", id, ip,
+        blocked ? `Error 2 — login refused: this address is blocked${rule?.label ? " (" + rule.label + ")" : ""}` : "Error 2 — login refused: new address, Inter mode is on", await where);
+      return json({ error: "ip", code: 2, message: ERR2 }, 403);
+    }
+  }
   const since = new Date(Date.now() - WINDOW_MIN * 60000).toISOString();
   const [a, b] = await Promise.all([
     admin.from("security_log").select("id", { count: "exact", head: true }).eq("kind", "login_fail").eq("login_id", id).gt("at", since),
@@ -89,10 +110,17 @@ Deno.serve(async (req) => {
     if (prof.role !== "Admin") { await log("login_fail", id, ip, "non-admin tried the Admin check", await where); return json({ error: "That login is not an Admin." }, 403); }
     await log("admin_check_ok", id, ip, "Admin password confirmed for an override", await where); return json({ ok: true, name: prof.name });
   }
-  const p = await where, dev = device(ua);
+  const p = await where, dev = device(ua), sid = sessionIdOf(data.session.access_token);
+  // Two-device limit: count this person's OTHER logins (the one just made is not counted)
+  const { data: others } = await admin.rpc("svc_device_count", { p_user_id: prof.user_id, p_except: sid || crypto.randomUUID() });
+  if ((others ?? 0) >= maxDevices) {
+    try { await admin.auth.admin.signOut(data.session.access_token, "local"); } catch (_) {}
+    await log("DEVICE_LIMIT", id, ip, `refused one more device · ${dev} (already logged in on ${others})`, p);
+    return json({ error: "devices", message: `You are already logged in on ${maxDevices} devices. Kindly log out from one device and then try to log in again.` }, 409);
+  }
   await log(prof.role === "Admin" ? "admin_login_ok" : "login_ok", id, ip, (prof.role === "Admin" ? "Admin logged in" : "Logged in") + " · " + dev, p);
   try {
-    await admin.from("login_sessions").insert({ auth_session_id: sessionIdOf(data.session.access_token), user_id: prof.user_id, login_id: prof.login_id, name: prof.name, role: prof.role, ip, device: dev, ...p });
+    await admin.from("login_sessions").insert({ auth_session_id: sid, user_id: prof.user_id, login_id: prof.login_id, name: prof.name, role: prof.role, ip, device: dev, ...p });
   } catch (_) {}
   return json({ session: { access_token: data.session.access_token, refresh_token: data.session.refresh_token } });
 });

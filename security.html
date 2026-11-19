@@ -36,6 +36,9 @@ h2{font-size:16px;margin:22px 0 8px;display:flex;align-items:center;gap:10px;}
 .btn.sm{padding:5px 10px;font-size:12px;}
 .tbl{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow-x:auto;margin-bottom:8px;}
 tr.abroad td{background:rgba(245,158,11,.08);}
+.mode{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}.mode .big{font-size:20px;font-weight:700;}.mode .on{color:var(--green);}.mode .off{color:var(--text-dim);}
+.btn.green{border-color:var(--green);color:#bbf7d0;}.btn.green:hover{background:rgba(34,197,94,.15);}
+tr.blocked td{background:rgba(239,68,68,.07);}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--text-dim);}.dot.on{background:var(--green);}
 </style>
 </head>
@@ -48,6 +51,13 @@ tr.abroad td{background:rgba(245,158,11,.08);}
   <h2>👥 Logged in now</h2>
   <div class="tbl" id="live"><div class="box">Loading…</div></div>
   <p class="dim" style="margin-bottom:6px">“Log out” ends that one device at once. “All devices” logs the person out everywhere. Logins outside India are shown in orange. The list refreshes every 30 seconds.</p>
+
+  <h2>🔒 Inter mode</h2>
+  <div class="box" id="modeBox">Loading…</div>
+
+  <h2>🌐 Internet addresses (IP) <span class="sp"></span><button class="btn sm" id="addIpBtn">+ Add address</button></h2>
+  <div class="tbl" id="ips"></div>
+  <p class="dim" style="margin-bottom:6px"><b>Save</b> = a known, trusted address with a name (e.g. Office, Brother Sydney). <b>Block</b> = nobody can ever log in from it. <b>Unblock</b> puts it back as a saved address. When someone calls about “Error 2”, find their address here (or in the log below) and press <b>Save</b>.</p>
 
   <h2>📜 Security log <span class="sp"></span><button class="btn sm" id="seenBtn">✓ Mark all as seen</button></h2>
   <div class="cards" id="cards"></div>
@@ -67,8 +77,17 @@ function place(x) {
   return p || (x.ip ? 'Finding place…' : 'Not known (logged in before tracking started)');
 }
 function abroad(x) { return x.country && x.country !== 'India'; }
+var IPS = {}, SETTINGS = null, HERE = null;        // ip → {label,status}; Inter mode; this computer's address
+function ipTag(ip) {
+  var r = IPS[ip]; if (!ip) return '';
+  if (r && r.status === 'allowed') return ' <span class="k g">✓ ' + esc(r.label || 'saved') + '</span>';
+  if (r && r.status === 'blocked') return ' <span class="k r">⛔ blocked</span>';
+  return ' <button class="btn sm green" onclick="saveIp(\'' + esc(ip) + '\')">Save IP</button>';
+}
 function say(t, ok) { $('msg').style.color = ok ? 'var(--green)' : 'var(--red)'; $('msg').textContent = t; }
 var LABEL = { SUSPICIOUS_DATA: ['SUSPICIOUS DATA', 'r'], login_fail: ['Wrong password', 'o'], LOCKED_OUT: ['LOCKED OUT', 'r'], ROLE_CHANGED: ['ROLE CHANGED', 'r'],
+  IP_NOT_ALLOWED: ['ERROR 2 · new address', 'r'], IP_BLOCKED: ['ERROR 2 · blocked address', 'r'], DEVICE_LIMIT: ['3rd device refused', 'o'],
+  IP_SAVED: ['Address saved', 'g'], IP_BLOCKED_SET: ['Address blocked', 'o'], IP_UNBLOCKED: ['Address unblocked', 'g'], IP_REMOVED: ['Address removed', 'o'], INTER_MODE: ['Inter mode', 'o'],
   admin_login_ok: ['Admin login', 'g'], login_ok: ['User login', 'g'], admin_check_ok: ['Admin password check', 'g'], FORCED_LOGOUT: ['LOGGED OUT', 'r'],
   password_changed: ['Password changed', 'o'], rights_changed: ['Rights changed', 'o'], user_added: ['User added', 'o'], user_removed: ['User removed', 'o'], login_id_changed: ['Login ID changed', 'o'], DATA_RESTORED: ['DATA RESTORED', 'r'] };
 
@@ -82,7 +101,7 @@ function loadLive() {
     $('live').innerHTML = '<table><tr><th>Person</th><th>Where</th><th>Device</th><th>Logged in</th><th>Last active</th><th></th></tr>' + LIVE.map(function (x, i) {
       var on = Date.now() - new Date(x.last_active) < 5 * 60000;
       return '<tr class="' + (abroad(x) ? 'abroad' : '') + '"><td class="who"><b>' + esc(x.name) + '</b><small>' + esc(x.login_id) + ' · ' + esc(x.role) + (x.is_me ? ' · <span class="k g">this is you</span>' : '') + '</small></td>' +
-        '<td>' + (abroad(x) ? '🌍 ' : '') + esc(place(x)) + (x.ip ? '<br><small class="dim">IP ' + esc(x.ip) + '</small>' : '') + '</td>' +
+        '<td>' + (abroad(x) ? '🌍 ' : '') + esc(place(x)) + (x.ip ? '<br><small class="dim">IP ' + esc(x.ip) + '</small>' + ipTag(x.ip) : '') + '</td>' +
         '<td>' + esc(x.device || '—') + '</td><td>' + esc(when(x.started_at)) + '</td>' +
         '<td><span class="dot ' + (on ? 'on' : '') + '"></span>' + esc(ago(x.last_active)) + '</td>' +
         '<td style="white-space:nowrap">' + (x.is_me ? '' : '<button class="btn sm red" onclick="endOne(' + i + ')">Log out</button> ') +
@@ -116,7 +135,7 @@ function loadLog() {
     $('list').innerHTML = rows.length ? '<table><tr><th>When</th><th>Event</th><th>Login</th><th>Where</th><th>Details</th></tr>' + rows.map(function (x) {
       var l = LABEL[x.kind] || [x.kind, 'o'];
       return '<tr class="' + (x.seen ? '' : 'new') + ' ' + (l[1] === 'r' ? 'warn' : abroad(x) ? 'abroad' : '') + '"><td>' + esc(new Date(x.at).toLocaleString('en-IN')) + '</td><td><span class="k ' + l[1] + '">' + esc(l[0]) + '</span></td><td>' + esc(x.login_id) + '</td><td>' +
-        (x.ip ? (abroad(x) ? '🌍 ' : '') + esc([x.city, x.country].filter(Boolean).join(', ') || '…') + '<br><small class="dim">IP ' + esc(x.ip) + '</small>' : '') + '</td><td>' + esc(x.detail) + '</td></tr>';
+        (x.ip ? (abroad(x) ? '🌍 ' : '') + esc([x.city, x.country].filter(Boolean).join(', ') || '…') + '<br><small class="dim">IP ' + esc(x.ip) + '</small>' + (/^IP_(NOT_ALLOWED|BLOCKED)$/.test(x.kind) || /login_ok$/.test(x.kind) ? ipTag(x.ip) : '') : '') + '</td><td>' + esc(x.detail) + '</td></tr>';
     }).join('') + '</table>' : '<div class="box">Nothing recorded yet — that is good news.</div>';
     return rows;
   });
@@ -130,7 +149,84 @@ function locate(rows) {
     return A.callFn('secure-login', { mode: 'locate', token: t }).then(function (res) { if (res.json && res.json.found) refresh(); });
   });
 }
-function refresh() { loadLive(); loadLog().then(locate); }
+// ── Internet addresses ──
+var IPLIST = [];
+function loadIps() {
+  return A.rpc('admin_ip_list').then(function (rows) {
+    IPLIST = rows || []; IPS = {};
+    IPLIST.forEach(function (x) { if (x.status !== 'new') IPS[x.ip] = x; });
+    $('ips').innerHTML = IPLIST.length ? '<table><tr><th>Address</th><th>Name</th><th>Status</th><th>Where</th><th>Last seen</th><th>Logins seen</th><th></th></tr>' + IPLIST.map(function (x, i) {
+      var st = x.status === 'allowed' ? '<span class="k g">✓ Saved</span>' : x.status === 'blocked' ? '<span class="k r">⛔ Blocked</span>' : '<span class="k o">New</span>';
+      var b = x.status === 'new' ? '<button class="btn sm green" onclick="ipAct(' + i + ',\'save\')">Save</button> <button class="btn sm red" onclick="ipAct(' + i + ',\'block\')">Block</button>'
+        : x.status === 'allowed' ? '<button class="btn sm" onclick="ipAct(' + i + ',\'rename\')">Rename</button> <button class="btn sm red" onclick="ipAct(' + i + ',\'block\')">Block</button> <button class="btn sm" onclick="ipAct(' + i + ',\'remove\')">Remove</button>'
+        : '<button class="btn sm green" onclick="ipAct(' + i + ',\'unblock\')">Unblock</button> <button class="btn sm" onclick="ipAct(' + i + ',\'remove\')">Remove</button>';
+      return '<tr class="' + (x.status === 'blocked' ? 'blocked' : abroad(x) ? 'abroad' : '') + '"><td><b>' + esc(x.ip) + '</b>' + (HERE && HERE.ip === x.ip ? '<br><span class="k g">this computer</span>' : '') + '</td><td>' + esc(x.label || '—') + '</td><td>' + st + '</td>' +
+        '<td>' + (abroad(x) ? '🌍 ' : '') + esc([x.city, x.region, x.country].filter(Boolean).join(', ') || '—') + '</td><td>' + esc(x.last_seen ? ago(x.last_seen) : '—') + '</td><td>' + esc(x.logins || '—') + '</td><td style="white-space:nowrap">' + b + '</td></tr>';
+    }).join('') + '</table>' : '<div class="box">No addresses yet.</div>';
+  }).catch(function (e) { $('ips').innerHTML = '<div class="box">' + esc(e.message) + '</div>'; });
+}
+function setIp(ip, label, status, okText) {
+  return A.rpc('admin_ip_set', { p_ip: ip, p_label: label || '', p_status: status }).then(function () { say(okText, true); refresh(); }).catch(function (e) { say(e.message); });
+}
+function saveIp(ip) {
+  var name = prompt('Save ' + ip + ' as a trusted address.\nGive it a name (e.g. Office, Home, Brother Sydney):', '');
+  if (name === null) return;
+  setIp(ip, name, 'allowed', '✓ ' + ip + ' saved' + (name ? ' as “' + name + '”' : '') + '. Logins from it are allowed.');
+}
+function ipAct(i, what) {
+  var x = IPLIST[i]; if (!x) return;
+  if (what === 'save') return saveIp(x.ip);
+  if (what === 'rename') { var n = prompt('New name for ' + x.ip + ':', x.label || ''); if (n !== null) setIp(x.ip, n, 'allowed', '✓ Renamed.'); return; }
+  if (what === 'block') {
+    if (HERE && HERE.ip === x.ip && !confirm('This is THIS computer’s address. If you block it, nobody (you too) can log in from here again. Block it anyway?')) return;
+    if (!confirm('Block ' + x.ip + (x.label ? ' (' + x.label + ')' : '') + '?\nNobody can log in from this address. People already logged in from it stay logged in — use “Log out” above for them.')) return;
+    return setIp(x.ip, x.label, 'blocked', '⛔ ' + x.ip + ' is blocked. Logins from it get Error 2.');
+  }
+  if (what === 'unblock') return setIp(x.ip, x.label, 'allowed', '✓ ' + x.ip + ' is unblocked and saved.');
+  if (what === 'remove') {
+    if (!confirm('Remove ' + x.ip + ' from the saved addresses?' + (SETTINGS && SETTINGS.inter_mode ? '\n\nInter mode is ON — logins from this address will get Error 2.' : ''))) return;
+    A.rpc('admin_ip_remove', { p_ip: x.ip }).then(function () { say('✓ Removed.', true); refresh(); }).catch(function (e) { say(e.message); });
+  }
+}
+$('addIpBtn').onclick = function () {
+  var ip = prompt('Type the internet address (IP) to save, e.g. 103.39.128.132:', ''); if (!ip) return;
+  var name = prompt('Name for ' + ip.trim() + ' (e.g. Office):', ''); if (name === null) return;
+  setIp(ip.trim(), name, 'allowed', '✓ ' + ip.trim() + ' saved.');
+};
+
+// ── Inter mode ──
+function loadMode() {
+  return A.client.from('security_settings').select('inter_mode,max_devices,changed_by,changed_at').eq('id', 1).maybeSingle().then(function (r) {
+    SETTINGS = r.data || { inter_mode: false, max_devices: 2 };
+    var on = SETTINGS.inter_mode, mine = HERE && IPS[HERE.ip];
+    var here = HERE ? 'This computer: <b>' + esc(HERE.ip) + '</b> (' + esc([HERE.city, HERE.country].filter(Boolean).join(', ') || 'place not known') + ') — ' +
+      (mine && mine.status === 'allowed' ? '<span class="k g">✓ saved as ' + esc(mine.label || 'saved') + '</span>' : '<span class="k o">not saved</span> <button class="btn sm green" onclick="saveIp(\'' + esc(HERE.ip) + '\')">Save this computer’s address</button>') : 'Finding this computer’s address…';
+    $('modeBox').innerHTML = '<div class="mode"><span class="big ' + (on ? 'on' : 'off') + '">' + (on ? 'ON' : 'OFF') + '</span><span style="flex:1;min-width:240px">' +
+      (on ? 'People can log in <b>only from saved addresses</b>. A new address gets <b>Error 2 — contact your Admin</b>.' : 'Anyone with the right login ID and password can log in from anywhere, except from <b>blocked</b> addresses.') +
+      (SETTINGS.changed_by ? '<br><small class="dim">Last switched by ' + esc(SETTINGS.changed_by) + ', ' + esc(when(SETTINGS.changed_at)) + '</small>' : '') + '</span>' +
+      '<button class="btn ' + (on ? '' : 'red') + '" id="modeBtn">' + (on ? 'Switch Inter mode OFF' : 'Switch Inter mode ON') + '</button></div>' +
+      '<div style="margin-top:10px">' + here + '</div><div class="dim" style="margin-top:6px">Each person can be logged in on at most <b>' + (SETTINGS.max_devices || 2) + ' devices</b> at a time. A 3rd device is refused until they log out from one.</div>';
+    $('modeBtn').onclick = toggleMode;
+  });
+}
+function toggleMode() {
+  var on = !SETTINGS.inter_mode;
+  if (on) {
+    var mine = HERE && IPS[HERE.ip];
+    if (HERE && !(mine && mine.status === 'allowed')) {
+      var name = prompt('This computer’s address (' + HERE.ip + ') is not saved yet.\nIf you switch Inter mode on without saving it, you could lock yourself out.\n\nSave it now — give it a name (e.g. Office):', 'Office');
+      if (name === null) return;
+      return A.rpc('admin_ip_set', { p_ip: HERE.ip, p_label: name, p_status: 'allowed' }).then(function () { return switchMode(true); }).catch(function (e) { say(e.message); });
+    }
+    if (!confirm('Switch Inter mode ON?\n\nFrom now on, people can log in only from the saved addresses. Anyone else gets “Error 2 — contact your Admin”.\nPeople already logged in stay logged in.')) return;
+  } else if (!confirm('Switch Inter mode OFF?\n\nPeople can then log in from any address that is not blocked.')) return;
+  switchMode(on);
+}
+function switchMode(on) {
+  return A.rpc('admin_set_inter_mode', { p_on: on }).then(function () { say(on ? '🔒 Inter mode is ON. Only saved addresses can log in.' : 'Inter mode is OFF.', true); refresh(); }).catch(function (e) { say(e.message); refresh(); });
+}
+
+function refresh() { loadIps().then(function () { loadMode(); loadLive(); loadLog().then(locate); }); }
 
 $('refBtn').onclick = function () { say(''); refresh(); };
 $('seenBtn').onclick = function () { A.rpc('admin_security_seen').then(function () { loadLog(); say('✓ Marked as seen.', true); }).catch(function (e) { say(e.message); }); };
@@ -138,6 +234,7 @@ if (!A.enabled) say('Login is not switched on.');
 else A.ready.then(function (me) {
   if (!me) return; ME = me;
   if (!A.isSecurityAdmin(me)) { say('Only the Admin or Sub Admin can open this page.'); $('live').innerHTML = ''; return; }
+  A.callFn('secure-login', { mode: 'whoami' }).then(function (r) { if (r.json && r.json.ip) { HERE = r.json; loadMode(); loadIps(); } });
   refresh(); setInterval(loadLive, 30000);
 });
 </script>

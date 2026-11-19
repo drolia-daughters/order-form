@@ -124,7 +124,7 @@
   });
 
   // ─── Security alert: the Admin sees a red bar on every page while there are unseen warning events ───
-  var ALERT_KINDS = { SUSPICIOUS_DATA: 1, login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1, DATA_RESTORED: 1 };
+  var ALERT_KINDS = { IP_NOT_ALLOWED: 1, IP_BLOCKED: 1, SUSPICIOUS_DATA: 1, login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1, DATA_RESTORED: 1 };
   A.ready.then(function (me) {
     if (!me || me.role !== 'Admin' || page === 'security.html') return;
     var go = function () {
@@ -140,9 +140,10 @@
         var worst = bad.filter(function (e) { return e.kind === 'LOCKED_OUT' || e.kind === 'ROLE_CHANGED'; }).length;
         var fails = bad.filter(function (e) { return e.kind === 'login_fail'; }).length;
         var abroad = bad.filter(function (e) { return /login_ok$/.test(e.kind); }).length;
+        var err2 = bad.filter(function (e) { return /^IP_(NOT_ALLOWED|BLOCKED)$/.test(e.kind); }).length;
         var bar = document.createElement('div');
         bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#b91c1c;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 14px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.4);cursor:pointer;';
-        bar.textContent = '🚨 SECURITY ALERT — ' + bad.length + ' warning' + (bad.length > 1 ? 's' : '') + ': ' + (fails ? fails + ' wrong login attempt' + (fails > 1 ? 's' : '') + '. ' : '') + (abroad ? abroad + ' login' + (abroad > 1 ? 's' : '') + ' from outside India. ' : '') + (worst ? worst + ' serious (lock-out / role change). ' : '') + 'Click to open the Security page.';
+        bar.textContent = '🚨 SECURITY ALERT — ' + bad.length + ' warning' + (bad.length > 1 ? 's' : '') + ': ' + (fails ? fails + ' wrong login attempt' + (fails > 1 ? 's' : '') + '. ' : '') + (abroad ? abroad + ' login' + (abroad > 1 ? 's' : '') + ' from outside India. ' : '') + (err2 ? err2 + ' Error 2 (login refused from an address that is not allowed). ' : '') + (worst ? worst + ' serious (lock-out / role change). ' : '') + 'Click to open the Security page.';
         bar.onclick = function () { location.href = 'security.html'; };
         document.body.appendChild(bar); document.title = '🚨 ' + document.title;
       });
