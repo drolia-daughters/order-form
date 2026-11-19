@@ -96,6 +96,12 @@
     if (!pin) { var all6 = t.match(/\b\d{6}\b/g) || []; pin = all6.length ? all6[all6.length - 1] : ''; }
     var city = '';
     var caps = (address.match(/\b[A-Z]{3,}\b/g) || []); if (caps.length) city = caps[caps.length - 1];
+    // line items (product + qty) — prefer the clean e-Way 'Goods Details' lines, else the invoice table
+    var items = [];
+    lines.forEach(function (l) { var m = l.match(/^\d{6,8}\s+([A-Z0-9][A-Z0-9\-\/ ]{1,30}?)\s+\d{1,2}\s+[\d,]+\.\d{2}\s+PCS\s+(\d+)/i); if (m) items.push({ product: m[1].trim().toUpperCase(), qty: +m[2] || 0 }); });
+    if (!items.length) lines.forEach(function (l) { var m = l.match(/^\d+\s+([A-Z0-9][A-Z0-9\-\/ ]{1,30}?)\s+[\d,]+\.\d{2}\s+pcs\.?\s+[\d,]+\.\d{2}\s+(\d+)\s+pcs/i); if (m) items.push({ product: m[1].trim().toUpperCase(), qty: +m[2] || 0 }); });
+    var byProd = {}; items.forEach(function (it) { if (!it.product) return; byProd[it.product] = (byProd[it.product] || 0) + it.qty; });
+    items = Object.keys(byProd).map(function (k) { return { product: k, qty: byProd[k] }; });
     var amt = function (lbl) { var m = t.match(new RegExp(lbl + '\\s*:?\\s*([\\d,]+\\.\\d{2})', 'i')); return m ? num(m[1]) : 0; };
     var taxable = amt('Tot\\.?Taxable Amt') || amt('Taxable Value') || amt('Total Taxable');
     var igst = amt('IGST Amt') || amt('Out Put IGST') || amt('Output IGST');
@@ -109,7 +115,7 @@
     return {
       kind: kind, invoiceNo: invoiceNo, eway: eway, date: date, party: party, gstin: gstin,
       address: address, pincode: pin, stateCode: stateCode, city: city,
-      taxable: taxable, cgst: cgst, sgst: sgst, igst: igst, gstType: gstType, gstPct: gstPct, total: total,
+      taxable: taxable, cgst: cgst, sgst: sgst, igst: igst, gstType: gstType, gstPct: gstPct, total: total, items: items,
       confident: !!(invoiceNo && date && taxable && total && party)
     };
   };
@@ -147,6 +153,7 @@
     }
     all.push({ id: newId(), type: 'income', kind: 'sale', category: 'Sales', date: p.date, party: name || cleanName(p.party), invoiceNo: p.invoiceNo, ref: p.invoiceNo, gstin: p.gstin, address: p.address, pincode: p.pincode, stateCode: p.stateCode, taxable: p.taxable, cgst: p.cgst, sgst: p.sgst, igst: p.igst, gstType: p.gstType, gstPct: p.gstPct, total: p.total, amount: p.total, ewayBill: p.eway, orderNo: orderNo, status: 'Unpaid', mode: '', desc: 'Sales invoice', notes: 'From invoice ' + (p.invoiceNo || ''), pdfName: pdfName || '', source: 'migration' });
     ST.set(FK, all);
+    try { E.addStockItems(p.items); } catch (e) {}
     return { status: 'posted', orderNo: orderNo, matched: !!m };
   };
 
@@ -157,6 +164,20 @@
     all.push({ id: newId(), type: 'expense', kind: 'purchase', category: 'Purchase', date: p.date, party: name || cleanName(p.party), invoiceNo: p.invoiceNo, ref: p.invoiceNo, gstin: p.gstin, address: p.address, pincode: p.pincode, stateCode: p.stateCode, taxable: p.taxable, cgst: p.cgst, sgst: p.sgst, igst: p.igst, gstType: p.gstType, gstPct: p.gstPct, total: p.total, amount: p.total, status: 'Paid', mode: '', desc: 'Purchase invoice', notes: 'From invoice ' + (p.invoiceNo || ''), pdfName: pdfName || '', source: 'migration' });
     ST.set(FK, all);
     return { status: 'posted' };
+  };
+
+  // Add the sold loadcell models to Stock Items if they are missing (does NOT change quantities).
+  E.addStockItems = function (items) {
+    if (!items || !items.length) return 0;
+    var inv = ST.get('inv_items', []); var added = 0, today = new Date().toISOString().split('T')[0];
+    items.forEach(function (it) {
+      var code = String(it.product || '').toUpperCase().trim(); if (!code) return;
+      if (inv.some(function (x) { return String(x.code || '').toUpperCase() === code; })) return;
+      inv.push({ code: code, name: code, category: 'Finished Good', unit: 'Pcs', stock: 0, reorder: 5, leadTime: 50, cost: 0, supplier: '', moq: 0, notes: 'Added from a sales invoice', updated: today });
+      added++;
+    });
+    if (added) ST.set('inv_items', inv);
+    return added;
   };
 
   E.pdfFiles = function (fileList) {
