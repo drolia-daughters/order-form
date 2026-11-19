@@ -7,6 +7,7 @@
 <title>Masters — Sentire Technologies</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="sentire_common.js"></script>
+<script src="invoice_engine.js"></script>
 <style>
 :root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#64748b;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
 *{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
@@ -36,12 +37,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 </head>
 <body>
 <div class="topbar"><div class="brand"><div class="icon">MS</div><h1>Masters</h1></div>
-<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="clients">Clients</button><button class="tab-btn" data-v="trans">Transporters</button><button class="tab-btn" data-v="appr">Approvers</button><button class="tab-btn" data-v="company">Company</button><button class="tab-btn" data-v="hol">Holidays</button><button class="tab-btn" data-v="rules">Payment Rules</button></div></div>
+<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="clients">Clients</button><button class="tab-btn" data-v="vendors">Vendors</button><button class="tab-btn" data-v="trans">Transporters</button><button class="tab-btn" data-v="appr">Approvers</button><button class="tab-btn" data-v="company">Company</button><button class="tab-btn" data-v="hol">Holidays</button><button class="tab-btn" data-v="rules">Payment Rules</button><button class="tab-btn" data-v="migrate">📥 Migrate Invoices</button></div></div>
 <div class="main">
 
 <div class="view active" id="v_clients"><h2>Clients</h2><p class="sub">Payment terms here are used for every new order and for reminders. GSTIN, address and pincode are used on the bill and e-way bill. WhatsApp numbers get despatch messages and payment reminders.</p>
 <div class="toolbar"><input id="cSrch" placeholder="Search client…" style="max-width:260px" oninput="renderClients()"><span class="sp"></span><button class="btn pri" onclick="editClient()">+ Add client</button></div>
 <div class="table-wrap"><table><thead><tr><th>Client</th><th>Location</th><th>WhatsApp</th><th>Email</th><th>GSTIN</th><th>State</th><th>Pincode</th><th>Payment</th><th>Credit days</th><th></th></tr></thead><tbody id="cBody"></tbody></table></div></div>
+
+<div class="view" id="v_vendors"><h2>Vendors</h2><p class="sub">Suppliers you buy from. GSTIN and address fill in automatically when you migrate purchase bills. A party can be both a client and a vendor — they are kept separately, so there is no mix-up.</p>
+<div class="toolbar"><input id="vSrch" placeholder="Search vendor…" style="max-width:260px" oninput="renderVendors()"><span class="sp"></span><button class="btn pri" onclick="editVendor()">+ Add vendor</button></div>
+<div class="table-wrap"><table><thead><tr><th>Vendor</th><th>Location</th><th>Phone</th><th>Email</th><th>GSTIN</th><th>State</th><th>Pincode</th><th></th></tr></thead><tbody id="vBody"></tbody></table></div></div>
 
 <div class="view" id="v_trans"><h2>Transporters</h2><p class="sub">The WhatsApp number receives the pickup request (boxes and weight). Transporter ID / GSTIN goes on the e-way bill.</p>
 <div class="toolbar"><span class="sp"></span><button class="btn pri" onclick="editTrans()">+ Add transporter</button></div>
@@ -66,6 +71,25 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 <div class="fg"><label>Gap between reminders (days)</label><input id="r_gap" type="number" min="1"></div>
 <div class="fg"><label>Reminders before escalation</label><input id="r_max" type="number" min="1" max="10"><div class="hint">After this many reminders + one more gap → Admin & Sub Admin</div></div>
 </div><div id="r_eg" class="hint" style="margin-top:14px;font-size:12px;"></div><div style="display:flex;justify-content:flex-end;margin-top:16px;"><button class="btn ok" onclick="saveRules()">✓ Save rules</button></div></div></div>
+<div class="view" id="v_migrate"><h2>📥 Migrate Invoices</h2>
+<p class="sub">Point this at your <b>Sales</b> folder of invoice PDFs and press Migrate. Every bill is read, matched to its order, and its customer details are added to the Clients master — the same as we did by hand this morning, but for the whole folder at once.</p>
+<div class="card">
+  <h3 style="font-size:15px;margin-bottom:10px;">🟢 Sales invoices</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+    <input type="file" id="salFolder" webkitdirectory directory multiple style="display:none;">
+    <input type="file" id="salFiles" accept="application/pdf" multiple style="display:none;">
+    <button class="btn pri" onclick="document.getElementById('salFolder').click()">📁 Choose Sales folder</button>
+    <button class="btn" onclick="document.getElementById('salFiles').click()">📄 or pick files</button>
+    <span id="salPicked" class="hint"></span>
+  </div>
+  <button class="btn ok" id="salMigrateBtn" onclick="runSalesMigration()" disabled>🔄 Migrate Sales Invoices</button>
+  <span id="salMsg" class="hint" style="margin-left:10px;"></span>
+  <div id="salResults" style="margin-top:14px;"></div>
+</div>
+<div class="card" style="opacity:.7;">
+  <h3 style="font-size:15px;margin-bottom:6px;">🔴 Purchase invoices</h3>
+  <p class="sub" style="margin:0;">Switched on once the sales migration is proven — purchase bills look different for every vendor, so they will need a quick check before posting.</p>
+</div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -73,7 +97,7 @@ const E=ST.esc;const K=ST.K;
 function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab-btn');if(!b)return;showV(b.dataset.v);});
 function showV(v){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v_'+v));
-  ({clients:renderClients,trans:renderTrans,appr:renderAppr,company:renderCompany,hol:renderHol,rules:renderRules})[v]();}
+  const _mv={clients:renderClients,trans:renderTrans,appr:renderAppr,company:renderCompany,hol:renderHol,rules:renderRules,vendors:renderVendors,migrate:renderMigrate};(_mv[v]||function(){})();}
 const stateName=c=>({'24':'Gujarat','27':'Maharashtra','08':'Rajasthan','23':'Madhya Pradesh','07':'Delhi','09':'Uttar Pradesh','06':'Haryana','03':'Punjab','29':'Karnataka','33':'Tamil Nadu','36':'Telangana','37':'Andhra Pradesh','19':'West Bengal','10':'Bihar','21':'Odisha','22':'Chhattisgarh','20':'Jharkhand','32':'Kerala','30':'Goa','26':'Dadra & Nagar Haveli and Daman & Diu','05':'Uttarakhand','02':'Himachal Pradesh','01':'Jammu & Kashmir','18':'Assam'})[String(c||'').padStart(2,'0')]||'';
 
 /* ═════ CLIENTS ═════ */
@@ -162,6 +186,45 @@ function ruleExample(){const f=+document.getElementById('r_first').value||0,g=+d
 ['r_first','r_gap','r_max'].forEach(id=>document.getElementById(id).addEventListener('input',ruleExample));
 function saveRules(){const f=+document.getElementById('r_first').value,g=+document.getElementById('r_gap').value,m=+document.getElementById('r_max').value;
   if(!(f>=0)||!(g>=1)||!(m>=1)){alert('Enter valid numbers (gap and reminders at least 1).');return;}ST.set(K.rules,{firstAfter:f,gap:g,max:m});toast('✓ Rules saved');}
+
+/* ═════ VENDORS ═════ */
+function vendorNames(){return Object.keys(ST.get(K.vendors,{})).filter(Boolean).sort((a,b)=>a.localeCompare(b));}
+function renderVendors(){const q=(document.getElementById('vSrch').value||'').toLowerCase();const vv=ST.get(K.vendors,{});
+  const rows=vendorNames().filter(n=>!q||n.toLowerCase().includes(q)).map(n=>{const c=vv[n]||{};const sc=c.stateCode||(c.gstin?c.gstin.slice(0,2):'');
+    return `<tr><td><strong>${E(n)}</strong></td><td>${E(c.location)||'—'}</td><td>${c.phone?E(c.phone):'—'}</td><td>${E(c.email)||'—'}</td><td style="font-family:var(--mono);font-size:11px;">${E(c.gstin)||'—'}</td><td>${sc?E(sc)+' '+E(stateName(sc)):'—'}</td><td>${E(c.pincode)||'—'}</td><td><button class="btn sm" data-n="${E(n)}" onclick="editVendor(this.dataset.n)">✏️ Edit</button></td></tr>`;});
+  document.getElementById('vBody').innerHTML=rows.join('')||'<tr><td colspan="8" style="color:var(--text-muted);padding:20px;">No vendors yet — they are added automatically when you migrate purchase bills, or click “+ Add vendor”.</td></tr>';}
+async function editVendor(name){const isNew=!name;const vv=ST.get(K.vendors,{});const c=isNew?{}:(vv[name]||{});
+  const f=(id,label,val,ph)=>`<label>${label}</label><input id="${id}" value="${E(val||'')}" placeholder="${E(ph||'')}">`;
+  const r=await ST.modal({title:isNew?'Add vendor':'Edit '+name,html:f('v_n','Vendor name',name,'Supplier company')+f('v_l','Location / City',c.location,'')+f('v_p','Phone',c.phone,'')+f('v_e','Email',c.email,'')+f('v_g','GSTIN',c.gstin,'')+f('v_a','Address',c.address,'')+f('v_pin','Pincode',c.pincode,'')+f('v_sc','State code',c.stateCode,'auto from GSTIN'),
+    buttons:[{label:'Cancel',value:null},{label:'✓ Save',cls:'pri',onClick:(ov,err)=>{const q=id=>(ov.querySelector('#'+id)||{}).value?.trim()||'';const n=isNew?q('v_n'):name;if(!n){err.textContent='Enter the vendor name.';return false;}
+      if(isNew&&vendorNames().some(x=>x.toLowerCase()===n.toLowerCase())){err.textContent='This vendor already exists.';return false;}
+      const g=q('v_g').toUpperCase();if(g&&!/^\d{2}[A-Z0-9]{13}$/.test(g)){err.textContent='GSTIN should be 15 characters.';return false;}
+      return {n,l:q('v_l'),p:q('v_p'),e:q('v_e'),g,a:q('v_a'),pin:q('v_pin'),sc:q('v_sc')||(g?g.slice(0,2):'')};}}]});
+  if(!r)return;const x=vv[r.n]=vv[r.n]||{};Object.assign(x,{location:r.l,phone:r.p,email:r.e,gstin:r.g,address:r.a,pincode:r.pin,stateCode:r.sc});ST.set(K.vendors,vv);toast('✓ Vendor saved');renderVendors();}
+
+/* ═════ MIGRATE INVOICES (sales) ═════ */
+let salQueue=[];
+function wireMig(){const fo=document.getElementById('salFolder'),fi=document.getElementById('salFiles');if(!fo||fo._w)return;fo._w=1;
+  const add=list=>{const pdfs=InvoiceEngine.pdfFiles(list);salQueue=salQueue.concat(pdfs);document.getElementById('salPicked').textContent=salQueue.length+' PDF(s) ready';document.getElementById('salMigrateBtn').disabled=!salQueue.length;};
+  fo.onchange=()=>add(fo.files);fi.onchange=()=>add(fi.files);}
+function renderMigrate(){salQueue=[];wireMig();const p=document.getElementById('salPicked');if(p)p.textContent='';const b=document.getElementById('salMigrateBtn');if(b)b.disabled=true;}
+async function runSalesMigration(){
+  if(!salQueue.length)return;const btn=document.getElementById('salMigrateBtn'),msg=document.getElementById('salMsg');btn.disabled=true;const old=btn.textContent;btn.textContent='Reading…';
+  let posted=0,dup=0,review=0;const rows=[];
+  for(const file of salQueue){msg.textContent='Reading '+file.name+'…';let p,err;
+    try{const txt=await InvoiceEngine.pdfText(file);p=InvoiceEngine.parse(txt);}catch(e){err=e.message||'could not read';}
+    if(err){rows.push(`<tr><td>${E(file.name)}</td><td colspan="6" style="color:var(--red);">Could not read: ${E(err)}</td></tr>`);review++;continue;}
+    if(p.kind!=='sale'){rows.push(`<tr style="background:rgba(245,158,11,.06);"><td>${E(file.name)}</td><td>${E(p.invoiceNo||'—')}</td><td>${E(p.party||'—')}</td><td colspan="4" style="color:var(--orange);">Not a Sentire sales invoice — skipped</td></tr>`);review++;continue;}
+    if(!p.confident){rows.push(`<tr style="background:rgba(245,158,11,.06);"><td>${E(file.name)}</td><td>${E(p.invoiceNo||'—')}</td><td>${E(p.party||'—')}</td><td>${E(p.date||'—')}</td><td colspan="3" style="color:var(--orange);">Some fields unclear — post it by hand in Accounts → Invoices</td></tr>`);review++;continue;}
+    const res=InvoiceEngine.postSale(p,file.name);
+    if(res.status==='dup'){dup++;rows.push(`<tr style="opacity:.6;"><td>${E(file.name)}</td><td style="font-family:var(--mono);">${E(p.invoiceNo)}</td><td>${E(p.party)}</td><td>${E(p.date)}</td><td style="font-family:var(--mono);">${ST.inr(p.total)}</td><td></td><td>already posted</td></tr>`);}
+    else{posted++;rows.push(`<tr style="background:rgba(34,197,94,.06);"><td>${E(file.name)}</td><td style="font-family:var(--mono);">${E(p.invoiceNo)}</td><td><strong>${E(p.party)}</strong></td><td>${E(p.date)}</td><td style="font-family:var(--mono);">${ST.inr(p.total)}</td><td>${res.orderNo?'→ '+E(res.orderNo):'<span style="color:var(--text-dim)">no order</span>'}</td><td style="color:var(--green);">✓ posted</td></tr>`);}
+  }
+  msg.textContent='';btn.textContent=old;
+  document.getElementById('salResults').innerHTML='<div class="hint" style="margin-bottom:8px;">Posted <b>'+posted+'</b> · already there '+dup+' · need checking '+review+'. Customer details were added to the Clients master. See the bills in Accounts → 🟢 Sales.</div><div class="table-wrap"><table><thead><tr><th>File</th><th>Invoice</th><th>Customer</th><th>Date</th><th>Total</th><th>Order</th><th>Status</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+  salQueue=[];document.getElementById('salPicked').textContent='';document.getElementById('salMigrateBtn').disabled=true;
+  toast('✓ '+posted+' sales invoice(s) posted');renderClients();renderVendors();
+}
 
 renderClients();
 </script>

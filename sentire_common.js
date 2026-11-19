@@ -9,7 +9,7 @@ const ST=window.ST={};
 // ─── Storage ───
 ST.K={orders:'ordersheet_master_db',parties:'ordersheet_parties',partyLocs:'ordersheet_party_locs',clients:'ordersheet_client_contacts',
   transporters:'ordersheet_transporters',trContacts:'ordersheet_transporter_contacts',jobs:'prod_jobs',fin:'fin_entries',
-  company:'st_company',approvers:'st_approvers',holidays:'st_holidays',rules:'st_payment_rules',log:'st_approval_log',bills:'st_bills'};
+  company:'st_company',approvers:'st_approvers',holidays:'st_holidays',rules:'st_payment_rules',log:'st_approval_log',bills:'st_bills',vendors:'ordersheet_vendors'};
 ST.get=(k,def)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?def:v;}catch(e){return def;}};
 ST.set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 ST.esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
