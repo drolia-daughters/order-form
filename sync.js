@@ -12,7 +12,7 @@
   if (page === 'login.html' || page === 'users.html' || page === 'hub.html') return;
 
   // Which browser-storage names are shared business data (everything else stays on this computer).
-  var SHARED = /^(ordersheet_|prod_|fin_|st_|inv_|crm_|jw_(?!admin_until)|lc_batches$|stmt_)/;
+  var SHARED = /^(ordersheet_|prod_|fin_|st_|inv_|crm_|jw_(?!admin_until)|lc_batches$|stmt_|repairs_)/;
   var META = 'sentire_sync_meta';
   var nGet = Storage.prototype.getItem, nSet = Storage.prototype.setItem;
   var applying = false, ready = false;

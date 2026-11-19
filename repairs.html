@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Repairs & Warranty — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#f97316;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 12px;border:none;background:transparent;color:var(--text-dim);font-size:11px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}textarea{min-height:70px;resize:vertical;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:24px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.act-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);margin:1px;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--accent);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.hint{font-size:12px;color:var(--text-dim);margin-bottom:12px;}
+.kb{background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px;margin-top:8px;}
+.kb h4{font-size:12px;margin-bottom:6px;color:var(--accent);}
+.kb-item{padding:8px 0;border-top:1px solid var(--border);font-size:12px;}.kb-item:first-of-type{border-top:none;}
+.pill{background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:11px;font-family:var(--mono);}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:18px;}
+.modal-ov.show{display:flex;}
+.warn-in{color:var(--green);}.warn-out{color:var(--red);}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><div class="icon">🔧</div><h1>Repairs &amp; Warranty</h1><span>RETURNS</span></div>
+<div class="tab-bar">
+  <button class="tab-btn active" data-v="dash" onclick="showV('dash')">Dashboard</button>
+  <button class="tab-btn" data-v="new" onclick="showV('new')">+ New Repair</button>
+  <button class="tab-btn" data-v="open" onclick="showV('open')">🔧 Open Repairs</button>
+  <button class="tab-btn" data-v="history" onclick="showV('history')">History</button>
+  <button class="tab-btn" data-v="kb" onclick="showV('kb')">💡 Knowledge Base</button>
+</div></div>
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="view active" id="v_dash">
+  <div class="stats-row" id="rStats"></div>
+  <div class="card"><h3 style="margin-bottom:12px;">Open repairs by status</h3><div id="statusBreak"></div></div>
+  <div class="card"><h3 style="margin-bottom:12px;">Most common faults (all time)</h3><div id="topFaults"></div></div>
+</div>
+
+<!-- NEW REPAIR -->
+<div class="view" id="v_new">
+  <h2 style="margin-bottom:4px;" id="newTitle">Log an incoming repair</h2>
+  <p class="hint">Record goods that have come back. Pick the customer to pull up when it was sold and whether it is in warranty.</p>
+  <form id="repForm" onsubmit="saveRepair(event)">
+    <input type="hidden" id="f_id">
+    <div class="form-grid">
+      <div class="form-group"><label>Received date</label><input type="date" id="f_received" required></div>
+      <div class="form-group"><label>Repair / RMA No.</label><input type="text" id="f_rma" readonly style="opacity:.7;"></div>
+      <div class="form-group"><label>Customer</label><select id="f_party" onchange="onPartyPick()"><option value="">— select —</option></select></div>
+      <div class="form-group"><label>Customer phone (WhatsApp)</label><input type="text" id="f_phone" placeholder="auto from customer"></div>
+      <div class="form-group full" id="saleBox" style="display:none;"></div>
+      <div class="form-group"><label>Product / Model</label><input type="text" id="f_product" list="prodList" placeholder="DLC-O16 / ball type / single point" oninput="liveSimilar()"></div>
+      <datalist id="prodList"></datalist>
+      <div class="form-group"><label>Serial / batch no. (if any)</label><input type="text" id="f_serial" placeholder="optional"></div>
+      <div class="form-group"><label>Quantity</label><input type="number" id="f_qty" min="1" value="1"></div>
+      <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
+      <div class="form-group full"><label>Problem reported by customer</label><textarea id="f_reported" placeholder="What the customer says is wrong" oninput="liveSimilar()"></textarea></div>
+      <div class="form-group"><label>Fault category</label><select id="f_category" onchange="liveSimilar()"></select></div>
+      <div class="form-group"><label>Status</label><select id="f_status"></select></div>
+      <div class="form-group full"><label>Problem found on inspection (be detailed — this builds your knowledge base)</label><textarea id="f_found" placeholder="The real fault you diagnosed, root cause, readings, what was damaged"></textarea></div>
+      <div class="form-group full"><label>Action taken / how it was rectified</label><textarea id="f_action" placeholder="Exactly what you did to fix it, step by step"></textarea></div>
+      <div class="form-group"><label>Parts replaced</label><input type="text" id="f_parts" placeholder="e.g. strain gauge, cable, sealant"></div>
+      <div class="form-group"><label>Repaired by (technician)</label><input type="text" id="f_tech" placeholder="name"></div>
+      <div class="form-group"><label>Charge (₹, if out of warranty)</label><input type="number" id="f_charge" min="0" placeholder="0"></div>
+      <div class="form-group"><label>Dispatched back on</label><input type="date" id="f_dispatched"></div>
+      <div class="form-group full"><label>Remarks</label><input type="text" id="f_remarks" placeholder="anything else"></div>
+    </div>
+    <div id="similarBox"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+      <button type="submit" class="btn btn-primary" id="saveBtn">Save repair</button>
+      <button type="button" class="btn" onclick="resetForm()">Clear</button>
+      <span id="formMsg" style="font-size:12px;color:var(--text-dim);align-self:center;"></span>
+    </div>
+  </form>
+</div>
+
+<!-- OPEN REPAIRS -->
+<div class="view" id="v_open">
+  <h2 style="margin-bottom:4px;">Open repairs</h2>
+  <p class="hint">Everything not yet dispatched. Rows turn red when they have been in-house longer than <b id="targetLbl">7</b> days.</p>
+  <div class="table-wrap"><table><thead><tr><th>RMA</th><th>Received</th><th>Days in</th><th>Customer</th><th>Product</th><th>Problem</th><th>Warranty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="openBody"></tbody></table></div>
+</div>
+
+<!-- HISTORY -->
+<div class="view" id="v_history">
+  <h2 style="margin-bottom:4px;">All repairs</h2>
+  <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;"><input type="text" id="histSrch" placeholder="Search customer / product / fault..." oninput="renderHistory()" style="max-width:300px;"></div>
+  <div class="table-wrap"><table><thead><tr><th>RMA</th><th>Received</th><th>Customer</th><th>Product</th><th>Fault</th><th>Fix</th><th>Warranty</th><th>Status</th><th>Turnaround</th><th></th></tr></thead><tbody id="histBody"></tbody></table></div>
+</div>
+
+<!-- KNOWLEDGE BASE -->
+<div class="view" id="v_kb">
+  <h2 style="margin-bottom:4px;">💡 Knowledge Base</h2>
+  <p class="hint">Describe a fault (and the product) and the software shows how you fixed the same thing before.</p>
+  <div class="form-grid" style="margin-bottom:12px;">
+    <div class="form-group"><label>Product / Model</label><input type="text" id="kb_product" list="prodList" placeholder="DLC-O16" oninput="renderKB()"></div>
+    <div class="form-group"><label>Describe the problem</label><input type="text" id="kb_text" placeholder="no output, zero drift, cable cut..." oninput="renderKB()"></div>
+  </div>
+  <div id="kbResults"></div>
+</div>
+
+</div>
+<div class="modal-ov" id="cardModal" onclick="if(event.target===this)closeCard()">
+  <div style="background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow:auto;">
+    <div style="position:sticky;top:0;background:#fff;display:flex;justify-content:flex-end;gap:8px;padding:10px;border-bottom:1px solid #eee;">
+      <button class="btn btn-primary" onclick="printCard(document.getElementById('cardModal').dataset.id)">🖨 Print job card</button>
+      <button class="btn" style="color:#111;" onclick="closeCard()">Close</button>
+    </div>
+    <div id="cardBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast">✓ Saved</div>
+<script src="sentire_common.js"></script>
+<script>
+const KEY='repairs_jobs';
+const TARGET=7; // days: a repair open longer than this is overdue
+const CATS=['No output / dead','Wrong output / calibration off','Zero / balance drift','Non-linearity','Creep','Temperature drift','Wire / cable damage','Water ingress / sealing','Physical / overload damage','Soldering / joint failure','Wrong wiring colour','Connector / junction box','Other'];
+const STATUSES=['Received','Inspection','Repairing','Repaired','Dispatched','Scrapped'];
+const STCOLOR={Received:'#3b82f6',Inspection:'#f59e0b',Repairing:'#a855f7',Repaired:'#22c55e',Dispatched:'#06b6d4',Scrapped:'#ef4444'};
+const R=()=>ST.get(KEY,[]);
+const saveR=d=>ST.set(KEY,d);
+const $=id=>document.getElementById(id);
+function toast(m){const t=$('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));const el=$('v_'+v);if(el)el.classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  if(v==='dash')renderDash();if(v==='open')renderOpen();if(v==='history')renderHistory();if(v==='kb')renderKB();if(v==='new')prepNew();}
+
+// ---- form setup ----
+function fillSelect(sel,arr,first){sel.innerHTML=(first?('<option value="">'+first+'</option>'):'')+arr.map(x=>`<option>${ST.esc(x)}</option>`).join('');}
+function partyOptions(){const parties=ST.get(ST.K.parties,[]).slice().sort();$('f_party').innerHTML='<option value="">— select —</option>'+parties.map(p=>`<option>${ST.esc(p)}</option>`).join('')+'<option value="__new">+ new customer (type below)</option>';}
+function prodDatalist(){const set=new Set();R().forEach(r=>{if(r.product)set.add(r.product);});ST.get(ST.K.orders,[]).forEach(o=>ST.items(o).forEach(i=>{if(i.type)set.add(i.type);}));$('prodList').innerHTML=[...set].map(p=>`<option value="${ST.esc(p)}">`).join('');}
+function nextRMA(){const yr=String(new Date().getFullYear());let max=0;R().forEach(r=>{const m=String(r.rma||'').match(/RMA-\d{4}-(\d+)/);if(m)max=Math.max(max,+m[1]);});return 'RMA-'+yr+'-'+String(max+1).padStart(4,'0');}
+
+function prepNew(){ if($('f_id').value)return; resetForm(); }
+function resetForm(){
+  $('repForm').reset();$('f_id').value='';$('newTitle').textContent='Log an incoming repair';$('saveBtn').textContent='Save repair';
+  fillSelect($('f_category'),CATS,'— choose —');fillSelect($('f_status'),STATUSES,null);$('f_status').value='Received';
+  partyOptions();prodDatalist();$('f_received').value=ST.today();$('f_rma').value=nextRMA();$('saleBox').style.display='none';$('similarBox').innerHTML='';$('formMsg').textContent='';
+}
+function onPartyPick(){
+  const p=$('f_party').value;const box=$('saleBox');
+  if(!p||p==='__new'){box.style.display='none';$('f_phone').value='';return;}
+  const c=ST.client(p);$('f_phone').value=c.phone||'';
+  const orders=ST.get(ST.K.orders,[]).filter(o=>(o.partyName||'').toLowerCase()===p.toLowerCase()).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!orders.length){box.style.display='block';box.innerHTML='<label>When it was sold</label><div class="hint">No past order found for this customer in the system.</div>';return;}
+  box.style.display='block';
+  box.innerHTML='<label>When it was sold — pick the order this item came from</label><select id="f_saleorder" onchange="onSalePick()"><option value="">— select the original order —</option>'+orders.map(o=>{const it=ST.itemsShort(ST.items(o));return `<option value="${ST.esc(o.orderNo)}" data-date="${ST.esc(o.dod||o.date||'')}" data-bill="${ST.esc(o.billNo||'')}">${ST.esc(o.orderNo)} · ${ST.fmtDate(o.dod||o.date)} · ${ST.esc(it)}${o.billNo?' · '+ST.esc(o.billNo):''}</option>`;}).join('')+'</select><div id="warrLine" class="hint" style="margin-top:6px;"></div>';
+}
+function onSalePick(){
+  const sel=$('f_saleorder');const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value){$('warrLine').textContent='';return;}
+  const sold=opt.dataset.date;$('f_product').value=$('f_product').value||'';
+  if(sold){const until=ST.addDays(sold.slice(0,10),365);const recv=$('f_received').value||ST.today();const inW=ST.daysBetween(recv,until)>=0;
+    $('f_warranty').value=inW?'in':'out';
+    $('warrLine').innerHTML='Sold on <b>'+ST.fmtDate(sold)+'</b> · 1-year warranty until <b>'+ST.fmtDate(until)+'</b> · '+(inW?'<span class="warn-in">IN WARRANTY (free repair)</span>':'<span class="warn-out">OUT OF WARRANTY (chargeable)</span>');}
+  else {$('warrLine').textContent='Sale date not recorded on that order.';}
+  liveSimilar();
+}
+
+// ---- similar past repairs (the self-learning part) ----
+function tokens(s){return [...new Set(String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=3))];}
+function similar(product,text,cat,exceptId){
+  const kw=tokens(text+' '+(cat||''));const pfirst=(product||'').toLowerCase().split(/[\s\-/]/)[0];
+  return R().filter(r=>r.id!==exceptId && (r.found||r.action||r.reported)).map(r=>{let sc=0;
+    if(pfirst&&r.product&&r.product.toLowerCase().includes(pfirst))sc+=2;
+    if(cat&&r.category===cat)sc+=2;
+    const rt=tokens((r.reported||'')+' '+(r.found||'')+' '+(r.category||''));kw.forEach(k=>{if(rt.includes(k))sc++;});
+    return {r,sc};}).filter(x=>x.sc>=2).sort((a,b)=>b.sc-a.sc).slice(0,5);
+}
+function simItemHtml(r){return `<div class="kb-item"><div><b>${ST.esc(r.rma)}</b> · ${ST.esc(r.product||'?')} · ${ST.fmtDate(r.received)} · ${ST.esc(r.party||'')}</div>
+  <div style="color:var(--text-dim);margin-top:2px;"><b>Fault:</b> ${ST.esc(r.found||r.reported||'—')}</div>
+  <div style="color:var(--green);margin-top:2px;"><b>Fix:</b> ${ST.esc(r.action||'—')}${r.parts?' · parts: '+ST.esc(r.parts):''}</div></div>`;}
+function liveSimilar(){
+  const m=similar($('f_product').value,$('f_reported').value,$('f_category').value,$('f_id').value);
+  $('similarBox').innerHTML=m.length?('<div class="kb"><h4>💡 We have seen a similar fault '+m.length+' time(s) — here is what was done:</h4>'+m.map(x=>simItemHtml(x.r)).join('')+'</div>'):'';
+}
+
+// ---- save ----
+function saveRepair(e){e.preventDefault();
+  let party=$('f_party').value;if(party==='__new')party='';
+  const id=$('f_id').value||('rep'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
+  const saleSel=$('f_saleorder');
+  const rec={id,rma:$('f_rma').value,received:$('f_received').value,party,phone:$('f_phone').value.trim(),
+    product:$('f_product').value.trim(),serial:$('f_serial').value.trim(),qty:+$('f_qty').value||1,
+    orderNo:saleSel?saleSel.value:'',saleDate:saleSel&&saleSel.options[saleSel.selectedIndex]?saleSel.options[saleSel.selectedIndex].dataset.date||'':'',
+    warranty:$('f_warranty').value,reported:$('f_reported').value.trim(),category:$('f_category').value,
+    found:$('f_found').value.trim(),action:$('f_action').value.trim(),parts:$('f_parts').value.trim(),
+    tech:$('f_tech').value.trim(),charge:+$('f_charge').value||0,status:$('f_status').value,dispatched:$('f_dispatched').value,
+    remarks:$('f_remarks').value.trim(),updatedAt:new Date().toISOString()};
+  if(!rec.party){$('formMsg').textContent='Pick or type a customer.';return;}
+  const all=R();const idx=all.findIndex(x=>x.id===id);
+  if(idx>=0){rec.createdAt=all[idx].createdAt;all[idx]=rec;}else{rec.createdAt=new Date().toISOString();all.push(rec);}
+  saveR(all);toast('✓ Repair '+rec.rma+' saved');resetForm();showV('open');
+}
+function editRepair(id){const r=R().find(x=>x.id===id);if(!r)return;showV('new');resetForm();
+  $('f_id').value=r.id;$('newTitle').textContent='Edit '+r.rma;$('saveBtn').textContent='Update repair';
+  $('f_received').value=r.received||'';$('f_rma').value=r.rma;partyOptions();
+  if(r.party&&![...$('f_party').options].some(o=>o.value===r.party)){const o=document.createElement('option');o.value=r.party;o.textContent=r.party;$('f_party').appendChild(o);}
+  $('f_party').value=r.party||'';onPartyPick();
+  if(r.orderNo&&$('f_saleorder')){$('f_saleorder').value=r.orderNo;onSalePick();}
+  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_serial').value=r.serial||'';$('f_qty').value=r.qty||1;
+  $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';$('f_category').value=r.category||'';
+  $('f_found').value=r.found||'';$('f_action').value=r.action||'';$('f_parts').value=r.parts||'';$('f_tech').value=r.tech||'';
+  $('f_charge').value=r.charge||'';$('f_status').value=r.status||'Received';$('f_dispatched').value=r.dispatched||'';$('f_remarks').value=r.remarks||'';
+  liveSimilar();window.scrollTo(0,0);
+}
+function setStatus(id,st){const all=R();const r=all.find(x=>x.id===id);if(!r)return;r.status=st;if(st==='Dispatched'&&!r.dispatched)r.dispatched=ST.today();r.updatedAt=new Date().toISOString();saveR(all);renderOpen();renderDash();toast('Status → '+st);}
+function delRepair(id){if(!confirm('Delete this repair record?'))return;saveR(R().filter(x=>x.id!==id));renderOpen();renderHistory();renderDash();toast('Deleted');}
+function waUpdate(id){const r=R().find(x=>x.id===id);if(!r)return;const msg='Dear '+(r.party||'customer')+',\nYour item ('+(r.product||'')+') received for repair under ref '+r.rma+' is '+(r.status==='Dispatched'?'repaired and dispatched back':'currently '+r.status.toLowerCase())+'.\n— Sentire Technologies';ST.openWA(r.phone,msg);}
+
+// ---- warranty / days helpers ----
+function daysIn(r){const end=r.dispatched||ST.today();return Math.max(0,ST.daysBetween(r.received,end));}
+function warrBadge(r){const w=r.warranty;if(w==='in')return '<span class="tag" style="background:var(--green-dim);color:var(--green);">In warranty</span>';if(w==='out')return '<span class="tag" style="background:rgba(239,68,68,.12);color:var(--red);">Out</span>';return '<span class="tag" style="background:var(--surface-2);color:var(--text-dim);">?</span>';}
+function stTag(st){const c=STCOLOR[st]||'#7a8599';return `<span class="tag" style="background:${c}22;color:${c};">${ST.esc(st)}</span>`;}
+const OPEN_ST=['Received','Inspection','Repairing','Repaired'];
+
+function renderOpen(){$('targetLbl').textContent=TARGET;
+  const rows=R().filter(r=>OPEN_ST.includes(r.status)).sort((a,b)=>(a.received||'').localeCompare(b.received||''));
+  $('openBody').innerHTML=rows.length?rows.map(r=>{const d=daysIn(r);const over=d>TARGET;
+    const next=STATUSES[Math.min(STATUSES.indexOf(r.status)+1,4)];
+    return `<tr${over?' style="background:rgba(239,68,68,.07);"':''}><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.rma)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(r.received)}</td><td style="font-family:var(--mono);font-weight:700;${over?'color:var(--red);':''}">${d}d${over?' ⚠':''}</td><td><strong style="text-transform:capitalize;">${ST.esc(r.party)}</strong></td><td>${ST.esc(r.product||'—')}</td><td style="white-space:normal;max-width:220px;color:var(--text-dim);">${ST.esc(r.found||r.reported||'—')}</td><td>${warrBadge(r)}</td><td>${stTag(r.status)}</td>
+    <td style="white-space:nowrap;"><button class="act-btn" style="color:var(--green);border-color:var(--green);" onclick="setStatus('${r.id}','${next}')">→ ${next}</button><button class="act-btn" onclick="editRepair('${r.id}')">✏️</button><button class="act-btn" onclick="viewCard('${r.id}')">👁</button><button class="act-btn" style="color:var(--cyan);border-color:var(--cyan);" onclick="waUpdate('${r.id}')">💬</button></td></tr>`;}).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">No open repairs. 🎉</td></tr>';
+}
+function renderHistory(){const q=($('histSrch').value||'').toLowerCase();
+  const rows=R().slice().sort((a,b)=>(b.received||'').localeCompare(a.received||'')).filter(r=>!q||((r.party+' '+r.product+' '+r.reported+' '+r.found+' '+r.rma+' '+r.category).toLowerCase().includes(q)));
+  $('histBody').innerHTML=rows.length?rows.map(r=>`<tr><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.rma)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(r.received)}</td><td style="text-transform:capitalize;"><strong>${ST.esc(r.party)}</strong></td><td>${ST.esc(r.product||'—')}</td><td style="white-space:normal;max-width:180px;color:var(--text-dim);">${ST.esc(r.found||r.reported||'—')}</td><td style="white-space:normal;max-width:180px;color:var(--green);">${ST.esc(r.action||'—')}</td><td>${warrBadge(r)}</td><td>${stTag(r.status)}</td><td style="font-family:var(--mono);">${r.dispatched?daysIn(r)+'d':'—'}</td><td style="white-space:nowrap;"><button class="act-btn" onclick="editRepair('${r.id}')">✏️</button><button class="act-btn" onclick="viewCard('${r.id}')">👁</button><button class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="delRepair('${r.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:20px;">No repairs recorded yet.</td></tr>';
+}
+function renderKB(){const m=similar($('kb_product').value,$('kb_text').value,'',null);
+  $('kbResults').innerHTML=(!$('kb_product').value&&!$('kb_text').value)?'<div class="hint">Type a product or a problem above.</div>':(m.length?'<div class="kb"><h4>'+m.length+' past repair(s) match:</h4>'+m.map(x=>simItemHtml(x.r)).join('')+'</div>':'<div class="hint">No matching past repair found. Once you record this one, it will be here next time.</div>');}
+
+function renderDash(){const all=R();const open=all.filter(r=>OPEN_ST.includes(r.status));const overdue=open.filter(r=>daysIn(r)>TARGET);
+  const month=ST.today().slice(0,7);const repairedThisMonth=all.filter(r=>(r.status==='Dispatched')&&(r.dispatched||'').startsWith(month));
+  const inW=all.filter(r=>r.warranty==='in').length;
+  const done=all.filter(r=>r.dispatched);const avgTAT=done.length?Math.round(done.reduce((s,r)=>s+daysIn(r),0)/done.length):0;
+  $('rStats').innerHTML=[['num',open.length,'Open repairs','var(--blue)'],['num',overdue.length,'Overdue (>'+TARGET+'d)','var(--red)'],['num',repairedThisMonth.length,'Dispatched this month','var(--green)'],['num',avgTAT+'d','Avg turnaround','var(--cyan)'],['num',all.length,'Total records','var(--text)']].map(x=>`<div class="stat-card"><div class="num" style="color:${x[3]};">${x[1]}</div><div class="lab">${x[2]}</div></div>`).join('');
+  const byStatus={};open.forEach(r=>byStatus[r.status]=(byStatus[r.status]||0)+1);
+  $('statusBreak').innerHTML=OPEN_ST.filter(s=>byStatus[s]).map(s=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span>${stTag(s)}</span><span style="font-family:var(--mono);font-weight:700;">${byStatus[s]}</span></div>`).join('')||'<div class="hint">Nothing open.</div>';
+  const faults={};all.forEach(r=>{const k=r.category||'Uncategorised';faults[k]=(faults[k]||0)+1;});
+  const sorted=Object.entries(faults).sort((a,b)=>b[1]-a[1]);
+  $('topFaults').innerHTML=sorted.length?sorted.map(([c,n])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>${ST.esc(c)}</span><span style="font-family:var(--mono);font-weight:600;color:var(--orange);">${n}</span></div>`).join(''):'<div class="hint">No data yet.</div>';
+}
+
+// ---- printable job card ----
+function cardHtml(r){const comp=ST.company();const sold=r.saleDate?('Sold on '+ST.fmtDate(r.saleDate)+(r.orderNo?' ('+r.orderNo+')':'')):'Sale not linked';
+  const wtxt=r.warranty==='in'?'IN WARRANTY (free)':r.warranty==='out'?'OUT OF WARRANTY (chargeable)':'Warranty not known';
+  return '<div style="font-family:system-ui,Arial,sans-serif;color:#111;background:#fff;max-width:620px;margin:0 auto;padding:24px;">'
+    +'<div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;"><div><div style="font-size:19px;font-weight:800;">Sentire Technologies</div><div style="font-size:11px;color:#555;">'+ST.esc(comp.address||'Vadodara, Gujarat')+'</div></div><div style="text-align:right;"><div style="font-size:15px;font-weight:700;">REPAIR JOB CARD</div><div style="font-size:13px;font-weight:700;">'+ST.esc(r.rma)+'</div><div style="font-size:12px;">Received: '+ST.fmtDate(r.received)+'</div></div></div>'
+    +'<table style="width:100%;font-size:13px;border-collapse:collapse;">'
+    +'<tr><td style="padding:5px 0;color:#777;width:40%;">Customer</td><td style="padding:5px 0;font-weight:700;text-transform:capitalize;">'+ST.esc(r.party||'—')+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;">Product / Model</td><td style="padding:5px 0;">'+ST.esc(r.product||'—')+(r.serial?' · Sr: '+ST.esc(r.serial):'')+' · Qty '+ST.esc(r.qty||1)+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;">Warranty</td><td style="padding:5px 0;font-weight:700;">'+wtxt+'<div style="font-weight:400;color:#555;font-size:11px;">'+sold+'</div></td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Problem reported</td><td style="padding:5px 0;">'+ST.esc(r.reported||'—')+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Fault found</td><td style="padding:5px 0;">'+ST.esc(r.found||'—')+(r.category?' ['+ST.esc(r.category)+']':'')+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Action taken</td><td style="padding:5px 0;">'+ST.esc(r.action||'—')+(r.parts?'<div style="color:#555;font-size:11px;">Parts: '+ST.esc(r.parts)+'</div>':'')+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;">Status</td><td style="padding:5px 0;font-weight:700;">'+ST.esc(r.status)+(r.dispatched?' · dispatched '+ST.fmtDate(r.dispatched):'')+'</td></tr>'
+    +(r.charge?'<tr><td style="padding:5px 0;color:#777;">Repair charge</td><td style="padding:5px 0;font-weight:700;">'+ST.inr(r.charge)+'</td></tr>':'')
+    +'</table>'
+    +'<div style="margin-top:22px;display:flex;justify-content:space-between;font-size:12px;color:#555;"><div>Received by: ____________</div><div>Repaired by: '+ST.esc(r.tech||'____________')+'</div></div>'
+    +'<div style="margin-top:14px;font-size:10px;color:#999;">Sentire Command Center · Repair Job Card</div></div>';}
+function viewCard(id){const r=R().find(x=>x.id===id);if(!r)return;$('cardBody').innerHTML=cardHtml(r);const m=$('cardModal');m.dataset.id=id;m.classList.add('show');}
+function closeCard(){$('cardModal').classList.remove('show');}
+function printCard(id){const r=R().find(x=>x.id===id);if(!r)return;const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print.');return;}w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+ST.esc(r.rma)+'</title></head><body onload="window.print()">'+cardHtml(r)+'</body></html>');w.document.close();}
+
+// init
+resetForm();renderDash();
+</script>
+</body>
+</html>
