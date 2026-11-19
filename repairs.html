@@ -65,6 +65,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
       <div class="form-group"><label>Product / Model</label><input type="text" id="f_product" list="prodList" placeholder="DLC-O16 / ball type / single point" oninput="liveSimilar()"></div>
       <datalist id="prodList"></datalist>
       <div class="form-group"><label>Serial / batch no. (if any)</label><input type="text" id="f_serial" placeholder="optional"></div>
+      <div class="form-group"><label>Loadcell No.</label><input type="text" id="f_lcno" placeholder="the load cell's number"></div>
       <div class="form-group"><label>Quantity</label><input type="number" id="f_qty" min="1" value="1"></div>
       <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
       <div class="form-group full"><label>Problem reported by customer</label><textarea id="f_reported" placeholder="What the customer says is wrong" oninput="liveSimilar()"></textarea></div>
@@ -91,14 +92,14 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="view" id="v_open">
   <h2 style="margin-bottom:4px;">Open repairs</h2>
   <p class="hint">Everything not yet dispatched. Rows turn red when they have been in-house longer than <b id="targetLbl">7</b> days.</p>
-  <div class="table-wrap"><table><thead><tr><th>RMA</th><th>Received</th><th>Days in</th><th>Customer</th><th>Product</th><th>Problem</th><th>Warranty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="openBody"></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>RMA</th><th>Received</th><th>Days in</th><th>Customer</th><th>Product</th><th>Loadcell No.</th><th>Problem</th><th>Warranty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="openBody"></tbody></table></div>
 </div>
 
 <!-- HISTORY -->
 <div class="view" id="v_history">
   <h2 style="margin-bottom:4px;">All repairs</h2>
   <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap;"><input type="text" id="histSrch" placeholder="Search customer / product / fault..." oninput="renderHistory()" style="max-width:300px;"></div>
-  <div class="table-wrap"><table><thead><tr><th>RMA</th><th>Received</th><th>Customer</th><th>Product</th><th>Fault</th><th>Fix</th><th>Warranty</th><th>Status</th><th>Turnaround</th><th></th></tr></thead><tbody id="histBody"></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>RMA</th><th>Received</th><th>Customer</th><th>Product</th><th>Loadcell No.</th><th>Fault</th><th>Fix</th><th>Warranty</th><th>Status</th><th>Turnaround</th><th></th></tr></thead><tbody id="histBody"></tbody></table></div>
 </div>
 
 <!-- KNOWLEDGE BASE -->
@@ -193,7 +194,7 @@ function saveRepair(e){e.preventDefault();
   const id=$('f_id').value||('rep'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
   const saleSel=$('f_saleorder');
   const rec={id,rma:$('f_rma').value,received:$('f_received').value,party,phone:$('f_phone').value.trim(),
-    product:$('f_product').value.trim(),serial:$('f_serial').value.trim(),qty:+$('f_qty').value||1,
+    product:$('f_product').value.trim(),serial:$('f_serial').value.trim(),lcno:$('f_lcno').value.trim(),qty:+$('f_qty').value||1,
     orderNo:saleSel?saleSel.value:'',saleDate:saleSel&&saleSel.options[saleSel.selectedIndex]?saleSel.options[saleSel.selectedIndex].dataset.date||'':'',
     warranty:$('f_warranty').value,reported:$('f_reported').value.trim(),category:$('f_category').value,
     found:$('f_found').value.trim(),action:$('f_action').value.trim(),parts:$('f_parts').value.trim(),
@@ -210,7 +211,7 @@ function editRepair(id){const r=R().find(x=>x.id===id);if(!r)return;showV('new')
   if(r.party&&![...$('f_party').options].some(o=>o.value===r.party)){const o=document.createElement('option');o.value=r.party;o.textContent=r.party;$('f_party').appendChild(o);}
   $('f_party').value=r.party||'';onPartyPick();
   if(r.orderNo&&$('f_saleorder')){$('f_saleorder').value=r.orderNo;onSalePick();}
-  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_serial').value=r.serial||'';$('f_qty').value=r.qty||1;
+  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_serial').value=r.serial||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;
   $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';$('f_category').value=r.category||'';
   $('f_found').value=r.found||'';$('f_action').value=r.action||'';$('f_parts').value=r.parts||'';$('f_tech').value=r.tech||'';
   $('f_charge').value=r.charge||'';$('f_status').value=r.status||'Received';$('f_dispatched').value=r.dispatched||'';$('f_remarks').value=r.remarks||'';
@@ -230,12 +231,12 @@ function renderOpen(){$('targetLbl').textContent=TARGET;
   const rows=R().filter(r=>OPEN_ST.includes(r.status)).sort((a,b)=>(a.received||'').localeCompare(b.received||''));
   $('openBody').innerHTML=rows.length?rows.map(r=>{const d=daysIn(r);const over=d>TARGET;
     const next=STATUSES[Math.min(STATUSES.indexOf(r.status)+1,4)];
-    return `<tr${over?' style="background:rgba(239,68,68,.07);"':''}><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.rma)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(r.received)}</td><td style="font-family:var(--mono);font-weight:700;${over?'color:var(--red);':''}">${d}d${over?' ⚠':''}</td><td><strong style="text-transform:capitalize;">${ST.esc(r.party)}</strong></td><td>${ST.esc(r.product||'—')}</td><td style="white-space:normal;max-width:220px;color:var(--text-dim);">${ST.esc(r.found||r.reported||'—')}</td><td>${warrBadge(r)}</td><td>${stTag(r.status)}</td>
-    <td style="white-space:nowrap;"><button class="act-btn" style="color:var(--green);border-color:var(--green);" onclick="setStatus('${r.id}','${next}')">→ ${next}</button><button class="act-btn" onclick="editRepair('${r.id}')">✏️</button><button class="act-btn" onclick="viewCard('${r.id}')">👁 View</button><button class="act-btn" onclick="printCard('${r.id}')">🖨 Print</button><button class="act-btn" style="color:var(--cyan);border-color:var(--cyan);" onclick="waUpdate('${r.id}')">💬</button></td></tr>`;}).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">No open repairs. 🎉</td></tr>';
+    return `<tr${over?' style="background:rgba(239,68,68,.07);"':''}><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.rma)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(r.received)}</td><td style="font-family:var(--mono);font-weight:700;${over?'color:var(--red);':''}">${d}d${over?' ⚠':''}</td><td><strong style="text-transform:capitalize;">${ST.esc(r.party)}</strong></td><td>${ST.esc(r.product||'—')}</td><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.lcno||'—')}</td><td style="white-space:normal;max-width:220px;color:var(--text-dim);">${ST.esc(r.found||r.reported||'—')}</td><td>${warrBadge(r)}</td><td>${stTag(r.status)}</td>
+    <td style="white-space:nowrap;"><button class="act-btn" style="color:var(--green);border-color:var(--green);" onclick="setStatus('${r.id}','${next}')">→ ${next}</button><button class="act-btn" onclick="editRepair('${r.id}')">✏️</button><button class="act-btn" onclick="viewCard('${r.id}')">👁 View</button><button class="act-btn" onclick="printCard('${r.id}')">🖨 Print</button><button class="act-btn" style="color:var(--cyan);border-color:var(--cyan);" onclick="waUpdate('${r.id}')">💬</button></td></tr>`;}).join(''):'<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:20px;">No open repairs. 🎉</td></tr>';
 }
 function renderHistory(){const q=($('histSrch').value||'').toLowerCase();
-  const rows=R().slice().sort((a,b)=>(b.received||'').localeCompare(a.received||'')).filter(r=>!q||((r.party+' '+r.product+' '+r.reported+' '+r.found+' '+r.rma+' '+r.category).toLowerCase().includes(q)));
-  $('histBody').innerHTML=rows.length?rows.map(r=>`<tr><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.rma)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(r.received)}</td><td style="text-transform:capitalize;"><strong>${ST.esc(r.party)}</strong></td><td>${ST.esc(r.product||'—')}</td><td style="white-space:normal;max-width:180px;color:var(--text-dim);">${ST.esc(r.found||r.reported||'—')}</td><td style="white-space:normal;max-width:180px;color:var(--green);">${ST.esc(r.action||'—')}</td><td>${warrBadge(r)}</td><td>${stTag(r.status)}</td><td style="font-family:var(--mono);">${r.dispatched?daysIn(r)+'d':'—'}</td><td style="white-space:nowrap;"><button class="act-btn" onclick="editRepair('${r.id}')">✏️</button><button class="act-btn" onclick="viewCard('${r.id}')">👁 View</button><button class="act-btn" onclick="printCard('${r.id}')">🖨 Print</button><button class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="delRepair('${r.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:20px;">No repairs recorded yet.</td></tr>';
+  const rows=R().slice().sort((a,b)=>(b.received||'').localeCompare(a.received||'')).filter(r=>!q||((r.party+' '+r.product+' '+(r.lcno||'')+' '+r.reported+' '+r.found+' '+r.rma+' '+r.category).toLowerCase().includes(q)));
+  $('histBody').innerHTML=rows.length?rows.map(r=>`<tr><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.rma)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(r.received)}</td><td style="text-transform:capitalize;"><strong>${ST.esc(r.party)}</strong></td><td>${ST.esc(r.product||'—')}</td><td style="font-family:var(--mono);font-size:11px;">${ST.esc(r.lcno||'—')}</td><td style="white-space:normal;max-width:180px;color:var(--text-dim);">${ST.esc(r.found||r.reported||'—')}</td><td style="white-space:normal;max-width:180px;color:var(--green);">${ST.esc(r.action||'—')}</td><td>${warrBadge(r)}</td><td>${stTag(r.status)}</td><td style="font-family:var(--mono);">${r.dispatched?daysIn(r)+'d':'—'}</td><td style="white-space:nowrap;"><button class="act-btn" onclick="editRepair('${r.id}')">✏️</button><button class="act-btn" onclick="viewCard('${r.id}')">👁 View</button><button class="act-btn" onclick="printCard('${r.id}')">🖨 Print</button><button class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="delRepair('${r.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="11" style="text-align:center;color:var(--text-muted);padding:20px;">No repairs recorded yet.</td></tr>';
 }
 function renderKB(){const m=similar($('kb_product').value,$('kb_text').value,'',null);
   $('kbResults').innerHTML=(!$('kb_product').value&&!$('kb_text').value)?'<div class="hint">Type a product or a problem above.</div>':(m.length?'<div class="kb"><h4>'+m.length+' past repair(s) match:</h4>'+m.map(x=>simItemHtml(x.r)).join('')+'</div>':'<div class="hint">No matching past repair found. Once you record this one, it will be here next time.</div>');}
@@ -259,7 +260,7 @@ function cardHtml(r){const comp=ST.company();const sold=r.saleDate?('Sold on '+S
     +'<div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;"><div><div style="font-size:19px;font-weight:800;">Sentire Technologies</div><div style="font-size:11px;color:#555;">'+ST.esc(comp.address||'Vadodara, Gujarat')+'</div></div><div style="text-align:right;"><div style="font-size:15px;font-weight:700;">REPAIR JOB CARD</div><div style="font-size:13px;font-weight:700;">'+ST.esc(r.rma)+'</div><div style="font-size:12px;">Received: '+ST.fmtDate(r.received)+'</div></div></div>'
     +'<table style="width:100%;font-size:13px;border-collapse:collapse;">'
     +'<tr><td style="padding:5px 0;color:#777;width:40%;">Customer</td><td style="padding:5px 0;font-weight:700;text-transform:capitalize;">'+ST.esc(r.party||'—')+'</td></tr>'
-    +'<tr><td style="padding:5px 0;color:#777;">Product / Model</td><td style="padding:5px 0;">'+ST.esc(r.product||'—')+(r.serial?' · Sr: '+ST.esc(r.serial):'')+' · Qty '+ST.esc(r.qty||1)+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;">Product / Model</td><td style="padding:5px 0;">'+ST.esc(r.product||'—')+(r.lcno?' · L/C No: '+ST.esc(r.lcno):'')+(r.serial?' · Sr: '+ST.esc(r.serial):'')+' · Qty '+ST.esc(r.qty||1)+'</td></tr>'
     +'<tr><td style="padding:5px 0;color:#777;">Warranty</td><td style="padding:5px 0;font-weight:700;">'+wtxt+'<div style="font-weight:400;color:#555;font-size:11px;">'+sold+'</div></td></tr>'
     +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Problem reported</td><td style="padding:5px 0;">'+ST.esc(r.reported||'—')+'</td></tr>'
     +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Fault found</td><td style="padding:5px 0;">'+ST.esc(r.found||'—')+(r.category?' ['+ST.esc(r.category)+']':'')+'</td></tr>'
