@@ -3,6 +3,9 @@
 // Usage: <script src="voice_engine.js"></script> before </body>
 // ═══════════════════════════════════════════════════════════════
 (function(){
+/* VOICE SLEEP SWITCH — set to true to re-activate voice commands later. */
+const VOICE_ENABLED=false;
+if(!VOICE_ENABLED)return;
 let VR=null,listening=false,currentField=null;
 const page=location.pathname.split('/').pop()||'index.html';
 // Navigate: inside the Main Page window, ask it to switch apps; otherwise go directly

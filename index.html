@@ -109,7 +109,7 @@ button{font-family:inherit;}
     <div class="brand"><div class="logo">ST</div><div><b>Sentire Technologies</b><span>Main Page</span></div></div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
-      <button class="mic" id="micBtn" onclick="toggleVoice()"><span class="dot"></span><span id="micLabel">Voice commands</span></button>
+      <button class="mic" id="micBtn" onclick="toggleVoice()" style="display:none;"><span class="dot"></span><span id="micLabel">Voice commands</span></button>
       <div class="mic-status" id="micStatus"></div>
     </div>
   </aside>
@@ -283,6 +283,8 @@ function initVoice(){
   return true;
 }
 function toggleVoice(){
+  /* Voice commands are asleep for now. Remove the next line (and show the mic button) to re-activate. */
+  return;
   if(!rec&&!initVoice())return;
   listening=!listening;
   if(listening){try{rec.start();}catch(e){}status('Listening… say "open orders"');}
