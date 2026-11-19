@@ -65,7 +65,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
       <div class="form-group"><label>Product / Model</label><input type="text" id="f_product" list="prodList" placeholder="DLC-O16 / ball type / single point" oninput="liveSimilar()"></div>
       <datalist id="prodList"></datalist>
       <div class="form-group"><label>Serial / batch no. (if any)</label><input type="text" id="f_serial" placeholder="optional"></div>
-      <div class="form-group"><label>Loadcell No.</label><input type="text" id="f_lcno" placeholder="the load cell's number"></div>
+      <div class="form-group"><label>Loadcell No(s).</label><input type="text" id="f_lcno" placeholder="one or many, comma-separated e.g. L001, L002, L003" oninput="onLcno()"><span id="lcnoHint" style="font-size:11px;color:var(--text-dim);"></span></div>
       <div class="form-group"><label>Quantity</label><input type="number" id="f_qty" min="1" value="1"></div>
       <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
       <div class="form-group full"><label>Problem reported by customer</label><textarea id="f_reported" placeholder="What the customer says is wrong" oninput="liveSimilar()"></textarea></div>
@@ -188,6 +188,10 @@ function liveSimilar(){
   $('similarBox').innerHTML=m.length?('<div class="kb"><h4>💡 We have seen a similar fault '+m.length+' time(s) — here is what was done:</h4>'+m.map(x=>simItemHtml(x.r)).join('')+'</div>'):'';
 }
 
+// count comma-separated loadcell numbers -> set quantity automatically
+function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
+function onLcno(){const arr=lcList($('f_lcno').value);if(arr.length)$('f_qty').value=arr.length;$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');}
+
 // ---- save ----
 function saveRepair(e){e.preventDefault();
   let party=$('f_party').value;if(party==='__new')party='';
@@ -211,7 +215,7 @@ function editRepair(id){const r=R().find(x=>x.id===id);if(!r)return;showV('new')
   if(r.party&&![...$('f_party').options].some(o=>o.value===r.party)){const o=document.createElement('option');o.value=r.party;o.textContent=r.party;$('f_party').appendChild(o);}
   $('f_party').value=r.party||'';onPartyPick();
   if(r.orderNo&&$('f_saleorder')){$('f_saleorder').value=r.orderNo;onSalePick();}
-  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_serial').value=r.serial||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;
+  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_serial').value=r.serial||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;{const n=lcList(r.lcno).length;$('lcnoHint').textContent=n>1?(n+' loadcells'):'';}
   $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';$('f_category').value=r.category||'';
   $('f_found').value=r.found||'';$('f_action').value=r.action||'';$('f_parts').value=r.parts||'';$('f_tech').value=r.tech||'';
   $('f_charge').value=r.charge||'';$('f_status').value=r.status||'Received';$('f_dispatched').value=r.dispatched||'';$('f_remarks').value=r.remarks||'';
