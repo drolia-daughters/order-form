@@ -112,7 +112,7 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><div class="icon">OS</div><h1>Order Sheet</h1><span>LIVE</span><div class="live-dot"></div></div><div class="tab-bar"><button class="tab-btn active" onclick="showView('form')">+ New Order</button><button class="tab-btn" onclick="showView('db')">Master Database</button><button class="tab-btn" onclick="showView('pay')" data-tip="Credit payments: reminders and escalation">💰 Payments<span class="pay-count" id="payCount"></span></button></div></div>
-<div class="setup-banner" id="setupBanner"><div style="font-size:22px;">⚙️</div><div style="flex:1;"><h3>One-time Setup</h3><p>Paste your Google Apps Script URL.</p><input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/..." style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:13px;color:var(--text);font-family:var(--mono);outline:none;width:100%;max-width:500px;margin-top:10px;"><br><button onclick="saveScriptUrl()" style="margin-top:8px;padding:7px 16px;background:var(--orange);color:#000;border:none;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;">Save</button></div></div>
+
 
 <div class="main">
 <div class="form-view" id="formView">
@@ -377,7 +377,7 @@ function genON(){
   db.forEach(o=>{if(o.orderNo){const m=o.orderNo.match(/(\d+)$/);if(m){const n=parseInt(m[1]);if(n>maxNum)maxNum=n;}}});
   return 'ORD-'+new Date().getFullYear()+'-'+(maxNum+1).toString().padStart(4,'0');
 }
-function init(){refreshTypeList();setItems([]);ST.attachCalendar(document.getElementById('deliveryDate'));ST.attachCalendar(document.getElementById('dod'));document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();if(gsu())document.getElementById('setupBanner').classList.add('hidden');learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
+function init(){refreshTypeList();setItems([]);ST.attachCalendar(document.getElementById('deliveryDate'));ST.attachCalendar(document.getElementById('dod'));document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
 function handleLogoUpload(e){const f=e.target.files[0];if(!f||f.size>5e6)return;const r=new FileReader();r.onload=ev=>{logoBase64=ev.target.result;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';};r.readAsDataURL(f);}
 function removeLogo(){logoBase64='';document.getElementById('logoPreviewImg').src='';document.getElementById('logoPreview').classList.remove('visible');document.getElementById('uploadZone').style.display='block';document.getElementById('logoFileInput').value='';}
 const uz=document.getElementById('uploadZone');['dragenter','dragover'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('dragover');}));['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.remove('dragover');}));uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById('logoFileInput').files=e.dataTransfer.files;handleLogoUpload({target:{files:[f]}});}});
