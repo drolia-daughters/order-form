@@ -64,7 +64,6 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
       <div class="form-group full" id="saleBox" style="display:none;"></div>
       <div class="form-group"><label>Product / Model</label><input type="text" id="f_product" list="prodList" placeholder="DLC-O16 / ball type / single point" oninput="liveSimilar()"></div>
       <datalist id="prodList"></datalist>
-      <div class="form-group"><label>Serial / batch no. (if any)</label><input type="text" id="f_serial" placeholder="optional"></div>
       <div class="form-group"><label>Loadcell No(s).</label><input type="text" id="f_lcno" placeholder="one or many, comma-separated e.g. L001, L002, L003" oninput="onLcno()"><span id="lcnoHint" style="font-size:11px;color:var(--text-dim);"></span></div>
       <div class="form-group"><label>Quantity</label><input type="number" id="f_qty" min="1" value="1"></div>
       <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
@@ -198,7 +197,7 @@ function saveRepair(e){e.preventDefault();
   const id=$('f_id').value||('rep'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
   const saleSel=$('f_saleorder');
   const rec={id,rma:$('f_rma').value,received:$('f_received').value,party,phone:$('f_phone').value.trim(),
-    product:$('f_product').value.trim(),serial:$('f_serial').value.trim(),lcno:$('f_lcno').value.trim(),qty:+$('f_qty').value||1,
+    product:$('f_product').value.trim(),lcno:$('f_lcno').value.trim(),qty:+$('f_qty').value||1,
     orderNo:saleSel?saleSel.value:'',saleDate:saleSel&&saleSel.options[saleSel.selectedIndex]?saleSel.options[saleSel.selectedIndex].dataset.date||'':'',
     warranty:$('f_warranty').value,reported:$('f_reported').value.trim(),category:$('f_category').value,
     found:$('f_found').value.trim(),action:$('f_action').value.trim(),parts:$('f_parts').value.trim(),
@@ -215,7 +214,7 @@ function editRepair(id){const r=R().find(x=>x.id===id);if(!r)return;showV('new')
   if(r.party&&![...$('f_party').options].some(o=>o.value===r.party)){const o=document.createElement('option');o.value=r.party;o.textContent=r.party;$('f_party').appendChild(o);}
   $('f_party').value=r.party||'';onPartyPick();
   if(r.orderNo&&$('f_saleorder')){$('f_saleorder').value=r.orderNo;onSalePick();}
-  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_serial').value=r.serial||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;{const n=lcList(r.lcno).length;$('lcnoHint').textContent=n>1?(n+' loadcells'):'';}
+  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;{const n=lcList(r.lcno).length;$('lcnoHint').textContent=n>1?(n+' loadcells'):'';}
   $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';$('f_category').value=r.category||'';
   $('f_found').value=r.found||'';$('f_action').value=r.action||'';$('f_parts').value=r.parts||'';$('f_tech').value=r.tech||'';
   $('f_charge').value=r.charge||'';$('f_status').value=r.status||'Received';$('f_dispatched').value=r.dispatched||'';$('f_remarks').value=r.remarks||'';
@@ -264,7 +263,7 @@ function cardHtml(r){const comp=ST.company();const sold=r.saleDate?('Sold on '+S
     +'<div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;"><div><div style="font-size:19px;font-weight:800;">Sentire Technologies</div><div style="font-size:11px;color:#555;">'+ST.esc(comp.address||'Vadodara, Gujarat')+'</div></div><div style="text-align:right;"><div style="font-size:15px;font-weight:700;">REPAIR JOB CARD</div><div style="font-size:13px;font-weight:700;">'+ST.esc(r.rma)+'</div><div style="font-size:12px;">Received: '+ST.fmtDate(r.received)+'</div></div></div>'
     +'<table style="width:100%;font-size:13px;border-collapse:collapse;">'
     +'<tr><td style="padding:5px 0;color:#777;width:40%;">Customer</td><td style="padding:5px 0;font-weight:700;text-transform:capitalize;">'+ST.esc(r.party||'—')+'</td></tr>'
-    +'<tr><td style="padding:5px 0;color:#777;">Product / Model</td><td style="padding:5px 0;">'+ST.esc(r.product||'—')+(r.lcno?' · L/C No: '+ST.esc(r.lcno):'')+(r.serial?' · Sr: '+ST.esc(r.serial):'')+' · Qty '+ST.esc(r.qty||1)+'</td></tr>'
+    +'<tr><td style="padding:5px 0;color:#777;">Product / Model</td><td style="padding:5px 0;">'+ST.esc(r.product||'—')+(r.lcno?' · L/C No: '+ST.esc(r.lcno):'')+' · Qty '+ST.esc(r.qty||1)+'</td></tr>'
     +'<tr><td style="padding:5px 0;color:#777;">Warranty</td><td style="padding:5px 0;font-weight:700;">'+wtxt+'<div style="font-weight:400;color:#555;font-size:11px;">'+sold+'</div></td></tr>'
     +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Problem reported</td><td style="padding:5px 0;">'+ST.esc(r.reported||'—')+'</td></tr>'
     +'<tr><td style="padding:5px 0;color:#777;vertical-align:top;">Fault found</td><td style="padding:5px 0;">'+ST.esc(r.found||'—')+(r.category?' ['+ST.esc(r.category)+']':'')+'</td></tr>'
