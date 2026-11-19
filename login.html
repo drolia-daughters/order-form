@@ -93,7 +93,8 @@ function signIn(id, password) {
     return A.rpc('my_profile');
   }).then(function (p) {
     if (!p) return A.client.auth.signOut().then(function () { throw new Error('Wrong login ID or password.'); });
-    A.remember(p); location.replace(nextPage());
+    A.remember(p); try { $('l_pw').value = ''; $('l_id').value = ''; } catch (e) {}   // clear before leaving so Chrome is less likely to offer "save password"
+    location.replace(nextPage());
   });
 }
 function start() {
