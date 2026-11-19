@@ -121,7 +121,6 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
   <form class="form-grid" id="orderForm" onsubmit="return submitOrder(event)">
     <div class="form-group"><label><span class="sl">1</span> Order No.</label><input type="text" id="orderNo" readonly style="color:var(--accent);font-family:var(--mono);"></div>
     <div class="form-group"><label><span class="sl">2</span> Date</label><input type="date" id="orderDate" required></div>
-    <div class="form-group"><label><span class="sl">2B</span> Delivery Date</label><input type="date" id="deliveryDate"></div>
     <div class="form-group" style="justify-content:flex-end;"><div class="mini-note" style="font-size:11px;">📅 Tap the calendar — industrial holidays are marked in red (edit them in Masters → Holidays)</div></div>
     <div class="section-divider"></div>
 
@@ -377,7 +376,7 @@ function genON(){
   db.forEach(o=>{if(o.orderNo){const m=o.orderNo.match(/(\d+)$/);if(m){const n=parseInt(m[1]);if(n>maxNum)maxNum=n;}}});
   return 'ORD-'+new Date().getFullYear()+'-'+(maxNum+1).toString().padStart(4,'0');
 }
-function init(){refreshTypeList();setItems([]);ST.attachCalendar(document.getElementById('deliveryDate'));ST.attachCalendar(document.getElementById('dod'));document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
+function init(){refreshTypeList();setItems([]);ST.attachCalendar(document.getElementById('dod'));document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();learnFromDB();popDD('partyName',PK);popDD('transporterName',TK);renderDB();}
 function handleLogoUpload(e){const f=e.target.files[0];if(!f||f.size>5e6)return;const r=new FileReader();r.onload=ev=>{logoBase64=ev.target.result;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';};r.readAsDataURL(f);}
 function removeLogo(){logoBase64='';document.getElementById('logoPreviewImg').src='';document.getElementById('logoPreview').classList.remove('visible');document.getElementById('uploadZone').style.display='block';document.getElementById('logoFileInput').value='';}
 const uz=document.getElementById('uploadZone');['dragenter','dragover'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('dragover');}));['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.remove('dragover');}));uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f){document.getElementById('logoFileInput').files=e.dataTransfer.files;handleLogoUpload({target:{files:[f]}});}});
@@ -467,7 +466,6 @@ function editOrder(ri){const db=gdb(),o=db[ri];if(!o)return;editingIndex=ri;show
   document.getElementById('partyName').value=o.partyName||'';document.getElementById('location').value=o.location||'';
   document.getElementById('clientEmail').value=o.clientEmail||'';document.getElementById('clientPhone').value=o.clientPhone||'';
   setItems(ST.items(o).map(x=>Object.assign({},x)),canRate(o));
-  document.getElementById('deliveryDate').value=o.deliveryDate||'';document.getElementById('deliveryDate')._stCheck&&document.getElementById('deliveryDate')._stCheck();
   document.getElementById('laserLogo').value=o.laserLogo||'';
   if(o.logoImage){logoBase64=o.logoImage;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';}else removeLogo();
   document.getElementById('productionRemarks').value=o.productionRemarks||'';
@@ -515,7 +513,7 @@ async function submitOrder(e){e.preventDefault();
   if(noCap){alert('Ordered Capacity is required for every item.\n\nPlease fill the Ordered Cap. for: '+(noCap.type||'(item)'));return false;}
   const btn=document.getElementById('submitBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+(editingIndex>=0?'Updating...':'Saving...');
   const v=id=>document.getElementById(id).value;const sum=ST.itemsSummary(items);
-  const form={orderNo:v('orderNo'),date:v('orderDate'),deliveryDate:v('deliveryDate'),partyName:v('partyName'),location:v('location'),clientEmail:v('clientEmail'),clientPhone:v('clientPhone'),
+  const form={orderNo:v('orderNo'),date:v('orderDate'),partyName:v('partyName'),location:v('location'),clientEmail:v('clientEmail'),clientPhone:v('clientPhone'),
     items:items,loadcellType:sum.loadcellType,quantity:sum.quantity,capacity:sum.capacity,wire:sum.wire,itemsText:sum.itemsText,
     laserLogo:v('laserLogo'),logoImage:logoBase64,productionRemarks:v('productionRemarks'),transporterName:v('transporterName'),transporterId:v('transporterId'),transporterEmail:v('transporterEmail'),transporterPhone:v('transporterPhone'),
     lrNumber:v('lrNumber'),trackingLink:v('trackingLink'),dod:v('dod'),paymentMode:v('paymentMode'),creditDays:v('creditDays'),orderRemarks:v('orderRemarks'),wiringBy:v('wiringBy'),packingBy:v('packingBy'),testingBy:v('testingBy')};
@@ -550,7 +548,7 @@ async function submitOrder(e){e.preventDefault();
   if(despatchNo)ST.offerDespatch(despatchNo);
 }
 
-function resetForm(){document.getElementById('orderForm').reset();setItems([]);['deliveryDate','dod'].forEach(id=>{const el=document.getElementById(id);if(el._stCheck)el._stCheck();});document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();document.getElementById('trackingLink').dataset.auto='';document.getElementById('savedLogoArea').style.display='none';document.getElementById('creditDaysBox').style.display='none';removeLogo();}
+function resetForm(){document.getElementById('orderForm').reset();setItems([]);['dod'].forEach(id=>{const el=document.getElementById(id);if(el._stCheck)el._stCheck();});document.getElementById('orderNo').value=genON();document.getElementById('orderDate').value=ST.today();document.getElementById('trackingLink').dataset.auto='';document.getElementById('savedLogoArea').style.display='none';document.getElementById('creditDaysBox').style.display='none';removeLogo();}
 function saveTrackingLink(idx){const db=gdb(),ri=db.length-1-idx,inp=document.getElementById('trackInput_'+idx);if(inp){db[ri].trackingLink=inp.value.trim();sdb(db);renderDB();showToast('success');}}
 
 // An order still waiting for approval is seen only by the people who may approve, and by the user who took it.
@@ -638,7 +636,7 @@ function printSelected(){const db=gdb();const sel=Array.from(document.querySelec
 function printCurrentForm(){
   const v=id=>(document.getElementById(id)||{}).value||'';const items=getItems();const sum=ST.itemsSummary(items);
   const prev=editingIndex>=0?(gdb()[editingIndex]||{}):{};
-  const o={orderNo:v('orderNo')||'NEW',date:v('orderDate'),deliveryDate:v('deliveryDate'),partyName:v('partyName'),location:v('location'),items:items,loadcellType:sum.loadcellType,quantity:sum.quantity,capacity:sum.capacity,wire:sum.wire,
+  const o={orderNo:v('orderNo')||'NEW',date:v('orderDate'),partyName:v('partyName'),location:v('location'),items:items,loadcellType:sum.loadcellType,quantity:sum.quantity,capacity:sum.capacity,wire:sum.wire,
     laserLogo:v('laserLogo'),logoImage:(typeof logoBase64!=='undefined'&&logoBase64)||prev.logoImage||'',productionRemarks:v('productionRemarks'),transporterName:v('transporterName'),transporterPhone:v('transporterPhone'),dod:v('dod'),
     orderRemarks:v('orderRemarks'),wiringBy:v('wiringBy'),packingBy:v('packingBy'),testingBy:v('testingBy'),status:prev.status||'new',approvedAt:prev.approvedAt};
   if(!o.partyName){alert('Please fill at least the Party Name before printing.');return;}
