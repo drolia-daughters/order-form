@@ -30,40 +30,116 @@ tr.warn td{background:rgba(239,68,68,.07);}tr.new td:first-child{border-left:3px
 .k.r{color:var(--red);border-color:var(--red);}.k.o{color:var(--orange);border-color:var(--orange);}.k.g{color:var(--green);border-color:var(--green);}
 .msg{font-size:13px;min-height:18px;margin:10px 0;color:var(--red);}
 .box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.6;}
+.who b{display:block;}.who small,.dim{color:var(--text-dim);font-size:12px;}
+h2{font-size:16px;margin:22px 0 8px;display:flex;align-items:center;gap:10px;}
+.btn.red{border-color:var(--red);color:#fecaca;}.btn.red:hover{background:rgba(239,68,68,.15);}
+.btn.sm{padding:5px 10px;font-size:12px;}
+.tbl{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow-x:auto;margin-bottom:8px;}
+tr.abroad td{background:rgba(245,158,11,.08);}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--text-dim);}.dot.on{background:var(--green);}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><h1>🛡 Security</h1><span class="sp"></span><button class="btn" id="seenBtn">✓ Mark all as seen</button><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
-  <p class="sub">Every wrong password, lock-out, Admin login, password change and change of rights is written here. Only Admins can see this page. A red bar shows on every page while something new needs your attention.</p>
+  <div class="top"><h1>🛡 Security</h1><span class="sp"></span><button class="btn" id="refBtn">↻ Refresh</button><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
+  <p class="sub">See who is logged in right now, from which city and country, and log anyone out. Every login, wrong password, lock-out and change of rights is recorded below. Only the Admin and Sub Admin can open this page.</p>
   <div class="msg" id="msg"></div>
+
+  <h2>👥 Logged in now</h2>
+  <div class="tbl" id="live"><div class="box">Loading…</div></div>
+  <p class="dim" style="margin-bottom:6px">“Log out” ends that one device at once. “All devices” logs the person out everywhere. Logins outside India are shown in orange. The list refreshes every 30 seconds.</p>
+
+  <h2>📜 Security log <span class="sp"></span><button class="btn sm" id="seenBtn">✓ Mark all as seen</button></h2>
   <div class="cards" id="cards"></div>
-  <div class="box" id="how"><b>What protects the logins</b><br>• 5 wrong passwords on one login in 15 minutes → that login is locked for 15 minutes (and every try is logged).<br>• 20 wrong passwords from one internet address in 15 minutes → that address is blocked.<br>• The internal login address of each person is secret and never sent to the browser.<br>• Password check for “Approve anyway” is logged too.<br>If the lock-out hits the real Admin, the other Admin can still log in.</div>
-  <div id="list"></div>
+  <div class="tbl" id="list"></div>
+  <div class="box" id="how" style="margin-top:14px"><b>What protects the logins</b><br>• 5 wrong passwords on one login in 15 minutes → that login is locked for 15 minutes (and every try is logged).<br>• 20 wrong passwords from one internet address in 15 minutes → that address is blocked.<br>• The internal login address of each person is secret and never sent to the browser.<br>• A person who is logged out from here loses access to all data at once, and their open pages go to the login screen within a minute.<br>If the lock-out hits the real Admin, the other Admin can still log in.</div>
 </div>
 <script>
-var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
+var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); }, ME = null, located = false;
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-var LABEL = { SUSPICIOUS_DATA: ['SUSPICIOUS DATA', 'r'], login_fail: ['Wrong password', 'o'], LOCKED_OUT: ['LOCKED OUT', 'r'], ROLE_CHANGED: ['ROLE CHANGED', 'r'], admin_login_ok: ['Admin login', 'g'], admin_check_ok: ['Admin password check', 'g'],
+function when(t) { return t ? new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''; }
+function ago(t) {
+  var m = Math.round((Date.now() - new Date(t)) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago';
+}
+function place(x) {
+  var p = [x.city, x.region, x.country].filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(', ');
+  return p || (x.ip ? 'Finding place…' : 'Not known (logged in before tracking started)');
+}
+function abroad(x) { return x.country && x.country !== 'India'; }
+function say(t, ok) { $('msg').style.color = ok ? 'var(--green)' : 'var(--red)'; $('msg').textContent = t; }
+var LABEL = { SUSPICIOUS_DATA: ['SUSPICIOUS DATA', 'r'], login_fail: ['Wrong password', 'o'], LOCKED_OUT: ['LOCKED OUT', 'r'], ROLE_CHANGED: ['ROLE CHANGED', 'r'],
+  admin_login_ok: ['Admin login', 'g'], login_ok: ['User login', 'g'], admin_check_ok: ['Admin password check', 'g'], FORCED_LOGOUT: ['LOGGED OUT', 'r'],
   password_changed: ['Password changed', 'o'], rights_changed: ['Rights changed', 'o'], user_added: ['User added', 'o'], user_removed: ['User removed', 'o'], login_id_changed: ['Login ID changed', 'o'], DATA_RESTORED: ['DATA RESTORED', 'r'] };
-function load() {
-  A.client.from('security_log').select('id,at,kind,login_id,ip,detail,seen').order('at', { ascending: false }).limit(300).then(function (r) {
-    if (r.error) { $('msg').textContent = 'Only Admins can open this page.'; return; }
+
+// ── Logged in now ──
+var LIVE = [];
+function loadLive() {
+  return A.rpc('admin_logged_in').then(function (rows) {
+    LIVE = rows || [];
+    if (!LIVE.length) { $('live').innerHTML = '<div class="box">Nobody is logged in.</div>'; return; }
+    var count = {}; LIVE.forEach(function (x) { count[x.login_id] = (count[x.login_id] || 0) + 1; });
+    $('live').innerHTML = '<table><tr><th>Person</th><th>Where</th><th>Device</th><th>Logged in</th><th>Last active</th><th></th></tr>' + LIVE.map(function (x, i) {
+      var on = Date.now() - new Date(x.last_active) < 5 * 60000;
+      return '<tr class="' + (abroad(x) ? 'abroad' : '') + '"><td class="who"><b>' + esc(x.name) + '</b><small>' + esc(x.login_id) + ' · ' + esc(x.role) + (x.is_me ? ' · <span class="k g">this is you</span>' : '') + '</small></td>' +
+        '<td>' + (abroad(x) ? '🌍 ' : '') + esc(place(x)) + (x.ip ? '<br><small class="dim">IP ' + esc(x.ip) + '</small>' : '') + '</td>' +
+        '<td>' + esc(x.device || '—') + '</td><td>' + esc(when(x.started_at)) + '</td>' +
+        '<td><span class="dot ' + (on ? 'on' : '') + '"></span>' + esc(ago(x.last_active)) + '</td>' +
+        '<td style="white-space:nowrap">' + (x.is_me ? '' : '<button class="btn sm red" onclick="endOne(' + i + ')">Log out</button> ') +
+        (count[x.login_id] > 1 || x.is_me ? '<button class="btn sm" onclick="endAll(' + i + ')">All devices</button>' : '') + '</td></tr>';
+    }).join('') + '</table>';
+  }).catch(function (e) { $('live').innerHTML = '<div class="box">' + esc(e.message) + '</div>'; });
+}
+function endOne(i) {
+  var x = LIVE[i]; if (!x) return;
+  if (!confirm('Log out ' + x.name + ' (' + x.login_id + ')\nfrom ' + place(x) + ', ' + (x.device || 'unknown device') + '?\n\nThey lose access at once.')) return;
+  A.rpc('admin_end_session', { p_session_id: x.session_id }).then(function () { say('✓ ' + x.name + ' is logged out from ' + place(x) + '.', true); refresh(); })
+    .catch(function (e) { say(e.message); refresh(); });
+}
+function endAll(i) {
+  var x = LIVE[i]; if (!x) return;
+  if (!confirm('Log out ' + x.name + ' (' + x.login_id + ') on EVERY device?' + (x.is_me ? '\n\nThis includes THIS computer — you will have to log in again.' : ''))) return;
+  A.rpc('admin_end_all_sessions', { p_login_id: x.login_id }).then(function (n) { say('✓ ' + x.name + ' is logged out on ' + n + ' device' + (n === 1 ? '' : 's') + '.', true); refresh(); })
+    .catch(function (e) { say(e.message); refresh(); });
+}
+
+// ── Security log ──
+function loadLog() {
+  return A.client.from('security_log').select('id,at,kind,login_id,ip,city,region,country,detail,seen').order('at', { ascending: false }).limit(300).then(function (r) {
+    if (r.error) { say('Only the Admin or Sub Admin can open this page.'); return []; }
     var rows = r.data || [], day = Date.now() - 864e5;
-    var f24 = rows.filter(function (x) { return x.kind === 'login_fail' && new Date(x.at) > day; }).length;
-    var lk = rows.filter(function (x) { return x.kind === 'LOCKED_OUT' && new Date(x.at) > day; }).length;
-    var rc = rows.filter(function (x) { return x.kind === 'ROLE_CHANGED' && new Date(x.at) > day; }).length;
+    var n = function (f) { return rows.filter(function (x) { return f(x) && new Date(x.at) > day; }).length; };
+    var f24 = n(function (x) { return x.kind === 'login_fail'; }), lk = n(function (x) { return x.kind === 'LOCKED_OUT'; });
+    var lg = n(function (x) { return /login_ok$/.test(x.kind); }), ab = n(function (x) { return /login_ok$/.test(x.kind) && abroad(x); });
     var nw = rows.filter(function (x) { return !x.seen; }).length;
-    $('cards').innerHTML = '<div class="card ' + (f24 ? 'bad' : 'ok') + '"><b>' + f24 + '</b><span>wrong passwords, last 24 h</span></div><div class="card ' + (lk ? 'bad' : 'ok') + '"><b>' + lk + '</b><span>lock-outs, last 24 h</span></div><div class="card ' + (rc ? 'bad' : 'ok') + '"><b>' + rc + '</b><span>role changes, last 24 h</span></div><div class="card"><b>' + nw + '</b><span>new, not yet marked seen</span></div>';
-    $('list').innerHTML = rows.length ? '<table><tr><th>When</th><th>Event</th><th>Login</th><th>Address</th><th>Details</th></tr>' + rows.map(function (x) {
+    $('cards').innerHTML = '<div class="card ok"><b>' + lg + '</b><span>logins, last 24 h</span></div><div class="card ' + (ab ? 'bad' : 'ok') + '"><b>' + ab + '</b><span>logins from outside India, last 24 h</span></div><div class="card ' + (f24 ? 'bad' : 'ok') + '"><b>' + f24 + '</b><span>wrong passwords, last 24 h</span></div><div class="card ' + (lk ? 'bad' : 'ok') + '"><b>' + lk + '</b><span>lock-outs, last 24 h</span></div><div class="card"><b>' + nw + '</b><span>new, not yet marked seen</span></div>';
+    $('list').innerHTML = rows.length ? '<table><tr><th>When</th><th>Event</th><th>Login</th><th>Where</th><th>Details</th></tr>' + rows.map(function (x) {
       var l = LABEL[x.kind] || [x.kind, 'o'];
-      return '<tr class="' + (x.seen ? '' : 'new') + ' ' + (l[1] === 'r' ? 'warn' : '') + '"><td>' + esc(new Date(x.at).toLocaleString('en-IN')) + '</td><td><span class="k ' + l[1] + '">' + esc(l[0]) + '</span></td><td>' + esc(x.login_id) + '</td><td>' + esc(x.ip) + '</td><td>' + esc(x.detail) + '</td></tr>';
+      return '<tr class="' + (x.seen ? '' : 'new') + ' ' + (l[1] === 'r' ? 'warn' : abroad(x) ? 'abroad' : '') + '"><td>' + esc(new Date(x.at).toLocaleString('en-IN')) + '</td><td><span class="k ' + l[1] + '">' + esc(l[0]) + '</span></td><td>' + esc(x.login_id) + '</td><td>' +
+        (x.ip ? (abroad(x) ? '🌍 ' : '') + esc([x.city, x.country].filter(Boolean).join(', ') || '…') + '<br><small class="dim">IP ' + esc(x.ip) + '</small>' : '') + '</td><td>' + esc(x.detail) + '</td></tr>';
     }).join('') + '</table>' : '<div class="box">Nothing recorded yet — that is good news.</div>';
+    return rows;
   });
 }
-$('seenBtn').onclick = function () { A.rpc('admin_security_seen').then(function () { load(); $('msg').style.color = 'var(--green)'; $('msg').textContent = '✓ Marked as seen.'; }).catch(function (e) { $('msg').textContent = e.message; }); };
-if (!A.enabled) $('msg').textContent = 'Login is not switched on.';
-else A.ready.then(function (me) { if (!me) return; if (me.role !== 'Admin') { $('msg').textContent = 'Only Admins can open this page.'; return; } load(); });
+// Old entries (and any the look-up missed) get their city and country filled in once per visit.
+function locate(rows) {
+  if (located || !rows.some(function (x) { return x.ip && !x.country; })) return;
+  located = true;
+  A.client.auth.getSession().then(function (r) {
+    var t = r.data && r.data.session && r.data.session.access_token; if (!t) return;
+    return A.callFn('secure-login', { mode: 'locate', token: t }).then(function (res) { if (res.json && res.json.found) refresh(); });
+  });
+}
+function refresh() { loadLive(); loadLog().then(locate); }
+
+$('refBtn').onclick = function () { say(''); refresh(); };
+$('seenBtn').onclick = function () { A.rpc('admin_security_seen').then(function () { loadLog(); say('✓ Marked as seen.', true); }).catch(function (e) { say(e.message); }); };
+if (!A.enabled) say('Login is not switched on.');
+else A.ready.then(function (me) {
+  if (!me) return; ME = me;
+  if (!A.isSecurityAdmin(me)) { say('Only the Admin or Sub Admin can open this page.'); $('live').innerHTML = ''; return; }
+  refresh(); setInterval(loadLive, 30000);
+});
 </script>
 </body>
 </html>

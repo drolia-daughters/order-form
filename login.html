@@ -90,7 +90,10 @@ function signIn(id, password) {
   });
 }
 function start() {
-  A.rpc('login_status').then(function (setup) { show(setup ? 'fLogin' : 'fSetup'); $(setup ? 'l_id' : 's_name').focus(); })
+  A.rpc('login_status').then(function (setup) {
+    show(setup ? 'fLogin' : 'fSetup'); $(setup ? 'l_id' : 's_name').focus();
+    if (localStorage.getItem('sentire_kicked')) { localStorage.removeItem('sentire_kicked'); $('l_err').textContent = 'You were logged out by the Admin. Log in again if you need to.'; }
+  })
     .catch(function (e) { $('wait').querySelector('h1').textContent = 'Login is not ready'; $('waitMsg').textContent = plain(e); });
 }
 

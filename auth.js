@@ -47,6 +47,8 @@
     // Accounts (ACS): may see order rates and bill details. The Admin always may.
     canBill: function () { var u = A.user; return !A.enabled || !u || u.role === 'Admin' || u.can_bill === true; },
     canApprove: function () { var u = A.user; return !A.enabled || !u || u.role === 'Admin' || u.can_approve === true; },
+    // Admin or Sub Admin (a user with both the delete and the approve right): may open the Security page and log people out.
+    isSecurityAdmin: function (u) { u = u || A.user; return !!u && (u.role === 'Admin' || (u.can_delete === true && u.can_approve === true)); },
     // Main Page: drop the apps this person may not open from its app list.
     filterApps: function (list) { for (var i = list.length - 1; i >= 0; i--) if (!A.can(list[i].file)) list.splice(i, 1); return list; },
     // Check an Admin's login ID + password WITHOUT changing who is logged in here (used for override approvals).
@@ -58,9 +60,16 @@
         return r.json.name || 'Admin';
       });
     },
+    // Log out on THIS device only (other devices of the same person stay logged in).
     logout: function () {
       var done = function () { forget(); toLogin(); };
-      if (A.client) A.client.auth.signOut().then(done, done); else done();
+      if (A.client) A.client.auth.signOut({ scope: 'local' }).then(done, done); else done();
+    },
+    // Someone (Admin / Sub Admin) logged this device out: tell the person once, then go to the login page.
+    kicked: function () {
+      if (A._kicked) return; A._kicked = true;
+      try { localStorage.setItem('sentire_kicked', '1'); } catch (e) {}
+      A.logout();
     }
   };
   if (!A.enabled) return;                         // login is switched off (auth_config.js is empty)
@@ -93,7 +102,7 @@
     A.ready = A.client.auth.getSession().then(function (r) {
       if (!(r.data && r.data.session)) { forget(); toLogin(); return null; }
       return A.rpc('my_profile').then(function (p) {
-        if (!p) { A.logout(); return null; }       // login was removed by the Admin
+        if (!p) { A.kicked(); return null; }       // logged out from the Security page, or login removed by the Admin
         A.remember(p); checkRight(); show(); return p;
       });
     }).catch(function () {                        // no internet: carry on if this device was logged in
@@ -102,14 +111,27 @@
     });
   }
 
+  // ─── Every minute: is this login still allowed? The Admin / Sub Admin can log people out from the Security page. ───
+  A.ready.then(function (me) {
+    if (!me) return;
+    var ping = function () {
+      if (document.hidden) return;              // checked again when the page is looked at
+      A.rpc('session_ping').then(function (s) { if (s === 'ended') A.kicked(); }).catch(function () {});
+    };
+    setInterval(ping, 60000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) ping(); });
+    A.client.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT' && !A._kicked) { forget(); toLogin(); } });
+  });
+
   // ─── Security alert: the Admin sees a red bar on every page while there are unseen warning events ───
   var ALERT_KINDS = { SUSPICIOUS_DATA: 1, login_fail: 1, LOCKED_OUT: 1, ROLE_CHANGED: 1, login_id_changed: 1, password_changed: 1, rights_changed: 1, user_added: 1, user_removed: 1, DATA_RESTORED: 1 };
   A.ready.then(function (me) {
     if (!me || me.role !== 'Admin' || page === 'security.html') return;
     var go = function () {
-      A.client.from('security_log').select('id,at,kind,login_id,ip,detail').eq('seen', false).order('at', { ascending: false }).limit(300).then(function (r) {
+      A.client.from('security_log').select('id,at,kind,login_id,ip,detail,country').eq('seen', false).order('at', { ascending: false }).limit(300).then(function (r) {
         if (r.error || !r.data) return;
         var mine = ' by ' + me.login_id, bad = r.data.filter(function (e) {
+          if (/login_ok$/.test(e.kind) && e.country && e.country !== 'India' && e.login_id !== me.login_id) return true;   // login from outside India
           if (!ALERT_KINDS[e.kind]) return false;
           if (/^(rights_changed|user_added|user_removed|login_id_changed|password_changed)$/.test(e.kind) && String(e.detail || '').slice(-mine.length) === mine) return false;   // your own changes
           return true;
@@ -117,9 +139,10 @@
         if (!bad.length) return;
         var worst = bad.filter(function (e) { return e.kind === 'LOCKED_OUT' || e.kind === 'ROLE_CHANGED'; }).length;
         var fails = bad.filter(function (e) { return e.kind === 'login_fail'; }).length;
+        var abroad = bad.filter(function (e) { return /login_ok$/.test(e.kind); }).length;
         var bar = document.createElement('div');
         bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#b91c1c;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 14px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.4);cursor:pointer;';
-        bar.textContent = '🚨 SECURITY ALERT — ' + bad.length + ' warning' + (bad.length > 1 ? 's' : '') + ': ' + (fails ? fails + ' wrong login attempt' + (fails > 1 ? 's' : '') + '. ' : '') + (worst ? worst + ' serious (lock-out / role change). ' : '') + 'Click to open the Security page.';
+        bar.textContent = '🚨 SECURITY ALERT — ' + bad.length + ' warning' + (bad.length > 1 ? 's' : '') + ': ' + (fails ? fails + ' wrong login attempt' + (fails > 1 ? 's' : '') + '. ' : '') + (abroad ? abroad + ' login' + (abroad > 1 ? 's' : '') + ' from outside India. ' : '') + (worst ? worst + ' serious (lock-out / role change). ' : '') + 'Click to open the Security page.';
         bar.onclick = function () { location.href = 'security.html'; };
         document.body.appendChild(bar); document.title = '🚨 ' + document.title;
       });
@@ -137,7 +160,9 @@
       who.style.cssText = 'font-size:12px;color:var(--text-dim);margin-left:6px;white-space:nowrap;';
       who.textContent = '👤 ' + me.name + (me.role === 'Admin' ? ' (Admin)' : me.can_bill ? ' (Accounts)' : me.can_delete && me.can_approve ? ' (Sub Admin)' : me.can_approve ? ' (Approver)' : '');
       bar.appendChild(who);
-      if (me.role === 'Admin') { btn('Users', function () { location.href = 'users.html'; }); btn('🛡 Security', function () { location.href = 'security.html'; }); btn('💾 Backup', function () { location.href = 'backup.html'; }); }
+      if (me.role === 'Admin') btn('Users', function () { location.href = 'users.html'; });
+      if (A.isSecurityAdmin(me)) btn('🛡 Security', function () { location.href = 'security.html'; });
+      if (me.role === 'Admin') btn('💾 Backup', function () { location.href = 'backup.html'; });
       btn('Log out', A.logout);
     });
   }
