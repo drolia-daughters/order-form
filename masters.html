@@ -116,7 +116,7 @@ async function editClient(name){const isNew=!name;const c=isNew?{}:ST.client(nam
       if(isNew&&clientNames().some(x=>x.toLowerCase()===n.toLowerCase())){err.textContent='This client already exists.';return false;}
       const g=q('c_g').toUpperCase();if(g&&!/^\d{2}[A-Z0-9]{13}$/.test(g)){err.textContent='GSTIN should be 15 characters (e.g. 24ABCDE1234F1Z5).';return false;}
       if(q('c_pm')==='Credit'&&!(+q('c_cd')>0)){err.textContent='Enter credit days for a credit client.';return false;}
-      return {n,l:q('c_l'),p:q('c_p'),e:q('c_e'),g,a:q('c_a'),pin:q('c_pin'),sc:q('c_sc')||(g?g.slice(0,2):''),pm:q('c_pm'),cd:q('c_cd'),apply:!!(ov.querySelector('#c_apply')||{}).checked};}}]});
+      return {n:n.toUpperCase(),l:q('c_l'),p:q('c_p'),e:q('c_e'),g,a:q('c_a'),pin:q('c_pin'),sc:q('c_sc')||(g?g.slice(0,2):''),pm:q('c_pm'),cd:q('c_cd'),apply:!!(ov.querySelector('#c_apply')||{}).checked};}}]});
   if(!r)return;const cc=ST.get(K.clients,{});const x=cc[r.n]=cc[r.n]||{};
   Object.assign(x,{location:r.l,phone:r.p,email:r.e,gstin:r.g,address:r.a,pincode:r.pin,stateCode:r.sc,paymentMode:r.pm,creditDays:r.pm==='Credit'?r.cd:''});ST.set(K.clients,cc);
   const pl=ST.get(K.partyLocs,{});if(r.l)pl[r.n]=r.l;ST.set(K.partyLocs,pl);const ps=ST.get(K.parties,[]);if(!ps.includes(r.n)){ps.push(r.n);ST.set(K.parties,ps);}
@@ -199,7 +199,7 @@ async function editVendor(name){const isNew=!name;const vv=ST.get(K.vendors,{});
     buttons:[{label:'Cancel',value:null},{label:'✓ Save',cls:'pri',onClick:(ov,err)=>{const q=id=>(ov.querySelector('#'+id)||{}).value?.trim()||'';const n=isNew?q('v_n'):name;if(!n){err.textContent='Enter the vendor name.';return false;}
       if(isNew&&vendorNames().some(x=>x.toLowerCase()===n.toLowerCase())){err.textContent='This vendor already exists.';return false;}
       const g=q('v_g').toUpperCase();if(g&&!/^\d{2}[A-Z0-9]{13}$/.test(g)){err.textContent='GSTIN should be 15 characters.';return false;}
-      return {n,l:q('v_l'),p:q('v_p'),e:q('v_e'),g,a:q('v_a'),pin:q('v_pin'),sc:q('v_sc')||(g?g.slice(0,2):'')};}}]});
+      return {n:n.toUpperCase(),l:q('v_l'),p:q('v_p'),e:q('v_e'),g,a:q('v_a'),pin:q('v_pin'),sc:q('v_sc')||(g?g.slice(0,2):'')};}}]});
   if(!r)return;const x=vv[r.n]=vv[r.n]||{};Object.assign(x,{location:r.l,phone:r.p,email:r.e,gstin:r.g,address:r.a,pincode:r.pin,stateCode:r.sc});ST.set(K.vendors,vv);toast('✓ Vendor saved');renderVendors();}
 
 /* ═════ MIGRATE INVOICES (sales) ═════ */

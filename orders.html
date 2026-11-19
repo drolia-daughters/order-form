@@ -223,7 +223,7 @@ const gsu=()=>localStorage.getItem(SK)||'';const gdb=()=>g(DK);const sdb=d=>s(DK
 
 function popDD(id,lk){const sel=document.getElementById(id),l=g(lk);while(sel.options.length>1)sel.remove(1);l.sort().forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});}
 function toggleAddNew(t){const el=document.getElementById(t==='party'?'partyAddNew':'transporterAddNew');el.classList.toggle('visible');if(el.classList.contains('visible'))document.getElementById(t==='party'?'partyNewInput':'transporterNewInput').focus();}
-function addNewItem(t){const isP=t==='party',id=isP?'partyNewInput':'transporterNewInput',lk=isP?PK:TK,sid=isP?'partyName':'transporterName';const n=document.getElementById(id).value.trim();if(!n)return alert('Enter a name.');const l=g(lk);if(l.includes(n))return alert('Exists!');l.push(n);s(lk,l);popDD(sid,lk);document.getElementById(sid).value=n;toggleAddNew(t);if(isP)onPartyChange();else onTransporterChange();}
+function addNewItem(t){const isP=t==='party',id=isP?'partyNewInput':'transporterNewInput',lk=isP?PK:TK,sid=isP?'partyName':'transporterName';let n=document.getElementById(id).value.trim();if(isP)n=n.toUpperCase();if(!n)return alert('Enter a name.');const l=g(lk);if(l.includes(n))return alert('Exists!');l.push(n);s(lk,l);popDD(sid,lk);document.getElementById(sid).value=n;toggleAddNew(t);if(isP)onPartyChange();else onTransporterChange();}
 
 function showHint(id){const h=document.getElementById(id);h.classList.add('show');setTimeout(()=>h.classList.remove('show'),3000);}
 
@@ -281,7 +281,7 @@ function editPartyName(){
 }
 function savePartyEdit(){
   const oldName=document.getElementById('partyName').value;
-  const newName=document.getElementById('partyEditInput').value.trim();
+  const newName=document.getElementById('partyEditInput').value.trim().toUpperCase();
   if(!newName)return alert('Enter a name.');if(oldName===newName){document.getElementById('partyEditBox').classList.remove('visible');return;}
   // Update party list
   const list=g(PK);const idx=list.indexOf(oldName);if(idx>=0)list[idx]=newName;s(PK,list);
