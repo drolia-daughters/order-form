@@ -113,10 +113,10 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 
 <!-- PURCHASE -->
 <div class="view" id="v_purchase"><h2 style="margin-bottom:6px;">🔴 Purchase</h2>
-<p style="color:var(--text-dim);margin-bottom:12px;font-size:13px;">Purchase invoices from suppliers. Add them in the 📥 Invoices tab — purchases are checked by you before posting.</p>
-<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"><input type="text" id="purSrch" placeholder="Search supplier / invoice..." oninput="renderPurchase()" style="max-width:250px;"><button class="btn" style="background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.2);" onclick="showV('invoices')">📥 Add invoices</button></div>
+<p style="color:var(--text-dim);margin-bottom:12px;font-size:13px;">Purchase invoices from suppliers. Add them in the 📥 Invoices tab — purchases are checked by you before posting, and each bill is filed under the <b>GRN No.</b> of its goods (Purchase &amp; GRN page).</p>
+<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"><input type="text" id="purSrch" placeholder="Search supplier / invoice / GRN..." oninput="renderPurchase()" style="max-width:250px;"><button class="btn" style="background:var(--green-dim);color:var(--green);border-color:rgba(34,197,94,0.2);" onclick="showV('invoices')">📥 Add invoices</button></div>
 <div id="purStats"></div>
-<div class="table-wrap"><table><thead><tr><th>Date</th><th>Invoice #</th><th>Supplier</th><th>GSTIN</th><th>Taxable</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody id="purBody"></tbody></table></div></div>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Invoice #</th><th>GRN No.</th><th>Supplier</th><th>GSTIN</th><th>Taxable</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody id="purBody"></tbody></table></div></div>
 
 <!-- INVOICE INBOX -->
 <div class="view" id="v_invoices"><h2 style="margin-bottom:6px;">📥 Invoice Inbox</h2>
@@ -325,7 +325,7 @@ function ourGstin(){try{const c=JSON.parse(localStorage.getItem('st_company'))||
 
 function renderSales(){
   const q=(document.getElementById('salSrch')?.value||'').toLowerCase();
-  const rows=g(FK).filter(e=>e.kind==='sale').sort((a,b)=>(b.date||'').localeCompare(a.date||'')).filter(e=>!q||((e.party+' '+(e.invoiceNo||e.ref||'')).toLowerCase().includes(q)));
+  const rows=g(FK).filter(e=>e.kind==='sale').sort((a,b)=>(b.date||'').localeCompare(a.date||'')).filter(e=>!q||((e.party+' '+(e.invoiceNo||e.ref||'')+' '+(e.grnNo||'')).toLowerCase().includes(q)));
   const tot=rows.reduce((a,e)=>a+(e.total||e.amount||0),0),tax=rows.reduce((a,e)=>a+(e.taxable||0),0);
   const st=document.getElementById('salStats'); if(st)st.innerHTML=statRow([['Sales invoices',rows.length],['Taxable',INR(tax)],['Total billed',INR(tot)]]);
   const b=document.getElementById('salBody'); if(!b)return;
@@ -338,7 +338,7 @@ function renderPurchase(){
   const tot=rows.reduce((a,e)=>a+(e.total||e.amount||0),0),tax=rows.reduce((a,e)=>a+(e.taxable||0),0);
   const st=document.getElementById('purStats'); if(st)st.innerHTML=statRow([['Purchase invoices',rows.length],['Taxable',INR(tax)],['Total',INR(tot)]]);
   const b=document.getElementById('purBody'); if(!b)return;
-  b.innerHTML=rows.length?rows.map(e=>`<tr><td style="font-family:var(--mono);font-size:10px;">${aEsc(e.date)}</td><td style="font-family:var(--mono);font-size:11px;">${aEsc(e.invoiceNo||e.ref||'—')}</td><td><strong>${aEsc(e.party)}</strong></td><td style="font-family:var(--mono);font-size:10px;">${aEsc(e.gstin||'—')}</td><td style="font-family:var(--mono);">${INR(e.taxable||0)}</td><td style="font-size:11px;">${gstText(e)}</td><td style="font-family:var(--mono);font-weight:700;color:var(--red);">${INR(e.total||e.amount||0)}</td><td style="white-space:nowrap;"><button class="act-btn" onclick="viewBill('${e.id}')">👁</button> <button class="act-btn" onclick="printBill('${e.id}')">🖨</button> <button class="act-btn" style="background:rgba(239,68,68,.08);color:var(--red);border-color:rgba(239,68,68,.2);" onclick="delEntry('${e.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px;">No purchases yet — add invoices in the 📥 Invoices tab.</td></tr>';
+  b.innerHTML=rows.length?rows.map(e=>`<tr><td style="font-family:var(--mono);font-size:10px;">${aEsc(e.date)}</td><td style="font-family:var(--mono);font-size:11px;">${aEsc(e.invoiceNo||e.ref||'—')}</td><td style="font-family:var(--mono);font-size:11px;">${e.grnNo==='NO-GOODS'?'<span style="color:var(--text-dim);">no goods</span>':e.grnNo?aEsc(e.grnNo):'<span style="color:var(--orange);">—</span>'}</td><td><strong>${aEsc(e.party)}</strong></td><td style="font-family:var(--mono);font-size:10px;">${aEsc(e.gstin||'—')}</td><td style="font-family:var(--mono);">${INR(e.taxable||0)}</td><td style="font-size:11px;">${gstText(e)}</td><td style="font-family:var(--mono);font-weight:700;color:var(--red);">${INR(e.total||e.amount||0)}</td><td style="white-space:nowrap;"><button class="act-btn" onclick="viewBill('${e.id}')">👁</button> <button class="act-btn" onclick="printBill('${e.id}')">🖨</button> <button class="act-btn" style="background:rgba(239,68,68,.08);color:var(--red);border-color:rgba(239,68,68,.2);" onclick="delEntry('${e.id}')">🗑</button></td></tr>`).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">No purchases yet — add invoices in the 📥 Invoices tab.</td></tr>';
 }
 
 /* ---- PDF reader (pdf.js, loaded on demand) ---- */
@@ -398,10 +398,25 @@ function postSale(p,pdfName){
   entries.push({id:_newId(),type:'income',kind:'sale',category:'Sales',date:p.date,party:p.party,invoiceNo:p.invoiceNo,ref:p.invoiceNo,gstin:p.gstin,taxable:p.taxable,cgst:p.cgst,sgst:p.sgst,igst:p.igst,gstType:p.gstType,gstPct:p.gstPct,total:p.total,amount:p.total,ewayBill:p.eway,orderNo,status:'Unpaid',mode:'',desc:'Sales invoice',notes:'From invoice '+(p.invoiceNo||''),pdfName,source:'migration'});
   s(FK,entries);return {status:'posted',orderNo};
 }
+/* ---- GRN link: every purchase bill is filed under the GRN of the goods (Purchase & GRN page) ---- */
+function grnList(){try{return JSON.parse(localStorage.getItem('inv_grn'))||[];}catch{return [];}}
+function grnUsed(no){return g(FK).some(e=>e.kind==='purchase'&&e.grnNo===no);}
+function grnGuess(p){const L=grnList().filter(x=>!grnUsed(x.grnNo));const v=(p.party||'').toLowerCase();
+  const byBill=L.find(x=>x.billNo&&p.invoiceNo&&x.billNo.toLowerCase()===String(p.invoiceNo).toLowerCase());if(byBill)return byBill.grnNo;
+  const sameV=L.filter(x=>(x.vendor||'').toLowerCase()===v);return sameV.length===1?sameV[0].grnNo:'';}
+function grnOptions(p){const v=(p.party||'').toLowerCase();const L=grnList().slice().sort((a,b)=>String(b.grnNo).localeCompare(String(a.grnNo)));
+  const opt=x=>`<option value="${aEsc(x.grnNo)}"${p.grnNo===x.grnNo?' selected':''}>${aEsc(x.grnNo)} · ${aEsc(x.vendor)}${x.billNo?' · bill '+aEsc(x.billNo):''}${grnUsed(x.grnNo)?' (bill already posted)':''}</option>`;
+  const mine=L.filter(x=>(x.vendor||'').toLowerCase()===v),other=L.filter(x=>(x.vendor||'').toLowerCase()!==v);
+  return '<option value="">— GRN No. —</option>'+(mine.length?'<optgroup label="This supplier">'+mine.map(opt).join('')+'</optgroup>':'')+(other.length?'<optgroup label="Other suppliers">'+other.map(opt).join('')+'</optgroup>':'')+`<option value="NO-GOODS"${p.grnNo==='NO-GOODS'?' selected':''}>No goods — service / expense bill</option>`;}
+function grnMark(grnNo,p,pdfName,entryId){if(!grnNo||grnNo==='NO-GOODS')return;const L=grnList();const x=L.find(y=>y.grnNo===grnNo);if(!x)return;
+  if(!x.billNo&&p.invoiceNo)x.billNo=p.invoiceNo;x.billFile=pdfName||'';x.billEntryId=entryId;x.billPostedAt=new Date().toISOString();localStorage.setItem('inv_grn',JSON.stringify(L));}
+
 function postPurchase(p,pdfName){
   const entries=g(FK);
   if(p.invoiceNo&&entries.some(e=>e.kind==='purchase'&&(e.invoiceNo||'')===p.invoiceNo&&(e.party||'').toLowerCase()===(p.party||'').toLowerCase()))return {status:'dup'};
-  entries.push({id:_newId(),type:'expense',kind:'purchase',category:'Purchase',date:p.date,party:p.party,invoiceNo:p.invoiceNo,ref:p.invoiceNo,gstin:p.gstin,taxable:p.taxable,cgst:p.cgst,sgst:p.sgst,igst:p.igst,gstType:p.gstType,gstPct:p.gstPct,total:p.total,amount:p.total,status:'Paid',mode:'',desc:'Purchase invoice',notes:'From invoice '+(p.invoiceNo||''),pdfName,source:'migration'});
+  const _id=_newId();
+  entries.push({id:_id,type:'expense',kind:'purchase',category:'Purchase',date:p.date,party:p.party,invoiceNo:p.invoiceNo,ref:p.invoiceNo,gstin:p.gstin,taxable:p.taxable,cgst:p.cgst,sgst:p.sgst,igst:p.igst,gstType:p.gstType,gstPct:p.gstPct,total:p.total,amount:p.total,status:'Paid',mode:'',desc:'Purchase invoice',notes:'From invoice '+(p.invoiceNo||'')+(p.grnNo&&p.grnNo!=='NO-GOODS'?' · '+p.grnNo:''),grnNo:p.grnNo||'',pdfName,source:'migration'});
+  grnMark(p.grnNo,p,pdfName,_id);
   s(FK,entries);return {status:'posted'};
 }
 
@@ -439,9 +454,10 @@ function renderResults(){
     const p=it.parsed||{};
     if(it.status==='posted')return `<tr style="background:rgba(34,197,94,.06);"><td>📄 ${aEsc(it.name)}</td><td><span class="tag" style="background:var(--green-dim);color:var(--green);">✓ Sale posted${it.orderNo?' → '+aEsc(it.orderNo):''}</span></td><td style="font-family:var(--mono);font-size:11px;">${aEsc(p.invoiceNo)}</td><td>${aEsc(p.party)}</td><td style="font-size:11px;">${aEsc(p.date)}</td><td>${INR(p.taxable)}</td><td style="font-size:11px;">${gstText(p)}</td><td style="font-weight:700;color:var(--green);">${INR(p.total)}</td></tr>`;
     if(it.status==='dup')return `<tr style="opacity:.55;"><td>📄 ${aEsc(it.name)}</td><td><span class="tag" style="background:rgba(245,158,11,.12);color:var(--orange);">already posted</span></td><td style="font-family:var(--mono);font-size:11px;">${aEsc(p.invoiceNo)}</td><td>${aEsc(p.party)}</td><td colspan="4"></td></tr>`;
+    if(p.kind!=='sale'&&p.grnNo==null)p.grnNo=grnGuess(p);
     const gst=(p.igst||0)+(p.cgst||0)+(p.sgst||0);
     return `<tr style="background:rgba(245,158,11,.05);"><td>📄 ${aEsc(it.name)}</td>
-      <td><select onchange="inbox[${i}].parsed.kind=this.value"><option value="purchase" ${p.kind==='purchase'?'selected':''}>Purchase</option><option value="sale" ${p.kind==='sale'?'selected':''}>Sale</option></select></td>
+      <td><select onchange="inbox[${i}].parsed.kind=this.value;renderResults();"><option value="purchase" ${p.kind==='purchase'?'selected':''}>Purchase</option><option value="sale" ${p.kind==='sale'?'selected':''}>Sale</option></select>${p.kind!=='sale'?`<select style="margin-top:4px;min-width:150px;" onchange="inbox[${i}].parsed.grnNo=this.value">${grnOptions(p)}</select>`:''}</td>
       <td><input value="${aEsc(p.invoiceNo||'')}" oninput="inbox[${i}].parsed.invoiceNo=this.value" style="width:100px;"></td>
       <td><input value="${aEsc(p.party||'')}" oninput="inbox[${i}].parsed.party=this.value" style="width:130px;"></td>
       <td><input value="${aEsc(p.date||'')}" oninput="inbox[${i}].parsed.date=this.value" style="width:100px;" placeholder="YYYY-MM-DD"></td>
@@ -456,6 +472,7 @@ function postReview(i){
   if(p._gst!=null&&!p.igst&&!p.cgst&&!p.sgst)p.igst=p._gst;
   if(!p.total)p.total=(p.taxable||0)+(p.igst||0)+(p.cgst||0)+(p.sgst||0);
   if(!p.party){toast('Add the party name first');return;}
+  if(p.kind!=='sale'&&!p.grnNo){toast('Choose the GRN No. of these goods (or "No goods" for a service bill)');return;}
   const r=p.kind==='sale'?postSale(p,it.name):postPurchase(p,it.name);
   it.status=r.status;it.posted=(r.status==='posted');it.orderNo=r.orderNo;
   renderResults();renderSales();renderPurchase();toast(r.status==='dup'?'Already posted':'✓ Posted');

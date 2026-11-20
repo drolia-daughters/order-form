@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purchase &amp; GRN — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--accent:#0ea5e9;--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--cyan:#06b6d4;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}.topbar-brand .icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;}.topbar-brand h1{font-size:15px;font-weight:600;}.topbar-brand span{font-size:11px;color:var(--text-dim);font-family:var(--mono);background:var(--surface-2);padding:3px 8px;border-radius:4px;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 12px;border:none;background:transparent;color:var(--text-dim);font-size:11px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--accent);color:#fff;}
+.main{padding:24px;max-width:1400px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}textarea{min-height:70px;resize:vertical;}
+.btn{padding:10px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);}.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:24px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:500;}
+.act-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);margin:1px;}
+.toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--accent);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+.hint{font-size:12px;color:var(--text-dim);margin-bottom:12px;}
+.prow{display:flex;gap:6px;margin-bottom:6px;align-items:center;}.prow select{flex:1;min-width:0;}.prow input{width:90px;}
+.kb{background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px;margin-top:8px;}
+.lrow{display:grid;grid-template-columns:2.2fr .7fr .6fr .8fr 34px;gap:6px;margin-bottom:6px;align-items:center;}
+.lrow select,.lrow input{padding:8px 9px;font-size:12px;}
+.gtable input,.gtable select{padding:6px 8px;font-size:12px;}
+.st-Open{background:rgba(59,130,246,.12);color:#3b82f6;}.st-Part{background:rgba(245,158,11,.12);color:#f59e0b;}.st-Received{background:rgba(34,197,94,.12);color:#22c55e;}.st-Cancelled{background:rgba(239,68,68,.12);color:#ef4444;}
+.need{color:var(--orange);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><div class="icon">📦</div><h1>Purchase &amp; GRN</h1><span>PO → INWARD</span></div>
+<div class="tab-bar">
+  <button class="tab-btn active" data-v="dash" onclick="showV('dash')">Dashboard</button>
+  <button class="tab-btn" data-v="po" onclick="showV('po')">📝 Purchase Orders</button>
+  <button class="tab-btn" data-v="newpo" onclick="showV('newpo')">+ New PO</button>
+  <button class="tab-btn" data-v="grn" onclick="showV('grn')">📦 GRN / Inward</button>
+  <button class="tab-btn" data-v="newgrn" onclick="showV('newgrn')">+ New GRN</button>
+</div></div>
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="view active" id="v_dash">
+  <p class="hint">How buying works: <b>1.</b> Make a Purchase Order (PO) and email it to the supplier. <b>2.</b> When the goods arrive, make a GRN against that PO — only a GRN adds stock. <b>3.</b> Post the supplier's bill in Accounts → Invoices and pick its GRN No.</p>
+  <div class="stats-row" id="dStats"></div>
+  <div class="card"><h3 style="margin-bottom:10px;">Goods still to arrive</h3><div id="dPending"></div></div>
+  <div class="card"><h3 style="margin-bottom:10px;">GRNs needing attention</h3><div id="dAttn"></div></div>
+</div>
+
+<!-- PO LIST -->
+<div class="view" id="v_po">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <input type="text" id="poSrch" placeholder="Search PO / supplier / item..." oninput="renderPOs()" style="max-width:280px;">
+    <select id="poFilt" onchange="renderPOs()" style="max-width:180px;"><option value="">All</option><option value="open">Open + part received</option><option value="Received">Received</option><option value="Cancelled">Cancelled</option></select>
+    <button class="btn btn-primary" onclick="showV('newpo')">+ New PO</button>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>PO No.</th><th>Date</th><th>Supplier</th><th>Items</th><th>Received</th><th>Status</th><th>Emailed</th><th></th></tr></thead><tbody id="poBody"></tbody></table></div>
+</div>
+
+<!-- NEW / EDIT PO -->
+<div class="view" id="v_newpo">
+  <h2 style="margin-bottom:4px;" id="poTitle">New Purchase Order</h2>
+  <p class="hint">Every order to a supplier gets a PO number. After saving, email it to the supplier from here.</p>
+  <div class="card">
+    <input type="hidden" id="po_id">
+    <div class="form-grid">
+      <div class="form-group"><label>PO No.</label><input type="text" id="po_no" readonly style="opacity:.7;"></div>
+      <div class="form-group"><label>PO date</label><input type="date" id="po_date"></div>
+      <div class="form-group"><label>Supplier</label><div style="display:flex;gap:6px;"><select id="po_vendor" onchange="onVendor()" style="flex:1;min-width:0;"></select><button type="button" class="btn" style="padding:6px 12px;white-space:nowrap;" onclick="addVendor()">➕ Add</button></div></div>
+      <div class="form-group"><label>Supplier email (PO is sent here)</label><input type="email" id="po_email" placeholder="supplier@example.com"></div>
+      <div class="form-group"><label>Deliver by (optional)</label><input type="date" id="po_due"></div>
+      <div class="form-group"><label>Deliver to (optional)</label><select id="po_loc"></select></div>
+      <div class="form-group full"><label>Items — one row each</label>
+        <div class="lrow" style="font-size:10px;color:var(--text-dim);font-family:var(--mono);text-transform:uppercase;"><span>Item</span><span>Qty</span><span>Unit</span><span>Rate ₹ (opt.)</span><span></span></div>
+        <div id="poRows"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+          <button type="button" class="btn" style="padding:6px 12px;" onclick="addPoRow()">+ Add another item</button>
+          <button type="button" class="btn" style="padding:6px 12px;border-color:#22c55e;color:#22c55e;" onclick="newStockItem()">➕ New item (not in stock list)</button>
+          <span id="poTotal" class="hint" style="align-self:center;margin:0;"></span>
+        </div>
+      </div>
+      <div class="form-group full"><label>Terms / notes (printed on the PO)</label><textarea id="po_notes" placeholder="e.g. Please mention our PO No. on your invoice and delivery challan."></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="savePO()" id="poSaveBtn">Save PO</button>
+      <button class="btn" onclick="resetPO()">Clear</button>
+      <span id="poMsg" style="color:var(--red);font-size:12px;align-self:center;"></span>
+    </div>
+  </div>
+</div>
+
+<!-- GRN LIST -->
+<div class="view" id="v_grn">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+    <input type="text" id="grnSrch" placeholder="Search GRN / PO / supplier / bill no..." oninput="renderGRNs()" style="max-width:300px;">
+    <select id="grnFilt" onchange="renderGRNs()" style="max-width:200px;"><option value="">All GRNs</option><option value="loc">Location not set</option><option value="bill">Bill not posted yet</option></select>
+    <button class="btn btn-primary" onclick="showV('newgrn')">+ New GRN</button>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>GRN No.</th><th>Date</th><th>PO No.</th><th>Supplier</th><th>Items received</th><th>Location</th><th>Supplier bill</th><th></th></tr></thead><tbody id="grnBody"></tbody></table></div>
+</div>
+
+<!-- NEW GRN -->
+<div class="view" id="v_newgrn">
+  <h2 style="margin-bottom:4px;">New GRN — goods received</h2>
+  <p class="hint">Stock only comes in through a GRN. Pick the PO the goods came against, enter what actually arrived. The store location can be chosen now or later.</p>
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group"><label>GRN No.</label><input type="text" id="g_no" readonly style="opacity:.7;"></div>
+      <div class="form-group"><label>GRN date (goods received on)</label><input type="date" id="g_date"></div>
+      <div class="form-group full"><label>Against PO</label><select id="g_po" onchange="loadPOForGRN()"></select></div>
+      <div class="form-group"><label>Supplier bill / challan No. (optional)</label><input type="text" id="g_bill" placeholder="as printed on their bill"></div>
+      <div class="form-group"><label>Bill date (optional)</label><input type="date" id="g_billdate"></div>
+      <div class="form-group full" id="g_lines"></div>
+      <div class="form-group full"><label>Notes (damage, shortage, etc.)</label><textarea id="g_notes"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="saveGRN()">Save GRN &amp; add to stock</button>
+      <span id="gMsg" style="color:var(--red);font-size:12px;align-self:center;"></span>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast">✓ Saved</div>
+<script src="sentire_common.js"></script>
+<script>
+const PO_K='inv_po', GRN_K='inv_grn', IK='inv_items', TXK='inv_txns', LOC_K='inv_locations';
+const LOC_DEFAULT=['Ahmedabad','Baroda G Floor','Baroda 1st Floor'];
+const $=id=>document.getElementById(id);
+const E=ST.esc;
+const POs=()=>ST.get(PO_K,[]), GRNs=()=>ST.get(GRN_K,[]), Items=()=>ST.get(IK,[]);
+const locs=()=>{const l=ST.get(LOC_K,null);return Array.isArray(l)&&l.length?l:LOC_DEFAULT;};
+const me=()=>((window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'');
+const canDel=()=>!window.SentireAuth||!SentireAuth.canDelete||SentireAuth.canDelete();
+function toast(m){const t=$('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+function nextNo(prefix,list,field){const yr=String(new Date().getFullYear());let max=0;const re=new RegExp('^'+prefix+'-'+yr+'-(\\d+)$');list.forEach(x=>{const m=String(x[field]||'').match(re);if(m)max=Math.max(max,+m[1]);});return prefix+'-'+yr+'-'+String(max+1).padStart(4,'0');}
+function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));const el=$('v_'+v);if(el)el.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  if(v==='dash')renderDash();if(v==='po')renderPOs();if(v==='grn')renderGRNs();if(v==='newpo'&&!$('po_id').value)resetPO();if(v==='newgrn')prepGRN();}
+
+/* ---------- received quantities per PO line ---------- */
+function receivedFor(poNo){const r={};GRNs().filter(g=>g.poNo===poNo).forEach(g=>g.lines.forEach(l=>{r[l.code]=(r[l.code]||0)+(+l.qty||0);}));return r;}
+function poStatus(p){if(p.status==='Cancelled')return 'Cancelled';const r=receivedFor(p.poNo);const lines=p.items||[];
+  const got=lines.reduce((a,l)=>a+Math.min(r[l.code]||0,+l.qty||0),0),want=lines.reduce((a,l)=>a+(+l.qty||0),0);
+  if(!got)return 'Open';return got>=want?'Received':'Part received';}
+function stTag(s){const c=s==='Part received'?'Part':s;return `<span class="tag st-${c}">${E(s)}</span>`;}
+
+/* ---------- suppliers (Masters → Vendors) ---------- */
+function vendors(){return ST.get(ST.K.vendors,{});}
+function vendorOptions(sel){const v=Object.keys(vendors()).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  $('po_vendor').innerHTML='<option value="">— select supplier —</option>'+v.map(n=>`<option${n===sel?' selected':''}>${E(n)}</option>`).join('')+'<option value="__new">➕ Add new supplier…</option>';}
+function onVendor(){const n=$('po_vendor').value;if(n==='__new'){$('po_vendor').value='';addVendor();return;}$('po_email').value=(vendors()[n]||{}).email||'';}
+async function addVendor(){
+  const r=await ST.modal({title:'Add supplier',sub:'Saved to Masters → Vendors as well.',
+    html:'<label>Supplier name</label><input id="nv_n" placeholder="Company name"><label>Email</label><input id="nv_e" placeholder="for sending POs"><label>Phone</label><input id="nv_p"><label>City</label><input id="nv_l">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Add',cls:'pri',onClick:(ov,err)=>{const q=id=>((ov.querySelector('#'+id)||{}).value||'').trim();
+      const n=q('nv_n').toUpperCase();if(!n){err.textContent='Enter the supplier name.';return false;}return {n,e:q('nv_e'),p:q('nv_p'),l:q('nv_l')};}}]});
+  if(!r)return;const vv=vendors();const ex=Object.keys(vv).find(k=>k.toLowerCase()===r.n.toLowerCase());const name=ex||r.n;
+  const x=vv[name]=vv[name]||{};if(r.e&&!x.email)x.email=r.e;if(r.p&&!x.phone)x.phone=r.p;if(r.l&&!x.location)x.location=r.l;ST.set(ST.K.vendors,vv);
+  vendorOptions(name);$('po_email').value=x.email||'';toast(ex?'✓ '+name+' already existed — selected':'✓ Supplier added');}
+
+/* ---------- PO form ---------- */
+function itemOpts(code){const it=Items().slice().sort((a,b)=>String(a.code).localeCompare(String(b.code)));
+  return '<option value="">— select item —</option>'+it.map(i=>`<option value="${E(i.code)}"${i.code===code?' selected':''}>${E(i.code)} — ${E(i.name)}</option>`).join('')+'<option value="__new">➕ New item…</option>';}
+function addPoRow(l){l=l||{};const d=document.createElement('div');d.className='lrow';
+  d.innerHTML=`<select class="r-code" onchange="onPoItem(this)">${itemOpts(l.code)}</select><input class="r-qty" type="number" min="0" step="any" placeholder="Qty" value="${E(l.qty||'')}" oninput="poTotal()"><input class="r-unit" placeholder="Unit" value="${E(l.unit||'')}"><input class="r-rate" type="number" min="0" step="any" placeholder="₹" value="${E(l.rate||'')}" oninput="poTotal()"><button type="button" class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="this.closest('.lrow').remove();if(!document.querySelector('#poRows .lrow'))addPoRow();poTotal();">✕</button>`;
+  $('poRows').appendChild(d);return d;}
+let newItemTarget=null;
+function onPoItem(sel){if(sel.value==='__new'){sel.value='';newItemTarget=sel;newStockItem();return;}
+  const it=Items().find(i=>i.code===sel.value);const row=sel.closest('.lrow');if(it){row.querySelector('.r-unit').value=it.unit||'Pcs';if(!row.querySelector('.r-rate').value&&it.cost)row.querySelector('.r-rate').value=it.cost;}poTotal();}
+async function newStockItem(){
+  const target=newItemTarget;newItemTarget=null;
+  const r=await ST.modal({title:'New stock item',sub:'Added to Inventory → Stock Items with 0 stock. Stock comes in through the GRN.',
+    html:'<label>Item code</label><input id="ni_c" placeholder="e.g. WIRE-4C-RED"><label>Item name</label><input id="ni_n"><label>Unit</label><select id="ni_u">'+['Pcs','Kg','Meters','Rolls','Sets','Boxes','Liters'].map(x=>'<option>'+x+'</option>').join('')+'</select><label>Category</label><select id="ni_cat">'+['Loadcell Body','Electronics','Wire','Hardware','Packaging','Raw Material','Other'].map(x=>'<option>'+x+'</option>').join('')+'</select>',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Add item',cls:'pri',onClick:(ov,err)=>{const q=id=>((ov.querySelector('#'+id)||{}).value||'').trim();
+      const c=q('ni_c').toUpperCase().replace(/\s+/g,'-'),n=q('ni_n');if(!c||!n){err.textContent='Enter code and name.';return false;}
+      if(Items().some(i=>String(i.code).toUpperCase()===c)){err.textContent='Code '+c+' already exists.';return false;}
+      return {c,n,u:q('ni_u'),cat:q('ni_cat')};}}]});
+  if(!r)return;const items=Items();items.push({code:r.c,name:r.n,category:r.cat,unit:r.u,stock:0,reorder:0,leadTime:50,cost:0,supplier:$('po_vendor').value||'',moq:0,notes:'Added from Purchase Order',updated:ST.today()});ST.set(IK,items);
+  document.querySelectorAll('#poRows .r-code').forEach(s=>{const v=s.value;s.innerHTML=itemOpts(v);});
+  let sel=target;if(!sel){sel=[...document.querySelectorAll('#poRows .r-code')].find(s=>!s.value)||addPoRow().querySelector('.r-code');}
+  sel.value=r.c;onPoItem(sel);toast('✓ Item '+r.c+' added');}
+function poLines(){return [...document.querySelectorAll('#poRows .lrow')].map(row=>{const code=row.querySelector('.r-code').value;const it=Items().find(i=>i.code===code)||{};
+  return {code,name:it.name||'',qty:+row.querySelector('.r-qty').value||0,unit:row.querySelector('.r-unit').value.trim()||it.unit||'Pcs',rate:+row.querySelector('.r-rate').value||0};}).filter(l=>l.code&&l.code!=='__new');}
+function poTotal(){const t=poLines().reduce((a,l)=>a+l.qty*l.rate,0);$('poTotal').textContent=t?('Value ≈ '+ST.inr(t)+' (before GST)'):'';}
+function locOptions(sel,first){return '<option value="">'+(first||'— set later —')+'</option>'+locs().map(l=>`<option${l===sel?' selected':''}>${E(l)}</option>`).join('');}
+function resetPO(){$('po_id').value='';$('poTitle').textContent='New Purchase Order';$('poSaveBtn').textContent='Save PO';$('po_no').value=nextNo('PO',POs(),'poNo');
+  $('po_date').value=ST.today();$('po_due').value='';$('po_email').value='';$('po_notes').value='Please mention our PO No. on your invoice and delivery challan.';$('poMsg').textContent='';
+  vendorOptions('');$('po_loc').innerHTML=locOptions('','— not fixed —');$('poRows').innerHTML='';addPoRow();poTotal();}
+function editPO(id){const p=POs().find(x=>x.id===id);if(!p)return;if(GRNs().some(g=>g.poNo===p.poNo)){toast('Goods already received against this PO — it can no longer be changed');return;}
+  showV('newpo');$('po_id').value=p.id;$('poTitle').textContent='Edit '+p.poNo;$('poSaveBtn').textContent='Save changes';$('po_no').value=p.poNo;$('po_date').value=p.date||'';$('po_due').value=p.due||'';
+  vendorOptions(p.vendor);$('po_email').value=p.email||'';$('po_notes').value=p.notes||'';$('po_loc').innerHTML=locOptions(p.deliverTo||'','— not fixed —');$('poRows').innerHTML='';(p.items||[]).forEach(addPoRow);if(!(p.items||[]).length)addPoRow();poTotal();}
+function savePO(){const vendor=$('po_vendor').value,lines=poLines(),email=$('po_email').value.trim();$('poMsg').textContent='';
+  if(!vendor){$('poMsg').textContent='Choose the supplier.';return;}
+  if(!lines.length){$('poMsg').textContent='Add at least one item.';return;}
+  if(lines.some(l=>!(l.qty>0))){$('poMsg').textContent='Enter the quantity for every item.';return;}
+  const all=POs();const id=$('po_id').value;let p=all.find(x=>x.id===id);
+  if(!p){p={id:newId(),poNo:nextNo('PO',all,'poNo'),createdAt:new Date().toISOString(),createdBy:me(),status:'Open'};all.push(p);}
+  Object.assign(p,{date:$('po_date').value||ST.today(),vendor,email,due:$('po_due').value,deliverTo:$('po_loc').value,items:lines,notes:$('po_notes').value.trim(),updatedAt:new Date().toISOString()});
+  ST.set(PO_K,all);
+  if(email){const vv=vendors();if(vv[vendor]&&!vv[vendor].email){vv[vendor].email=email;ST.set(ST.K.vendors,vv);}}
+  toast('✓ '+p.poNo+' saved');$('po_id').value='';showV('po');
+  ST.modal({title:p.poNo+' saved',sub:'Send it to '+vendor+' now?',buttons:[{label:'Later',value:null},{label:'🖨 Print',onClick:()=>{printPO(p.id);}},{label:'📧 Email PO',cls:'pri',onClick:()=>{emailPO(p.id);}}]});}
+
+/* ---------- PO list / email / print ---------- */
+function renderPOs(){const q=($('poSrch').value||'').toLowerCase(),f=$('poFilt').value;
+  const rows=POs().slice().sort((a,b)=>String(b.poNo).localeCompare(String(a.poNo))).filter(p=>{const s=poStatus(p);
+    if(f==='open'&&!(s==='Open'||s==='Part received'))return false;if(f&&f!=='open'&&s!==f)return false;
+    return !q||(p.poNo+' '+p.vendor+' '+(p.items||[]).map(l=>l.code+' '+l.name).join(' ')).toLowerCase().includes(q);});
+  $('poBody').innerHTML=rows.length?rows.map(p=>{const s=poStatus(p),r=receivedFor(p.poNo),hasG=GRNs().some(g=>g.poNo===p.poNo);
+    const items=(p.items||[]).map(l=>`${E(l.code)} × ${E(l.qty)} ${E(l.unit||'')}`).join('<br>');
+    const rec=(p.items||[]).map(l=>`${r[l.code]||0} / ${E(l.qty)}`).join('<br>');
+    return `<tr><td style="font-family:var(--mono);font-weight:700;">${E(p.poNo)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(p.date)}</td><td><strong>${E(p.vendor)}</strong></td><td style="font-size:11px;">${items}</td><td style="font-family:var(--mono);font-size:11px;">${rec}</td><td>${stTag(s)}</td><td style="font-size:10px;">${p.emailedAt?'✓ '+ST.fmtDate(p.emailedAt.slice(0,10)):'<span class="need">not sent</span>'}</td>
+      <td style="white-space:nowrap;"><button class="act-btn" onclick="printPO('${p.id}')">🖨</button><button class="act-btn" onclick="emailPO('${p.id}')">📧</button>${(s==='Open'||s==='Part received')?`<button class="act-btn" style="color:var(--green);border-color:var(--green);" onclick="grnFromPO('${p.poNo}')">📦 GRN</button>`:''}${!hasG&&s!=='Cancelled'?`<button class="act-btn" onclick="editPO('${p.id}')">✏️</button><button class="act-btn" onclick="cancelPO('${p.id}')">Cancel</button>`:''}${!hasG&&canDel()?`<button class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="delPO('${p.id}')">🗑</button>`:''}</td></tr>`;}).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px;">No purchase orders yet.</td></tr>';}
+async function cancelPO(id){const all=POs();const p=all.find(x=>x.id===id);if(!p)return;const ok=await ST.modal({title:'Cancel '+p.poNo+'?',sub:'The PO stays in the list, marked Cancelled.',buttons:[{label:'No',value:false},{label:'Yes, cancel',cls:'pri',value:true}]});if(!ok)return;p.status='Cancelled';ST.set(PO_K,all);renderPOs();toast('PO cancelled');}
+async function delPO(id){const all=POs();const p=all.find(x=>x.id===id);if(!p)return;const ok=await ST.modal({title:'Delete '+p.poNo+'?',sub:'This removes it completely.',buttons:[{label:'No',value:false},{label:'Delete',cls:'pri',value:true}]});if(!ok)return;ST.set(PO_K,all.filter(x=>x.id!==id));renderPOs();toast('Deleted');}
+function poText(p){const c=ST.company();let t='Dear '+p.vendor+',\n\nPlease supply the following against our Purchase Order:\n\nPO No.: '+p.poNo+'\nPO date: '+ST.fmtDate(p.date)+'\n'+(p.due?'Deliver by: '+ST.fmtDate(p.due)+'\n':'')+(p.deliverTo?'Deliver to: '+p.deliverTo+'\n':'')+'\n';
+  (p.items||[]).forEach((l,i)=>{t+=(i+1)+'. '+l.code+' — '+(l.name||'')+' : '+l.qty+' '+(l.unit||'')+(l.rate?' @ ₹'+l.rate:'')+'\n';});
+  const tot=(p.items||[]).reduce((a,l)=>a+l.qty*(l.rate||0),0);if(tot)t+='\nValue: '+ST.inr(tot)+' + GST\n';
+  if(p.notes)t+='\n'+p.notes+'\n';t+='\nPlease confirm the order and the delivery date.\n\nRegards,\n'+(me()?me()+'\n':'')+c.name+(c.phone?'\n'+c.phone:'');return t;}
+async function emailPO(id){const all=POs();const p=all.find(x=>x.id===id);if(!p)return;let email=p.email||(vendors()[p.vendor]||{}).email||'';
+  if(!email){const r=await ST.modal({title:'Supplier email',sub:'No email saved for '+p.vendor+'.',html:'<label>Email</label><input id="em_e" placeholder="supplier@example.com">',buttons:[{label:'Cancel',value:null},{label:'Send',cls:'pri',onClick:(ov,err)=>{const v=(ov.querySelector('#em_e').value||'').trim();if(!/@/.test(v)){err.textContent='Enter a valid email.';return false;}return v;}}]});
+    if(!r)return;email=r;p.email=r;const vv=vendors();if(vv[p.vendor]&&!vv[p.vendor].email){vv[p.vendor].email=r;ST.set(ST.K.vendors,vv);}}
+  window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Purchase Order '+p.poNo+' — '+ST.company().name)+'&body='+encodeURIComponent(poText(p)),'_blank');
+  p.emailedAt=new Date().toISOString();ST.set(PO_K,all);renderPOs();toast('📧 Email opened — press Send in your mail app');}
+function docHtml(title,head,rows,foot){const c=ST.company();return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${E(title)}</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px;font-size:13px}h1{font-size:20px;margin:0}table{width:100%;border-collapse:collapse;margin-top:14px}th,td{border:1px solid #999;padding:6px 8px;text-align:left}th{background:#eee}.r{text-align:right}.top{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}.sig{margin-top:50px;display:flex;justify-content:space-between}</style></head><body>
+  <div class="top"><div><h1>${E(c.name)}</h1><div>${E(c.address||'')} ${E(c.city||'')}</div>${c.gstin?'<div>GSTIN: '+E(c.gstin)+'</div>':''}</div><div style="text-align:right"><h1>${E(title)}</h1></div></div>${head}<table>${rows}</table>${foot}<script>window.onload=()=>window.print();<\/script></body></html>`;}
+function openDoc(html){const w=window.open('','_blank');if(!w){toast('Allow pop-ups to print');return;}w.document.write(html);w.document.close();}
+function printPO(id){const p=POs().find(x=>x.id===id);if(!p)return;const tot=(p.items||[]).reduce((a,l)=>a+l.qty*(l.rate||0),0);
+  const head=`<div><b>PO No.:</b> ${E(p.poNo)} &nbsp; <b>Date:</b> ${ST.fmtDate(p.date)}${p.due?' &nbsp; <b>Deliver by:</b> '+ST.fmtDate(p.due):''}</div><div style="margin-top:6px"><b>To:</b> ${E(p.vendor)}${p.email?' ('+E(p.email)+')':''}</div>${p.deliverTo?'<div><b>Deliver to:</b> '+E(p.deliverTo)+'</div>':''}`;
+  const rows='<tr><th>#</th><th>Item code</th><th>Description</th><th class="r">Qty</th><th>Unit</th><th class="r">Rate ₹</th><th class="r">Amount ₹</th></tr>'+(p.items||[]).map((l,i)=>`<tr><td>${i+1}</td><td>${E(l.code)}</td><td>${E(l.name||'')}</td><td class="r">${E(l.qty)}</td><td>${E(l.unit||'')}</td><td class="r">${l.rate?E(l.rate):''}</td><td class="r">${l.rate?(l.qty*l.rate).toFixed(2):''}</td></tr>`).join('')+(tot?`<tr><td colspan="6" class="r"><b>Total (before GST)</b></td><td class="r"><b>${tot.toFixed(2)}</b></td></tr>`:'');
+  openDoc(docHtml('PURCHASE ORDER',head,rows,`${p.notes?'<p style="margin-top:12px">'+E(p.notes)+'</p>':''}<div class="sig"><div>Prepared by: ${E(p.createdBy||'')}</div><div>Authorised signatory</div></div>`));}
+
+/* ---------- GRN form ---------- */
+function openPOs(){return POs().filter(p=>{const s=poStatus(p);return s==='Open'||s==='Part received';});}
+function prepGRN(po){$('g_no').value=nextNo('GRN',GRNs(),'grnNo');$('g_date').value=ST.today();$('g_bill').value='';$('g_billdate').value='';$('g_notes').value='';$('gMsg').textContent='';
+  const list=openPOs().sort((a,b)=>String(b.poNo).localeCompare(String(a.poNo)));
+  $('g_po').innerHTML='<option value="">— select the PO the goods came against —</option>'+list.map(p=>`<option value="${E(p.poNo)}"${p.poNo===po?' selected':''}>${E(p.poNo)} · ${E(p.vendor)} · ${ST.fmtDate(p.date)} · ${E(poStatus(p))}</option>`).join('');
+  if(!list.length)$('g_lines').innerHTML='<div class="hint">No open purchase orders. Make a PO first (📝 Purchase Orders → + New PO).</div>';else loadPOForGRN();}
+function grnFromPO(poNo){showV('newgrn');prepGRN(poNo);}
+function loadPOForGRN(){const p=POs().find(x=>x.poNo===$('g_po').value);if(!p){$('g_lines').innerHTML='';return;}const r=receivedFor(p.poNo);
+  $('g_lines').innerHTML=`<label>Goods received from ${E(p.vendor)}</label><div class="table-wrap"><table class="gtable"><thead><tr><th>Item</th><th>Ordered</th><th>Already in</th><th>Pending</th><th>Received now</th><th>Store location <select onchange="document.querySelectorAll('.g-loc').forEach(s=>s.value=this.value)" style="width:auto;margin-left:6px;">${locOptions('','set all…')}</select></th></tr></thead><tbody>`+
+    (p.items||[]).map(l=>{const got=r[l.code]||0,pend=Math.max(0,(+l.qty||0)-got);return `<tr data-code="${E(l.code)}" data-pend="${pend}"><td><strong>${E(l.code)}</strong> ${E(l.name||'')}</td><td style="font-family:var(--mono);">${E(l.qty)} ${E(l.unit||'')}</td><td style="font-family:var(--mono);">${got}</td><td style="font-family:var(--mono);" class="${pend?'need':''}">${pend}</td><td><input class="g-qty" type="number" min="0" step="any" value="${pend}" style="width:100px;"></td><td><select class="g-loc">${locOptions(p.deliverTo||'')}</select></td></tr>`;}).join('')+'</tbody></table></div>';}
+async function saveGRN(){$('gMsg').textContent='';const p=POs().find(x=>x.poNo===$('g_po').value);if(!p){$('gMsg').textContent='Choose the PO first — every inward needs a PO.';return;}
+  const lines=[...document.querySelectorAll('#g_lines tbody tr')].map(tr=>{const l=(p.items||[]).find(x=>x.code===tr.dataset.code)||{};return {code:tr.dataset.code,name:l.name||'',unit:l.unit||'',rate:l.rate||0,qty:+tr.querySelector('.g-qty').value||0,pending:+tr.dataset.pend||0,location:tr.querySelector('.g-loc').value};}).filter(l=>l.qty>0);
+  if(!lines.length){$('gMsg').textContent='Enter the quantity received for at least one item.';return;}
+  const over=lines.filter(l=>l.qty>l.pending);
+  if(over.length){const ok=await ST.modal({title:'More than ordered',sub:over.map(l=>l.code+': received '+l.qty+', pending only '+l.pending).join(' · '),buttons:[{label:'Go back',value:false},{label:'Accept anyway',cls:'pri',value:true}]});if(!ok)return;}
+  const grns=GRNs();const g={id:newId(),grnNo:nextNo('GRN',grns,'grnNo'),date:$('g_date').value||ST.today(),poNo:p.poNo,vendor:p.vendor,billNo:$('g_bill').value.trim(),billDate:$('g_billdate').value,
+    lines:lines.map(({pending,...l})=>l),notes:$('g_notes').value.trim(),createdBy:me(),createdAt:new Date().toISOString()};
+  grns.push(g);ST.set(GRN_K,grns);
+  /* stock in, only here */
+  const items=Items(),txns=ST.get(TXK,[]);
+  g.lines.forEach(l=>{const it=items.find(i=>i.code===l.code);if(!it)return;const before=+it.stock||0;it.stock=before+l.qty;it.updated=ST.today();
+    if(l.location){it.locStock=it.locStock||{};it.locStock[l.location]=(+it.locStock[l.location]||0)+l.qty;}
+    txns.push({date:new Date().toISOString(),type:'in',code:it.code,name:it.name,qty:l.qty,before,after:it.stock,ref:g.grnNo,notes:'PO '+p.poNo+' · '+p.vendor+(l.location?' · '+l.location:' · location not set'),grnNo:g.grnNo});});
+  ST.set(IK,items);ST.set(TXK,txns);
+  toast('✓ '+g.grnNo+' saved — stock added');showV('grn');
+  ST.modal({title:g.grnNo+' saved',sub:'Stock added for '+g.lines.length+' item(s). Write '+g.grnNo+' on the supplier bill — you will pick this number when posting the bill in Accounts.',buttons:[{label:'OK',value:null},{label:'🖨 Print GRN',cls:'pri',onClick:()=>{printGRN(g.id);}}]});}
+
+/* ---------- GRN list ---------- */
+function billFor(g){const e=ST.get('fin_entries',[]).find(x=>x.kind==='purchase'&&x.grnNo===g.grnNo);return e||null;}
+function renderGRNs(){const q=($('grnSrch').value||'').toLowerCase(),f=$('grnFilt').value;
+  const rows=GRNs().slice().sort((a,b)=>String(b.grnNo).localeCompare(String(a.grnNo))).filter(g=>{
+    if(f==='loc'&&!g.lines.some(l=>!l.location))return false;if(f==='bill'&&billFor(g))return false;
+    return !q||(g.grnNo+' '+g.poNo+' '+g.vendor+' '+(g.billNo||'')).toLowerCase().includes(q);});
+  $('grnBody').innerHTML=rows.length?rows.map(g=>{const b=billFor(g),noLoc=g.lines.filter(l=>!l.location).length;
+    const locTxt=noLoc?`<span class="need">⚠ ${noLoc} not set</span>`:[...new Set(g.lines.map(l=>l.location))].map(E).join(', ');
+    return `<tr><td style="font-family:var(--mono);font-weight:700;">${E(g.grnNo)}</td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(g.date)}</td><td style="font-family:var(--mono);font-size:11px;">${E(g.poNo)}</td><td><strong>${E(g.vendor)}</strong></td><td style="font-size:11px;">${g.lines.map(l=>E(l.code)+' × '+E(l.qty)).join('<br>')}</td><td style="font-size:11px;">${locTxt}</td>
+      <td style="font-size:11px;">${b?'<span style="color:var(--green);">✓ '+E(b.invoiceNo||'')+'</span>':(g.billNo?E(g.billNo)+' <span class="need">· not posted</span>':'<span class="need">not posted</span>')}</td>
+      <td style="white-space:nowrap;"><button class="act-btn" onclick="printGRN('${g.id}')">🖨</button>${noLoc?`<button class="act-btn" onclick="setLocation('${g.id}')">📍 Location</button>`:''}${canDel()&&!b?`<button class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="delGRN('${g.id}')">🗑</button>`:''}</td></tr>`;}).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px;">No GRNs yet.</td></tr>';}
+async function setLocation(id){const grns=GRNs();const g=grns.find(x=>x.id===id);if(!g)return;const todo=g.lines.map((l,i)=>({l,i})).filter(x=>!x.l.location);
+  const r=await ST.modal({title:'Store location — '+g.grnNo,sub:'Where were these goods kept?',html:todo.map(x=>`<label>${E(x.l.code)} × ${E(x.l.qty)}</label><select id="sl_${x.i}">${locOptions('','— still not set —')}</select>`).join(''),
+    buttons:[{label:'Cancel',value:null},{label:'✓ Save',cls:'pri',onClick:ov=>{const o={};todo.forEach(x=>{o[x.i]=(ov.querySelector('#sl_'+x.i)||{}).value||'';});return o;}}]});
+  if(!r)return;const items=Items();let n=0;
+  todo.forEach(x=>{const loc=r[x.i];if(!loc)return;x.l.location=loc;n++;const it=items.find(i=>i.code===x.l.code);if(it){it.locStock=it.locStock||{};it.locStock[loc]=(+it.locStock[loc]||0)+x.l.qty;}});
+  ST.set(GRN_K,grns);ST.set(IK,items);renderGRNs();toast(n?'✓ Location saved':'Nothing changed');}
+async function delGRN(id){const grns=GRNs();const g=grns.find(x=>x.id===id);if(!g)return;
+  const ok=await ST.modal({title:'Delete '+g.grnNo+'?',sub:'Its stock ('+g.lines.map(l=>l.code+' × '+l.qty).join(', ')+') will be taken out of Inventory again.',buttons:[{label:'No',value:false},{label:'Delete & reverse stock',cls:'pri',value:true}]});if(!ok)return;
+  const items=Items(),txns=ST.get(TXK,[]);
+  g.lines.forEach(l=>{const it=items.find(i=>i.code===l.code);if(!it)return;const before=+it.stock||0;it.stock=Math.max(0,before-l.qty);if(l.location&&it.locStock)it.locStock[l.location]=Math.max(0,(+it.locStock[l.location]||0)-l.qty);
+    txns.push({date:new Date().toISOString(),type:'out',code:it.code,name:it.name,qty:l.qty,before,after:it.stock,ref:g.grnNo+' deleted',notes:'GRN deleted by '+(me()||'user')});});
+  ST.set(IK,items);ST.set(TXK,txns);ST.set(GRN_K,grns.filter(x=>x.id!==id));renderGRNs();toast('GRN deleted, stock reversed');}
+function printGRN(id){const g=GRNs().find(x=>x.id===id);if(!g)return;
+  const head=`<div><b>GRN No.:</b> ${E(g.grnNo)} &nbsp; <b>Date:</b> ${ST.fmtDate(g.date)} &nbsp; <b>PO No.:</b> ${E(g.poNo)}</div><div style="margin-top:6px"><b>Supplier:</b> ${E(g.vendor)}${g.billNo?' &nbsp; <b>Bill / challan:</b> '+E(g.billNo)+(g.billDate?' dt. '+ST.fmtDate(g.billDate):''):''}</div>`;
+  const rows='<tr><th>#</th><th>Item code</th><th>Description</th><th class="r">Qty received</th><th>Unit</th><th>Store location</th></tr>'+g.lines.map((l,i)=>`<tr><td>${i+1}</td><td>${E(l.code)}</td><td>${E(l.name||'')}</td><td class="r">${E(l.qty)}</td><td>${E(l.unit||'')}</td><td>${E(l.location||'')}</td></tr>`).join('');
+  openDoc(docHtml('GOODS RECEIPT NOTE',head,rows,`${g.notes?'<p style="margin-top:12px"><b>Notes:</b> '+E(g.notes)+'</p>':''}<div class="sig"><div>Received by: ${E(g.createdBy||'')}</div><div>Store in-charge</div></div>`));}
+
+/* ---------- dashboard ---------- */
+function renderDash(){const pos=POs(),grns=GRNs(),open=pos.filter(p=>{const s=poStatus(p);return s==='Open'||s==='Part received';});
+  const m=ST.today().slice(0,7);const noLoc=grns.filter(g=>g.lines.some(l=>!l.location)),noBill=grns.filter(g=>!billFor(g)),notSent=open.filter(p=>!p.emailedAt);
+  const sc=(n,l,c)=>`<div class="stat-card"><div class="num" style="color:${c};">${n}</div><div class="lab">${l}</div></div>`;
+  $('dStats').innerHTML=sc(open.length,'Open POs','#3b82f6')+sc(notSent.length,'POs not emailed','#f59e0b')+sc(grns.filter(g=>(g.date||'').startsWith(m)).length,'GRNs this month','#22c55e')+sc(noLoc.length,'GRNs: location not set','#f59e0b')+sc(noBill.length,'GRNs: bill not posted','#ef4444');
+  $('dPending').innerHTML=open.length?open.map(p=>{const r=receivedFor(p.poNo);const pend=(p.items||[]).map(l=>({l,p:Math.max(0,(+l.qty||0)-(r[l.code]||0))})).filter(x=>x.p>0);const late=p.due&&p.due<ST.today();
+    return `<div class="kb-item"><b>${E(p.poNo)}</b> · ${E(p.vendor)} · ${ST.fmtDate(p.date)}${p.due?' · due '+ST.fmtDate(p.due):''}${late?' <span style="color:var(--red);font-weight:700;">LATE</span>':''}<br><span style="color:var(--text-dim);">${pend.map(x=>E(x.l.code)+' × '+x.p).join(', ')}</span> <button class="act-btn" style="color:var(--green);border-color:var(--green);" onclick="grnFromPO('${E(p.poNo)}')">📦 GRN</button></div>`;}).join(''):'<div class="hint">Nothing pending.</div>';
+  $('dAttn').innerHTML=(noLoc.length||noBill.length)?[...noLoc.map(g=>`<div class="kb-item"><b>${E(g.grnNo)}</b> · ${E(g.vendor)} — store location not set <button class="act-btn" onclick="setLocation('${g.id}')">📍 Set</button></div>`),
+    ...noBill.map(g=>`<div class="kb-item"><b>${E(g.grnNo)}</b> · ${E(g.vendor)} — supplier bill not posted yet (Accounts → 📥 Invoices)</div>`)].join(''):'<div class="hint">All GRNs have a location and a posted bill.</div>';}
+
+/* open straight to a tab: purchase.html#grn */
+(function(){const h=(location.hash||'').slice(1);if(['po','newpo','grn','newgrn'].includes(h))showV(h);else renderDash();})();
+</script>
+</body>
+</html>
