@@ -59,7 +59,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
     <div class="form-grid">
       <div class="form-group"><label>Received date</label><input type="date" id="f_received" required></div>
       <div class="form-group"><label>Repair / RMA No.</label><input type="text" id="f_rma" readonly style="opacity:.7;"></div>
-      <div class="form-group"><label>Customer</label><select id="f_party" onchange="onPartyPick()"><option value="">— select —</option></select></div>
+      <div class="form-group"><label>Customer</label><div style="display:flex;gap:6px;"><select id="f_party" onchange="onPartyPick()" style="flex:1;min-width:0;"><option value="">— select —</option></select><button type="button" class="btn" style="padding:6px 12px;white-space:nowrap;" onclick="addCustomer()" title="Add a customer that is not in the list">➕ Add</button></div></div>
       <div class="form-group"><label>Customer phone (WhatsApp)</label><input type="text" id="f_phone" placeholder="auto from customer"></div>
       <div class="form-group full" id="saleBox" style="display:none;"></div>
       <div class="form-group"><label>Product / Model</label><input type="text" id="f_product" list="prodList" placeholder="DLC-O16 / ball type / single point" oninput="liveSimilar()"></div>
@@ -140,7 +140,7 @@ function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remo
 
 // ---- form setup ----
 function fillSelect(sel,arr,first){sel.innerHTML=(first?('<option value="">'+first+'</option>'):'')+arr.map(x=>`<option>${ST.esc(x)}</option>`).join('');}
-function partyOptions(){const parties=ST.get(ST.K.parties,[]).slice().sort();$('f_party').innerHTML='<option value="">— select —</option>'+parties.map(p=>`<option>${ST.esc(p)}</option>`).join('')+'<option value="__new">+ new customer (type below)</option>';}
+function partyOptions(){const parties=ST.get(ST.K.parties,[]).slice().sort();$('f_party').innerHTML='<option value="">— select —</option>'+parties.map(p=>`<option>${ST.esc(p)}</option>`).join('')+'<option value="__new">➕ Add new customer…</option>';}
 function prodDatalist(){const set=new Set();R().forEach(r=>{if(r.product)set.add(r.product);});ST.get(ST.K.orders,[]).forEach(o=>ST.items(o).forEach(i=>{if(i.type)set.add(i.type);}));$('prodList').innerHTML=[...set].map(p=>`<option value="${ST.esc(p)}">`).join('');}
 function nextRMA(){const yr=String(new Date().getFullYear());let max=0;R().forEach(r=>{const m=String(r.rma||'').match(/RMA-\d{4}-(\d+)/);if(m)max=Math.max(max,+m[1]);});return 'RMA-'+yr+'-'+String(max+1).padStart(4,'0');}
 
@@ -152,7 +152,8 @@ function resetForm(){
 }
 function onPartyPick(){
   const p=$('f_party').value;const box=$('saleBox');
-  if(!p||p==='__new'){box.style.display='none';$('f_phone').value='';return;}
+  if(p==='__new'){$('f_party').value='';addCustomer();return;}
+  if(!p){box.style.display='none';$('f_phone').value='';return;}
   const c=ST.client(p);$('f_phone').value=c.phone||'';
   const orders=ST.get(ST.K.orders,[]).filter(o=>(o.partyName||'').toLowerCase()===p.toLowerCase()).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(!orders.length){box.style.display='block';box.innerHTML='<label>When it was sold</label><div class="hint">No past order found for this customer in the system.</div>';return;}
@@ -190,6 +191,26 @@ function liveSimilar(){
 // count comma-separated loadcell numbers -> set quantity automatically
 function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
 function onLcno(){const arr=lcList($('f_lcno').value);if(arr.length)$('f_qty').value=arr.length;$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');}
+
+// ---- add a new customer (saved to Masters → Clients too) ----
+async function addCustomer(){
+  const E=ST.esc;
+  const r=await ST.modal({title:'Add customer',sub:'Saved to Masters → Clients as well, so it shows everywhere.',
+    html:'<label>Customer name</label><input id="nc_n" placeholder="Company name">'+
+         '<label>Location / City</label><input id="nc_l" placeholder="Rajkot">'+
+         '<label>WhatsApp number</label><input id="nc_p" placeholder="98xxxxxxxx">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Add',cls:'pri',onClick:(ov,err)=>{const q=id=>((ov.querySelector('#'+id)||{}).value||'').trim();
+      const n=q('nc_n').toUpperCase();if(!n){err.textContent='Enter the customer name.';return false;}
+      return {n,l:q('nc_l'),p:q('nc_p')};}}]});
+  if(!r)return;
+  const ps=ST.get(ST.K.parties,[]);const ex=ps.find(x=>x.toLowerCase()===r.n.toLowerCase());const name=ex||r.n;
+  if(!ex){ps.push(name);ST.set(ST.K.parties,ps);}
+  const cc=ST.get(ST.K.clients,{});const c=cc[name]=cc[name]||{};
+  if(r.l&&!c.location)c.location=r.l;if(r.p&&!c.phone)c.phone=r.p;ST.set(ST.K.clients,cc);
+  if(r.l){const pl=ST.get(ST.K.partyLocs,{});if(!pl[name]){pl[name]=r.l;ST.set(ST.K.partyLocs,pl);}}
+  partyOptions();$('f_party').value=name;onPartyPick();
+  toast(ex?'✓ '+name+' already existed — selected':'✓ Customer '+name+' added');
+}
 
 // ---- save ----
 function saveRepair(e){e.preventDefault();
