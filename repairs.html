@@ -68,7 +68,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
       <div class="form-group"><label>Quantity</label><input type="number" id="f_qty" min="1" value="1"></div>
       <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
       <div class="form-group full"><label>Problem reported by customer</label><textarea id="f_reported" placeholder="What the customer says is wrong" oninput="liveSimilar()"></textarea></div>
-      <div class="form-group"><label>Fault category</label><select id="f_category" onchange="liveSimilar()"></select></div>
+      <div class="form-group"><label>Fault category</label><div style="display:flex;gap:6px;"><select id="f_category" onchange="onCatPick()" style="flex:1;min-width:0;"></select><button type="button" class="btn" style="padding:6px 12px;white-space:nowrap;" onclick="addFault()" title="Add a fault that is not in the list">➕ Add</button></div></div>
       <div class="form-group"><label>Status</label><select id="f_status"></select></div>
       <div class="form-group full"><label>Problem found on inspection (be detailed — this builds your knowledge base)</label><textarea id="f_found" placeholder="The real fault you diagnosed, root cause, readings, what was damaged"></textarea></div>
       <div class="form-group full"><label>Action taken / how it was rectified</label><textarea id="f_action" placeholder="Exactly what you did to fix it, step by step"></textarea></div>
@@ -147,7 +147,7 @@ function nextRMA(){const yr=String(new Date().getFullYear());let max=0;R().forEa
 function prepNew(){ if($('f_id').value)return; resetForm(); }
 function resetForm(){
   $('repForm').reset();$('f_id').value='';$('newTitle').textContent='Log an incoming repair';$('saveBtn').textContent='Save repair';
-  fillSelect($('f_category'),CATS,'— choose —');fillSelect($('f_status'),STATUSES,null);$('f_status').value='Received';
+  catOptions();fillSelect($('f_status'),STATUSES,null);$('f_status').value='Received';
   partyOptions();prodDatalist();$('f_received').value=ST.today();$('f_rma').value=nextRMA();$('saleBox').style.display='none';$('similarBox').innerHTML='';$('formMsg').textContent='';
 }
 function onPartyPick(){
@@ -191,6 +191,26 @@ function liveSimilar(){
 // count comma-separated loadcell numbers -> set quantity automatically
 function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
 function onLcno(){const arr=lcList($('f_lcno').value);if(arr.length)$('f_qty').value=arr.length;$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');}
+
+// ---- fault categories: built-in list + ones added by users (synced to all PCs) ----
+const CAT_KEY='repairs_fault_cats';
+function allCats(){const extra=ST.get(CAT_KEY,[]);const out=CATS.filter(c=>c!=='Other');extra.forEach(c=>{if(!out.some(x=>x.toLowerCase()===c.toLowerCase()))out.push(c);});out.push('Other');return out;}
+function catOptions(keep){const list=allCats();if(keep&&!list.includes(keep))list.splice(list.length-1,0,keep);
+  const cur=keep!==undefined?keep:$('f_category').value;
+  $('f_category').innerHTML='<option value="">— choose —</option>'+list.map(c=>`<option>${ST.esc(c)}</option>`).join('')+'<option value="__new">➕ Add new fault…</option>';
+  if(cur&&list.includes(cur))$('f_category').value=cur;}
+function onCatPick(){if($('f_category').value==='__new'){$('f_category').value='';addFault();return;}liveSimilar();}
+async function addFault(){
+  const r=await ST.modal({title:'Add fault problem',sub:'It will be added to the Fault category list on every computer.',
+    html:'<label>Fault name</label><input id="nf_n" placeholder="e.g. Bridge resistance open">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Add',cls:'pri',onClick:(ov,err)=>{const n=((ov.querySelector('#nf_n')||{}).value||'').trim();
+      if(!n){err.textContent='Enter the fault name.';return false;}return n;}}]});
+  if(!r)return;
+  const ex=allCats().find(c=>c.toLowerCase()===r.toLowerCase());
+  if(!ex){const extra=ST.get(CAT_KEY,[]);extra.push(r);ST.set(CAT_KEY,extra);}
+  catOptions();$('f_category').value=ex||r;liveSimilar();
+  toast(ex?'✓ "'+ex+'" already in the list — selected':'✓ Fault "'+r+'" added');
+}
 
 // ---- add a new customer (saved to Masters → Clients too) ----
 async function addCustomer(){
@@ -236,7 +256,7 @@ function editRepair(id){const r=R().find(x=>x.id===id);if(!r)return;showV('new')
   $('f_party').value=r.party||'';onPartyPick();
   if(r.orderNo&&$('f_saleorder')){$('f_saleorder').value=r.orderNo;onSalePick();}
   $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;{const n=lcList(r.lcno).length;$('lcnoHint').textContent=n>1?(n+' loadcells'):'';}
-  $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';$('f_category').value=r.category||'';
+  $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';catOptions(r.category);$('f_category').value=r.category||'';
   $('f_found').value=r.found||'';$('f_action').value=r.action||'';$('f_parts').value=r.parts||'';$('f_tech').value=r.tech||'';
   $('f_charge').value=r.charge||'';$('f_status').value=r.status||'Received';$('f_dispatched').value=r.dispatched||'';$('f_remarks').value=r.remarks||'';
   liveSimilar();window.scrollTo(0,0);
