@@ -23,6 +23,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 .act-btn{padding:3px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);margin:1px;}
 .toast{position:fixed;bottom:32px;right:32px;padding:12px 20px;border-radius:var(--radius);font-weight:600;font-size:14px;transform:translateY(100px);opacity:0;transition:all 0.3s;z-index:1000;background:var(--accent);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
 .hint{font-size:12px;color:var(--text-dim);margin-bottom:12px;}
+.prow{display:flex;gap:6px;margin-bottom:6px;align-items:center;}.prow select{flex:1;min-width:0;}.prow input{width:90px;}
 .kb{background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px;margin-top:8px;}
 .kb h4{font-size:12px;margin-bottom:6px;color:var(--accent);}
 .kb-item{padding:8px 0;border-top:1px solid var(--border);font-size:12px;}.kb-item:first-of-type{border-top:none;}
@@ -62,10 +63,16 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
       <div class="form-group"><label>Customer</label><div style="display:flex;gap:6px;"><select id="f_party" onchange="onPartyPick()" style="flex:1;min-width:0;"><option value="">— select —</option></select><button type="button" class="btn" style="padding:6px 12px;white-space:nowrap;" onclick="addCustomer()" title="Add a customer that is not in the list">➕ Add</button></div></div>
       <div class="form-group"><label>Customer phone (WhatsApp)</label><input type="text" id="f_phone" placeholder="auto from customer"></div>
       <div class="form-group full" id="saleBox" style="display:none;"></div>
-      <div class="form-group"><label>Product / Model</label><input type="text" id="f_product" list="prodList" placeholder="DLC-O16 / ball type / single point" oninput="liveSimilar()"></div>
+      <div class="form-group full"><label>Product / Model — one row per item</label>
+        <div id="prodRows"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+          <button type="button" class="btn" style="padding:6px 12px;" onclick="addProdRow()">+ Add another item</button>
+          <button type="button" class="btn" style="padding:6px 12px;border-color:#22c55e;color:#22c55e;" onclick="addProduct()" title="Item not in the list? Add it here">➕ New product (not in list)</button>
+          <span id="prodTotal" class="hint" style="align-self:center;"></span>
+        </div>
+      </div>
       <datalist id="prodList"></datalist>
       <div class="form-group"><label>Loadcell No(s).</label><input type="text" id="f_lcno" placeholder="one or many, comma-separated e.g. L001, L002, L003" oninput="onLcno()"><span id="lcnoHint" style="font-size:11px;color:var(--text-dim);"></span></div>
-      <div class="form-group"><label>Quantity</label><input type="number" id="f_qty" min="1" value="1"></div>
       <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
       <div class="form-group full"><label>Problem reported by customer</label><textarea id="f_reported" placeholder="What the customer says is wrong" oninput="liveSimilar()"></textarea></div>
       <div class="form-group"><label>Fault category</label><div style="display:flex;gap:6px;"><select id="f_category" onchange="onCatPick()" style="flex:1;min-width:0;"></select><button type="button" class="btn" style="padding:6px 12px;white-space:nowrap;" onclick="addFault()" title="Add a fault that is not in the list">➕ Add</button></div></div>
@@ -148,7 +155,7 @@ function prepNew(){ if($('f_id').value)return; resetForm(); }
 function resetForm(){
   $('repForm').reset();$('f_id').value='';$('newTitle').textContent='Log an incoming repair';$('saveBtn').textContent='Save repair';
   catOptions();fillSelect($('f_status'),STATUSES,null);$('f_status').value='Received';
-  partyOptions();prodDatalist();$('f_received').value=ST.today();$('f_rma').value=nextRMA();$('saleBox').style.display='none';$('similarBox').innerHTML='';$('formMsg').textContent='';
+  partyOptions();prodDatalist();setProdRows([]);$('f_received').value=ST.today();$('f_rma').value=nextRMA();$('saleBox').style.display='none';$('similarBox').innerHTML='';$('formMsg').textContent='';
 }
 function onPartyPick(){
   const p=$('f_party').value;const box=$('saleBox');
@@ -162,7 +169,7 @@ function onPartyPick(){
 }
 function onSalePick(){
   const sel=$('f_saleorder');const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value){$('warrLine').textContent='';return;}
-  const sold=opt.dataset.date;$('f_product').value=$('f_product').value||'';
+  const sold=opt.dataset.date;
   if(sold){const until=ST.addDays(sold.slice(0,10),365);const recv=$('f_received').value||ST.today();const inW=ST.daysBetween(recv,until)>=0;
     $('f_warranty').value=inW?'in':'out';
     $('warrLine').innerHTML='Sold on <b>'+ST.fmtDate(sold)+'</b> · 1-year warranty until <b>'+ST.fmtDate(until)+'</b> · '+(inW?'<span class="warn-in">IN WARRANTY (free repair)</span>':'<span class="warn-out">OUT OF WARRANTY (chargeable)</span>');}
@@ -184,13 +191,44 @@ function simItemHtml(r){return `<div class="kb-item"><div><b>${ST.esc(r.rma)}</b
   <div style="color:var(--text-dim);margin-top:2px;"><b>Fault:</b> ${ST.esc(r.found||r.reported||'—')}</div>
   <div style="color:var(--green);margin-top:2px;"><b>Fix:</b> ${ST.esc(r.action||'—')}${r.parts?' · parts: '+ST.esc(r.parts):''}</div></div>`;}
 function liveSimilar(){
-  const m=similar($('f_product').value,$('f_reported').value,$('f_category').value,$('f_id').value);
+  const m=similar((getProds()[0]||{}).type||'',$('f_reported').value,$('f_category').value,$('f_id').value);
   $('similarBox').innerHTML=m.length?('<div class="kb"><h4>💡 We have seen a similar fault '+m.length+' time(s) — here is what was done:</h4>'+m.map(x=>simItemHtml(x.r)).join('')+'</div>'):'';
 }
 
 // count comma-separated loadcell numbers -> set quantity automatically
 function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
-function onLcno(){const arr=lcList($('f_lcno').value);if(arr.length)$('f_qty').value=arr.length;$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');}
+function onLcno(){const arr=lcList($('f_lcno').value);const rows=document.querySelectorAll('#prodRows .prow');if(arr.length&&rows.length===1){rows[0].querySelector('.p-qty').value=arr.length;updProdTotal();}$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');}
+
+// ---- products: several items per repair, same item list as the Order Sheet ----
+const PT_BASE=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];
+const PT_KEY='ordersheet_lc_types';   // shared with Order Sheet "+ New item" (synced to every PC)
+function allProds(){const x=[...PT_BASE];ST.get(PT_KEY,[]).forEach(t=>{if(t&&!x.some(y=>y.toLowerCase()===String(t).toLowerCase()))x.push(t);});return x;}
+function prodSelHtml(v){const list=allProds();if(v&&!list.some(x=>x.toLowerCase()===v.toLowerCase()))list.push(v);
+  return '<option value="">— select product —</option>'+list.map(t=>`<option${v&&t.toLowerCase()===v.toLowerCase()?' selected':''}>${ST.esc(t)}</option>`).join('')+'<option value="__new">➕ Add new product…</option>';}
+function addProdRow(it){it=it||{};const box=$('prodRows');const d=document.createElement('div');d.className='prow';
+  d.innerHTML=`<select class="p-type" onchange="onProdPick(this)">${prodSelHtml(it.type||'')}</select><input class="p-qty" type="number" min="1" placeholder="Qty" value="${ST.esc(it.qty||1)}" oninput="updProdTotal()"><button type="button" class="act-btn" style="color:var(--red);border-color:var(--red);" title="Remove this item" onclick="delProdRow(this)">✕</button>`;
+  box.appendChild(d);updProdTotal();return d;}
+function delProdRow(b){b.closest('.prow').remove();if(!document.querySelector('#prodRows .prow'))addProdRow();updProdTotal();liveSimilar();}
+function setProdRows(items){$('prodRows').innerHTML='';(items.length?items:[{}]).forEach(addProdRow);}
+function getProds(){return [...document.querySelectorAll('#prodRows .prow')].map(r=>({type:r.querySelector('.p-type').value,qty:+r.querySelector('.p-qty').value||1})).filter(i=>i.type&&i.type!=='__new');}
+function prodText(items){return items.map(i=>i.type+(i.qty>1?' ×'+i.qty:'')).join(', ');}
+function updProdTotal(){const it=getProds();const n=it.reduce((a,i)=>a+i.qty,0);$('prodTotal').textContent=it.length>1?(it.length+' items · '+n+' pcs total'):'';}
+let prodTarget=null;
+function onProdPick(sel){if(sel.value==='__new'){sel.value='';prodTarget=sel;addProduct();return;}updProdTotal();liveSimilar();}
+async function addProduct(){
+  const target=prodTarget;prodTarget=null;
+  const r=await ST.modal({title:'Add new product',sub:'Added to the item list here and on the Order Sheet, on every computer.',
+    html:'<label>Product / model name</label><input id="np_n" placeholder="e.g. DLC-X">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Add',cls:'pri',onClick:(ov,err)=>{const n=((ov.querySelector('#np_n')||{}).value||'').trim();
+      if(!n){err.textContent='Enter the product name.';return false;}return n;}}]});
+  if(!r)return;
+  const ex=allProds().find(x=>x.toLowerCase()===r.toLowerCase());const name=ex||r;
+  if(!ex){const t=ST.get(PT_KEY,[]);t.push(name);ST.set(PT_KEY,t);}
+  document.querySelectorAll('#prodRows .p-type').forEach(s=>{const v=s.value;s.innerHTML=prodSelHtml(v);});
+  let sel=target;if(!sel){const rows=[...document.querySelectorAll('#prodRows .p-type')];sel=rows.find(s=>!s.value)||addProdRow().querySelector('.p-type');}
+  sel.value=name;updProdTotal();liveSimilar();
+  toast(ex?'✓ "'+name+'" already in the list — selected':'✓ Product "'+name+'" added');
+}
 
 // ---- fault categories: built-in list + ones added by users (synced to all PCs) ----
 const CAT_KEY='repairs_fault_cats';
@@ -238,13 +276,14 @@ function saveRepair(e){e.preventDefault();
   const id=$('f_id').value||('rep'+Date.now().toString(36)+Math.random().toString(36).slice(2,5));
   const saleSel=$('f_saleorder');
   const rec={id,rma:$('f_rma').value,received:$('f_received').value,party,phone:$('f_phone').value.trim(),
-    product:$('f_product').value.trim(),lcno:$('f_lcno').value.trim(),qty:+$('f_qty').value||1,
+    items:getProds(),product:prodText(getProds()),lcno:$('f_lcno').value.trim(),qty:getProds().reduce((a,i)=>a+(+i.qty||0),0)||1,
     orderNo:saleSel?saleSel.value:'',saleDate:saleSel&&saleSel.options[saleSel.selectedIndex]?saleSel.options[saleSel.selectedIndex].dataset.date||'':'',
     warranty:$('f_warranty').value,reported:$('f_reported').value.trim(),category:$('f_category').value,
     found:$('f_found').value.trim(),action:$('f_action').value.trim(),parts:$('f_parts').value.trim(),
     tech:$('f_tech').value.trim(),charge:+$('f_charge').value||0,status:$('f_status').value,dispatched:$('f_dispatched').value,
     remarks:$('f_remarks').value.trim(),updatedAt:new Date().toISOString()};
   if(!rec.party){$('formMsg').textContent='Pick or type a customer.';return;}
+  if(!rec.items.length){$('formMsg').textContent='Pick at least one product.';return;}
   const all=R();const idx=all.findIndex(x=>x.id===id);
   if(idx>=0){rec.createdAt=all[idx].createdAt;all[idx]=rec;}else{rec.createdAt=new Date().toISOString();all.push(rec);}
   saveR(all);toast('✓ Repair '+rec.rma+' saved');resetForm();showV('open');
@@ -255,7 +294,7 @@ function editRepair(id){const r=R().find(x=>x.id===id);if(!r)return;showV('new')
   if(r.party&&![...$('f_party').options].some(o=>o.value===r.party)){const o=document.createElement('option');o.value=r.party;o.textContent=r.party;$('f_party').appendChild(o);}
   $('f_party').value=r.party||'';onPartyPick();
   if(r.orderNo&&$('f_saleorder')){$('f_saleorder').value=r.orderNo;onSalePick();}
-  $('f_phone').value=r.phone||'';$('f_product').value=r.product||'';$('f_lcno').value=r.lcno||'';$('f_qty').value=r.qty||1;{const n=lcList(r.lcno).length;$('lcnoHint').textContent=n>1?(n+' loadcells'):'';}
+  $('f_phone').value=r.phone||'';setProdRows(r.items&&r.items.length?r.items:(r.product?[{type:r.product,qty:r.qty||1}]:[]));$('f_lcno').value=r.lcno||'';{const n=lcList(r.lcno).length;$('lcnoHint').textContent=n>1?(n+' loadcells'):'';}
   $('f_warranty').value=r.warranty||'unknown';$('f_reported').value=r.reported||'';catOptions(r.category);$('f_category').value=r.category||'';
   $('f_found').value=r.found||'';$('f_action').value=r.action||'';$('f_parts').value=r.parts||'';$('f_tech').value=r.tech||'';
   $('f_charge').value=r.charge||'';$('f_status').value=r.status||'Received';$('f_dispatched').value=r.dispatched||'';$('f_remarks').value=r.remarks||'';
