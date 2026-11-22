@@ -65,6 +65,7 @@ HOW IT WORKS
   password (also the Admin's own), add a user or remove a user.
 • Users: use the apps the Admin ticked for them (all apps if nothing was changed), never the "Users" page.
   Apps they may not open are hidden from their Main Page and show "You do not have access".
+• The Admin and Sub Admin may be logged in on up to 4 devices at once; everyone else on 2.
 • A person stays logged in on a device until they click "Log out" on the Main Page,
   or until the device is left unattended for 4 hours (no click, key, touch or scroll).
   After 4 hours unattended they are logged out and must log in again.

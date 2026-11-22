@@ -10,13 +10,13 @@
 //         locate (Security page: fill in the place for addresses that have none yet) ·
 //         whoami (Security page: the address and place of the computer asking)
 // Login rules (supabase_update_8_ip_rules.sql): a blocked address, or a new address while Inter mode
-// is on (users only — the Admins are not limited by Inter mode), gets "Error 2"; nobody may be logged in on more than security_settings.max_devices (2) devices.
+// is on (users only — the Admins are not limited by Inter mode), gets "Error 2"; nobody may be logged in on more than security_settings.max_devices (2) devices — the Admin and Sub Admin up to 4 (ADMIN_DEVICES).
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL_ = Deno.env.get("SUPABASE_URL")!, SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(URL_, SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
-const WINDOW_MIN = 15, MAX_PER_LOGIN = 5, MAX_PER_IP = 20;
+const WINDOW_MIN = 15, MAX_PER_LOGIN = 5, MAX_PER_IP = 20, ADMIN_DEVICES = 4;
 const ERR2 = "Error 2: You are not allowed to log in from this place. Contact your Admin.";
 type Place = { city: string | null; region: string | null; country: string | null };
 const NOWHERE: Place = { city: null, region: null, country: null };
@@ -76,13 +76,15 @@ Deno.serve(async (req) => {
   const where = place(ip);                       // start the look-up now; it runs while the password is checked
   // Saved / blocked addresses and Inter mode (only for a real login, not for the Admin password check)
   let maxDevices = 2;
-  const { data: prof } = await admin.from("profiles").select("user_id, role, name, login_id").eq("login_id", id).maybeSingle();
+  const { data: prof } = await admin.from("profiles").select("user_id, role, name, login_id, can_delete, can_approve").eq("login_id", id).maybeSingle();
   if (mode === "login") {
     const [{ data: set }, { data: rule }] = await Promise.all([
       admin.from("security_settings").select("inter_mode, max_devices").eq("id", 1).maybeSingle(),
       ip ? admin.from("ip_rules").select("status, label").eq("ip", ip).maybeSingle() : Promise.resolve({ data: null as any }),
     ]);
     if (set?.max_devices) maxDevices = set.max_devices;
+    // The Admin and the Sub Admin may be logged in on up to 4 devices; everyone else keeps the normal limit (2).
+    if (prof && (prof.role === "Admin" || (prof.can_delete && prof.can_approve))) maxDevices = Math.max(maxDevices, ADMIN_DEVICES);
     // Blocked addresses stop everybody. Inter mode (saved addresses only) applies to users, not to the Admins.
     const blocked = rule?.status === "blocked", notSaved = !!set?.inter_mode && rule?.status !== "allowed" && prof?.role !== "Admin";
     if (blocked || notSaved) {
