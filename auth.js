@@ -8,10 +8,19 @@
   var MK = 'sentire_user';                       // remembers who is logged in, so pages open without a wait
   var page = (location.pathname.split('/').pop() || 'index.html');
   var isLogin = page === 'login.html';
+  // Unattended rule: a login not used for 4 hours is logged out and the person must log in again.
+  // "Used" = a click, key press, touch or scroll on any Command Center page on this device (shared by all its tabs).
+  var IDLE_MS = 4 * 60 * 60 * 1000, AK = 'sentire_last_active', lastWrite = 0;
+  function lastActive() { try { return +localStorage.getItem(AK) || 0; } catch (e) { return 0; } }
+  function idleTooLong() { var t = lastActive(); return !!t && Date.now() - t >= IDLE_MS; }
+  function markActive() { lastWrite = Date.now(); try { localStorage.setItem(AK, String(lastWrite)); } catch (e) {} }
 
   function cached() { try { var u = JSON.parse(localStorage.getItem(MK) || 'null'); return u && u.login_id ? u : null; } catch (e) { return null; } }
   function remember(u) { localStorage.setItem(MK, JSON.stringify(u)); }
-  function forget() { localStorage.removeItem(MK); }
+  function forget() {                             // also wipes Smart Finance data (Admin / Sub Admin only) from this browser; it comes back from the database at their next login
+    localStorage.removeItem(MK);
+    try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/^sfin_/.test(k)) localStorage.removeItem(k); } } catch (e) {}
+  }
   function hide() { document.documentElement.style.visibility = 'hidden'; }
   function show() { document.documentElement.style.visibility = ''; }
   function toLogin() {
@@ -36,6 +45,14 @@
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, json: j }; }); });
     },
     remember: function (u) { remember(u); A.user = u; },
+    // The login page calls this at the moment of a fresh login: the 4-hour unattended clock starts now.
+    active: markActive,
+    // This device was left unattended for 4 hours: log it out and say why on the login page.
+    idleOut: function () {
+      if (A._kicked) return; A._kicked = true;
+      try { localStorage.setItem('sentire_kicked', 'idle'); } catch (e) {}
+      hide(); A.logout();
+    },
     // Rights: may this person open this app page? The Admin, and a user with no list, may open everything.
     can: function (file) {
       var u = A.user;
@@ -76,11 +93,14 @@
   if (window.supabase && window.supabase.createClient) A.client = window.supabase.createClient(URL_, KEY);
   if (isLogin) return;                            // the login page does its own work
 
+  if (idleTooLong()) { hide(); A.idleOut(); return; }   // opened again after 4+ hours unattended (e.g. computer was shut or asleep)
+  if (!lastActive()) markActive();
+
   var u = cached();
   if (u) A.user = u; else hide();
 
   // An app page this person has no right to open is covered with a notice.
-  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'backup.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
+  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'smart_finance.html': 1, 'backup.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
   function checkRight() {
     if (blocked || OPEN_TO_ALL[page] || A.can(page)) return;
     blocked = true;
@@ -114,7 +134,13 @@
   // ─── Every minute: is this login still allowed? The Admin / Sub Admin can log people out from the Security page. ───
   A.ready.then(function (me) {
     if (!me) return;
+    // Unattended for 4 hours → log out. Checked every half minute, and before any new activity is counted.
+    var idleCheck = function () { if (A._kicked) return true; if (idleTooLong()) { A.idleOut(); return true; } return false; };
+    var used = function () { if (Date.now() - lastWrite < 15000) return; if (!idleCheck()) markActive(); };
+    ['pointerdown', 'keydown', 'wheel', 'touchstart', 'mousemove', 'scroll'].forEach(function (ev) { window.addEventListener(ev, used, { capture: true, passive: true }); });
+    setInterval(idleCheck, 30000);
     var ping = function () {
+      if (idleCheck()) return;
       if (document.hidden) return;              // checked again when the page is looked at
       A.rpc('session_ping').then(function (s) { if (s === 'ended') A.kicked(); }).catch(function () {});
     };

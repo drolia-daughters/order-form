@@ -12,7 +12,16 @@
   if (page === 'login.html' || page === 'users.html' || page === 'hub.html') return;
 
   // Which browser-storage names are shared business data (everything else stays on this computer).
-  var SHARED = /^(ordersheet_|prod_|fin_|st_|inv_|crm_|jw_(?!admin_until)|lc_batches$|stmt_|repairs_)/;
+  // Names starting sfin_ are Smart Finance (bank entries, outstanding): shared ONLY between the Admin and Sub Admin.
+  // The database refuses them to everyone else (supabase_update_9_smart_finance.sql), and they are wiped from
+  // this browser when anyone else is logged in here.
+  var SHARED_ALL = /^(ordersheet_|prod_|fin_|st_|inv_|crm_|jw_(?!admin_until)|lc_batches$|stmt_|repairs_)/, PRIVATE = /^sfin_/;
+  var SHARED = { test: function (k) { k = String(k); return SHARED_ALL.test(k) || (PRIVATE.test(k) && A.isSecurityAdmin()); } };
+  function wipePrivate() {
+    if (A.isSecurityAdmin()) return;
+    for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (PRIVATE.test(k)) { localStorage.removeItem(k); delete meta.v[k]; delete meta.h[k]; } }
+    saveMeta();
+  }
   var META = 'sentire_sync_meta';
   var nGet = Storage.prototype.getItem, nSet = Storage.prototype.setItem;
   var applying = false, ready = false;
@@ -206,6 +215,7 @@
   // ── start ──────────────────────────────────────────────────────
   var started = false;
   function start(me) {
+    wipePrivate();
     for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (SHARED.test(k) && !meta.h[k]) pending[k] = 1; }
     return checkVersions(true).then(function (ch) {
       ready = true; started = true; flush();

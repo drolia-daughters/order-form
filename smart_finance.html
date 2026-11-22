@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Smart Finance — Sentire Technologies</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="finance_engine.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#8a94a8;--accent:#14b8a6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--mono:'JetBrains Mono',monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:18px 22px 60px;font-size:14px;}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px;}h1{font-size:22px;}.sp{flex:1;}
+.sub{font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+.btn{border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:8px;padding:8px 13px;font-size:13px;cursor:pointer;font-family:inherit;}
+.btn:hover{border-color:var(--accent);}.btn.pri{background:var(--accent);border-color:var(--accent);color:#04201d;font-weight:600;}.btn.sm{padding:4px 9px;font-size:12px;}.btn.red{color:#fecaca;border-color:rgba(239,68,68,.5);}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);padding:9px 12px;font:inherit;font-weight:600;cursor:pointer;}
+.tab.on{color:var(--text);border-bottom-color:var(--accent);}.tab .n{background:var(--orange);color:#201500;border-radius:10px;font-size:11px;padding:1px 7px;margin-left:5px;}
+.view{display:none;}.view.on{display:block;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:16px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;}
+.card b{display:block;font-size:22px;font-family:var(--mono);font-weight:600;white-space:nowrap;}.card span{font-size:12px;color:var(--text-dim);}.card small{display:block;font-size:11px;color:var(--text-dim);margin-top:3px;}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+h2{font-size:15px;margin-bottom:10px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}@media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+.tip{border-left:3px solid var(--border);padding:8px 12px;margin-bottom:8px;background:var(--surface-2);border-radius:0 8px 8px 0;}
+.tip b{display:block;font-size:14px;margin-bottom:2px;}.tip span{font-size:13px;color:var(--text-dim);line-height:1.5;}
+.tip.bad{border-color:var(--red);}.tip.warn{border-color:var(--orange);}.tip.good{border-color:var(--green);}.tip.info{border-color:var(--blue);}
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--text-dim);font-size:11px;text-transform:uppercase;padding:8px;white-space:nowrap;}
+td{padding:7px 8px;border-top:1px solid var(--border);vertical-align:middle;}
+td.n,th.n{text-align:right;font-family:var(--mono);white-space:nowrap;}tr.tot td{font-weight:700;background:var(--surface-2);}
+td.nar{font-family:var(--mono);font-size:11px;color:var(--text-dim);max-width:330px;word-break:break-all;}
+.r{color:var(--red);}.g{color:var(--green);}.o{color:var(--orange);}.dim{color:var(--text-dim);font-size:12px;}
+input,select,textarea{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px 9px;font:inherit;font-size:13px;}
+td input,td select{padding:4px 6px;font-size:12px;width:100%;min-width:110px;}td input[type=checkbox]{width:auto;min-width:0;}
+.drop{border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;cursor:pointer;color:var(--text-dim);}.drop.over,.drop:hover{border-color:var(--accent);color:var(--text);}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface-2);margin:8px 0 6px;}.bar i{display:block;height:100%;}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-dim);}.lg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px;}.row label{display:block;font-size:11px;color:var(--text-dim);margin-bottom:3px;}
+.link{color:var(--accent);cursor:pointer;text-decoration:underline dotted;}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;padding:30px 14px;overflow:auto;z-index:50;}.ov.open{display:flex;}
+.dlg{background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:820px;width:100%;padding:18px;}
+.msg{font-size:13px;margin:10px 0;line-height:1.6;}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#04201d;font-weight:600;padding:9px 16px;border-radius:8px;display:none;z-index:99;}
+</style>
+</head>
+<body>
+<div id="app" style="display:none">
+<div class="top"><h1>🦅 Smart Finance</h1><span class="sp"></span><button class="btn" onclick="render()">↻ Refresh</button><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
+<p class="sub">Your money at a glance: who owes you, whom you owe, bank, stock, and what to do next. Only the Admin and Sub Admin can open this page; its data is not sent to any other user's computer.</p>
+<div class="tabs" id="tabs"></div>
+
+<div class="view" id="v_over">
+  <div class="cards" id="cards"></div>
+  <div class="box"><h2>What to do now</h2><div id="tips"></div><div class="dim" style="margin-top:8px">These suggestions are worked out from the figures entered here. They are a guide for running the business, not tax or legal advice.</div></div>
+  <div class="grid2">
+    <div class="box"><h2>Money to receive — by age of bill</h2><div id="ageR"></div><div id="topR"></div></div>
+    <div class="box"><h2>Money to pay — by age of bill</h2><div id="ageP"></div><div id="topP"></div></div>
+  </div>
+  <div class="box"><h2>Last 6 months</h2><div class="tw" style="border:none;margin:0"><table id="months"></table></div><div class="dim" style="margin-top:8px">Profit (estimate) = sales − purchases − expenses, before GST. It does not adjust for stock bought but not yet sold.</div></div>
+  <div class="box"><h2>Bank accounts</h2><div id="accts"></div></div>
+</div>
+
+<div class="view" id="v_recv"><div class="row"><div><label>Search party</label><input id="qR" oninput="renderSide('recv')"></div><span class="sp"></span><button class="btn" onclick="exportSide('recv')">↓ Excel (CSV)</button></div><div class="tw"><table id="tR"></table></div><div class="dim">Click a party to see its bills and payments. Payments settle the oldest bill first. A bill is overdue after the party's credit days (set in Masters; 30 days when not set).</div></div>
+<div class="view" id="v_pay"><div class="row"><div><label>Search supplier</label><input id="qP" oninput="renderSide('pay')"></div><span class="sp"></span><button class="btn" onclick="exportSide('pay')">↓ Excel (CSV)</button></div><div class="tw"><table id="tP"></table></div><div class="dim">Supplier bills come from the purchase invoices posted in Accounts. Bills are treated as due 30 days after the bill date.</div></div>
+
+<div class="view" id="v_bank">
+  <div class="box"><h2>Add a bank statement</h2>
+    <div class="drop" id="drop" onclick="document.getElementById('file').click()"><div style="font-size:28px">🏦</div><b>Click or drop the statement here</b><div style="font-size:12px;margin-top:4px">PDF · Excel (.xls .xlsx) · CSV — HDFC, ICICI and other banks. Several files at once is fine.</div></div>
+    <input type="file" id="file" accept=".pdf,.xls,.xlsx,.csv,.txt" multiple style="display:none" onchange="loadFiles(this.files);this.value=''">
+    <div class="msg" id="impMsg"></div>
+    <div class="dim">The file is read inside this browser only. Entries the software recognises are posted by themselves; the rest wait below. The same entry is never posted twice, so overlapping statements are safe.</div>
+  </div>
+  <h2 id="penH">Unposted sheet</h2>
+  <div class="row"><button class="btn pri" onclick="postTicked()">✅ Post ticked</button><button class="btn" onclick="ignoreTicked()">Ignore ticked</button><span class="dim">Set the type and party once and press Post. The software remembers it and posts that party by itself next time.</span></div>
+  <div class="tw"><table id="tPen"></table></div>
+  <h2 style="margin-top:22px">Posted bank entries <span class="dim">(latest 300)</span></h2>
+  <div class="row"><div><label>Search</label><input id="qT" oninput="renderPosted()"></div></div>
+  <div class="tw"><table id="tPost"></table></div>
+</div>
+
+<div class="view" id="v_exp"><div class="box"><h2>Expenses by category — last 6 months</h2><div class="tw" style="border:none;margin:0"><table id="tExp"></table></div></div></div>
+
+<div class="view" id="v_open">
+  <div class="box"><h2>Opening balances</h2><p class="sub">Bills from before this software (for example the outstanding in Tally on the day you started). Add each party's old balance once, so the totals here match the real outstanding.</p>
+    <div class="row"><div><label>Who</label><select id="oSide"><option value="recv">Customer owes us</option><option value="pay">We owe supplier</option></select></div><div><label>Party</label><input id="oParty" list="dlAll" style="width:240px"></div><div><label>Amount (₹)</label><input id="oAmt" type="number" min="0" step="0.01" style="width:130px"></div><div><label>Bill / as-of date</label><input id="oDate" type="date"></div><div><label>Bill no. (optional)</label><input id="oRef" style="width:130px"></div><button class="btn pri" onclick="addOpening()">+ Add</button></div>
+    <label class="dim">Or paste many at once from Tally / Excel — one per line: <b>Party</b>, then <b>Amount</b> (tab or comma between). Uses the “Who” and date chosen above.</label>
+    <textarea id="oPaste" rows="4" style="width:100%;margin:6px 0" placeholder="ACME WEIGHING SYSTEMS	118000"></textarea><button class="btn" onclick="pasteOpening()">Add pasted lines</button>
+  </div>
+  <div class="tw"><table id="tOpen"></table></div>
+</div>
+</div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)this.classList.remove('open')"><div class="dlg" id="dlg"></div></div>
+<datalist id="dlAll"></datalist><div id="toast"></div>
+
+<script>
+const F=window.SmartFinance,A=window.SentireAuth;
+const K={txns:'sfin_txns',rules:'sfin_rules',accts:'sfin_accounts',open:'sfin_opening',fin:'fin_entries'};
+const get=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}};
+const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>(n<0?'−':'')+'₹'+Math.abs(Math.round(n||0)).toLocaleString('en-IN');
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',3000);}
+const KIND={receipt:'Received from customer',payment:'Paid to supplier',expense:'Expense',income:'Other income',transfer:'Own transfer / cash drawn'};
+const TABS=[['over','Overview'],['recv','To receive'],['pay','To pay'],['bank','Bank & Unposted'],['exp','Expenses'],['open','Opening balances']];
+let tab='over',P=null;
+
+function clientNames(){const s=new Set(Object.keys(get('ordersheet_client_contacts',{})));(get('ordersheet_parties',[])||[]).forEach(n=>s.add(n));get(K.fin,[]).forEach(e=>{if(e.kind==='sale'&&e.party)s.add(e.party);});get(K.open,[]).forEach(o=>{if(o.side==='recv'&&!o.off)s.add(o.party);});return [...s].filter(Boolean);}
+function vendorNames(){const s=new Set(Object.keys(get('ordersheet_vendors',{})));get(K.fin,[]).forEach(e=>{if(e.kind==='purchase'&&e.party)s.add(e.party);});get(K.open,[]).forEach(o=>{if(o.side==='pay'&&!o.off)s.add(o.party);});return [...s].filter(Boolean);}
+function ctx(){return {rules:get(K.rules,{}),clients:clientNames(),vendors:vendorNames()};}
+function picture(){return F.position({fin:get(K.fin,[]),txns:get(K.txns,[]),opening:get(K.open,[]),accounts:get(K.accts,{}),items:get('inv_items',[]),clients:get('ordersheet_client_contacts',{}),today:today()});}
+
+/* ───────── screen ───────── */
+function show(t){tab=t;render();}
+function render(){
+  P=picture();
+  document.getElementById('tabs').innerHTML=TABS.map(([k,n])=>`<button class="tab ${k===tab?'on':''}" onclick="show('${k}')">${n}${k==='bank'&&P.pending?`<span class="n">${P.pending}</span>`:''}</button>`).join('');
+  TABS.forEach(([k])=>document.getElementById('v_'+k).classList.toggle('on',k===tab));
+  document.getElementById('dlAll').innerHTML=[...new Set([...clientNames(),...vendorNames()])].sort().map(n=>`<option value="${esc(n)}">`).join('');
+  ({over:renderOver,recv:()=>renderSide('recv'),pay:()=>renderSide('pay'),bank:()=>{renderPending();renderPosted();},exp:renderExp,open:renderOpen})[tab]();
+}
+window.sentireRefresh=function(){const a=document.activeElement;if(a&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))return;render();};
+
+function renderOver(){
+  const c=P.cur,card=(v,l,s,cls)=>`<div class="card"><span>${l}</span><b class="${cls||''}">${v}</b>${s?`<small>${s}</small>`:''}</div>`;
+  document.getElementById('cards').innerHTML=
+    card(P.bankKnown?inr(P.bank):'—','Cash in bank',P.accounts.length?P.accounts.length+' account'+(P.accounts.length>1?'s':''):'no statement read yet')+
+    card(inr(P.recvTotal),'To receive',P.recvOverdue?`<span class="r">${inr(P.recvOverdue)} overdue</span>`:'nothing overdue','g')+
+    card(inr(P.payTotal),'To pay',P.payOverdue?`<span class="r">${inr(P.payOverdue)} overdue</span>`:'nothing overdue','o')+
+    card(inr(P.stock),'Stock value',P.stockNoCost?P.stockNoCost+(P.stockNoCost>1?' items have':' item has')+' no cost':'at cost price')+
+    card(inr(P.net),'Net working position','bank + to receive + stock − to pay',P.net<0?'r':'')+
+    card(inr(c.salesNet),'Sales this month','collected '+inr(c.collected))+
+    card(inr(c.expenses),'Expenses this month','paid to suppliers '+inr(c.paid))+
+    card(inr(c.profit),'Profit this month (est.)','GST to pay ≈ '+inr(Math.max(0,c.gstNet)),c.profit<0?'r':'g');
+  document.getElementById('tips').innerHTML=F.advise(P).map(t=>`<div class="tip ${t.level}"><b>${esc(t.title)}</b><span>${esc(t.text)}</span></div>`).join('')||'<span class="dim">Add invoices and a bank statement to get suggestions.</span>';
+  const COL=['#22c55e','#f59e0b','#f97316','#ef4444'],LAB=['0–30 days','31–60','61–90','over 90'];
+  const age=(b,tot)=>tot>0?`<div class="bar">${b.map((v,i)=>`<i style="width:${v/tot*100}%;background:${COL[i]}" title="${LAB[i]}: ${inr(v)}"></i>`).join('')}</div><div class="lg">${b.map((v,i)=>`<span><i style="background:${COL[i]}"></i>${LAB[i]}: <b style="color:var(--text)">${inr(v)}</b></span>`).join('')}</div>`:'<div class="dim">Nothing outstanding.</div>';
+  const top=(L,s)=>L.filter(r=>r.due>0.5).slice(0,6).map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border);margin-top:6px"><span class="link" onclick="ledger('${s}','${esc(F.normName(r.party))}')">${esc(r.party)}</span><span style="font-family:var(--mono)">${inr(r.due)}${r.overdue>0?` <span class="r" style="font-size:11px">${r.maxLate}d late</span>`:''}</span></div>`).join('');
+  document.getElementById('ageR').innerHTML=age(P.recvB,P.recvTotal);document.getElementById('topR').innerHTML=top(P.recv,'recv');
+  document.getElementById('ageP').innerHTML=age(P.payB,P.payTotal);document.getElementById('topP').innerHTML=top(P.pay,'pay');
+  const rows=[['Sales (before GST)','salesNet'],['Purchases (before GST)','purchNet'],['Expenses','expenses'],['Other income','otherIncome'],['Profit (estimate)','profit'],['Collected from customers','collected'],['Paid to suppliers','paid'],['GST: sales − purchases','gstNet']];
+  document.getElementById('months').innerHTML='<tr><th></th>'+P.months.map(m=>`<th class="n">${m.m}</th>`).join('')+'</tr>'+rows.map(([l,k])=>`<tr class="${k==='profit'?'tot':''}"><td>${l}</td>${P.months.map(m=>`<td class="n ${k==='profit'&&m[k]<0?'r':''}">${m[k]?inr(m[k]):'—'}</td>`).join('')}</tr>`).join('');
+  document.getElementById('accts').innerHTML=P.accounts.length?P.accounts.map(a=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border)"><span>🏦 ${esc(a.bank)}${a.acct?' ••'+esc(a.acct):''} <span class="dim">balance as on ${esc(a.asOf||'—')}</span></span><b style="font-family:var(--mono)">${a.balance==null?'—':inr(a.balance)}</b></div>`).join(''):'<span class="dim">No statement read yet. Add one under Bank &amp; Unposted.</span>';
+}
+
+function renderSide(s){
+  const q=(document.getElementById(s==='recv'?'qR':'qP').value||'').toLowerCase(),L=P[s].filter(r=>(r.due>0.5||r.advance>0.5)&&(!q||r.party.toLowerCase().includes(q)));
+  const sum=f=>L.reduce((a,r)=>a+f(r),0),cell=v=>`<td class="n">${v>0.5?inr(v):'—'}</td>`;
+  document.getElementById(s==='recv'?'tR':'tP').innerHTML=`<tr><th>${s==='recv'?'Customer':'Supplier'}</th><th class="n">Outstanding</th><th class="n">Overdue</th><th class="n">0–30 days</th><th class="n">31–60</th><th class="n">61–90</th><th class="n">Over 90</th><th>Oldest bill</th><th>Last payment</th><th class="n">Advance</th></tr>`+
+    (L.length?L.map(r=>`<tr><td><span class="link" onclick="ledger('${s}','${esc(F.normName(r.party))}')">${esc(r.party)}</span></td><td class="n"><b>${inr(r.due)}</b></td><td class="n ${r.overdue>0?'r':''}">${r.overdue>0?inr(r.overdue)+' · '+r.maxLate+'d':'—'}</td>${r.b.map(cell).join('')}<td class="dim">${esc(r.oldest||'—')}</td><td class="dim">${esc(r.lastPay||'—')}</td>${cell(r.advance)}</tr>`).join('')+
+    `<tr class="tot"><td>Total (${L.length})</td><td class="n">${inr(sum(r=>r.due))}</td><td class="n r">${inr(sum(r=>r.overdue))}</td>${[0,1,2,3].map(i=>`<td class="n">${inr(sum(r=>r.b[i]))}</td>`).join('')}<td></td><td></td><td class="n">${inr(sum(r=>r.advance))}</td></tr>`
+    :'<tr><td colspan="10" class="dim" style="padding:18px;text-align:center">Nothing outstanding.</td></tr>');
+}
+function exportSide(s){let csv='Party,Outstanding,Overdue,Days late,0-30,31-60,61-90,Over 90,Oldest bill,Last payment,Advance\n';
+  P[s].filter(r=>r.due>0.5||r.advance>0.5).forEach(r=>{csv+=[r.party,r.due,r.overdue,r.maxLate,...r.b.map(v=>Math.round(v*100)/100),r.oldest,r.lastPay,r.advance].map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(',')+'\n';});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=(s==='recv'?'to_receive_':'to_pay_')+today()+'.csv';a.click();}
+function ledger(s,nk){
+  const r=P[s].find(x=>F.normName(x.party)===nk);if(!r)return;
+  document.getElementById('dlg').innerHTML=`<div class="top"><h2 style="margin:0">${esc(r.party)}</h2><span class="sp"></span><button class="btn sm" onclick="document.getElementById('ov').classList.remove('open')">Close</button></div>
+  <div class="cards" style="margin-top:12px"><div class="card"><span>${s==='recv'?'Billed':'Bills received'}</span><b>${inr(r.billed)}</b></div><div class="card"><span>${s==='recv'?'Received':'Paid'}</span><b>${inr(r.paid)}</b></div><div class="card"><span>Outstanding</span><b class="${r.overdue>0?'r':''}">${inr(r.due)}</b>${r.advance>0?`<small>advance ${inr(r.advance)}</small>`:''}</div></div>
+  <h2>Bills</h2><div class="tw"><table><tr><th>Date</th><th>Bill no.</th><th class="n">Amount</th><th class="n">Still due</th><th>Due on</th><th></th></tr>${r.docs.map(d=>`<tr><td>${esc(d.date||'')}</td><td>${esc(d.no||'—')}</td><td class="n">${inr(d.amount)}</td><td class="n ${d.late>0?'r':''}">${d.left>0.5?inr(d.left):'<span class="g">settled</span>'}</td><td class="dim">${esc(d.dueOn)}${d.late>0?` · <span class="r">${d.late} days late</span>`:''}</td><td>${d.left>0.5&&!d.opening?`<button class="btn sm" onclick="settleByHand('${s}','${esc(d.id)}','${esc(nk)}')">Settled outside bank</button>`:''}</td></tr>`).join('')}</table></div>
+  <h2>${s==='recv'?'Money received':'Money paid'} (from bank statements)</h2><div class="tw"><table><tr><th>Date</th><th>Bank narration</th><th class="n">Amount</th></tr>${r.pays.length?r.pays.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(p=>`<tr><td>${esc(p.date)}</td><td class="nar">${esc(p.nar)}</td><td class="n">${inr(p.amount)}</td></tr>`).join(''):'<tr><td colspan="3" class="dim">None yet.</td></tr>'}</table></div>
+  <div class="dim">Payments settle the oldest bill first. “Settled outside bank” is for a bill paid in cash or adjusted, so it stops showing as due.</div>`;
+  document.getElementById('ov').classList.add('open');
+}
+function settleByHand(s,id,nk){if(!confirm('Mark this bill as settled outside the bank (cash / adjustment)?'))return;
+  const fin=get(K.fin,[]),e=fin.find(x=>x.id===id);if(!e)return;e.status='Paid';if(s==='pay')e.paidBy='manual';else delete e.paidBy;set(K.fin,fin);P=picture();syncPaid();render();ledger(s,nk);}
+
+/* Keep the bills in Accounts in step: a sales bill fully covered by bank receipts shows as Paid there (and reminders for its order stop). */
+function syncPaid(){
+  const fin=get(K.fin,[]);let ch=false;const left={};P.recv.forEach(r=>r.docs.forEach(d=>{left[d.id]=d.left;}));const orders=[];
+  fin.forEach(e=>{if(!(e.id in left))return;
+    if(left[e.id]<=0.5&&e.status!=='Paid'){e.status='Paid';e.paidBy='sfin';ch=true;if(e.orderNo)orders.push(e.orderNo);}
+    else if(left[e.id]>0.5&&e.status==='Paid'&&e.paidBy==='sfin'){e.status=e.kind==='sale'?'Unpaid':'Pending';delete e.paidBy;ch=true;}});
+  if(ch)set(K.fin,fin);
+  if(orders.length){try{const db=get('ordersheet_master_db',[]);let oc=false;db.forEach(o=>{if(orders.includes(o.orderNo)&&!o.paymentDone){o.paymentDone=true;o.paidDate=new Date().toISOString();oc=true;}});if(oc)set('ordersheet_master_db',db);}catch(e){}}
+}
+
+/* ───────── bank statements ───────── */
+let _pdf=null;
+function loadPdfJs(){return _pdf||(_pdf=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';res();};s.onerror=()=>{_pdf=null;rej(new Error('Could not load the PDF reader. Check the internet.'));};document.head.appendChild(s);}));}
+async function pdfLines(file){await loadPdfJs();const data=new Uint8Array(await file.arrayBuffer());
+  const task=window.pdfjsLib.getDocument({data});
+  task.onPassword=(update,reason)=>{const pw=prompt((reason===2?'That password did not open it. ':'')+'This statement is locked with a password.\nType the PDF password (it is used only here, on this computer, and is not saved):');if(pw==null)task.destroy();else update(pw);};
+  const doc=await task.promise,pages=[];
+  for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p),tc=await pg.getTextContent(),L=[];
+    tc.items.forEach(it=>{if(!it.str||!it.str.trim())return;const x=it.transform[4],y=it.transform[5];let l=L.find(q=>Math.abs(q.y-y)<=2.5);if(!l){l={y,items:[]};L.push(l);}l.items.push({x,w:it.width,s:it.str});});
+    L.sort((a,b)=>b.y-a.y);pages.push(L);}
+  return pages;}
+async function readStatement(file){
+  if(/\.pdf$/i.test(file.name)){const pages=await pdfLines(file);const st=F.stmtFromPdfLines(pages,file.name);
+    if(!st.txns.length){const chars=pages.reduce((a,p)=>a+p.reduce((b,l)=>b+l.items.length,0),0);throw new Error(chars<20?'This PDF is a scanned picture, not a text statement. Download the statement from net banking instead (photo reading comes in the next stage).':'No transactions were found in this PDF.');}
+    return st;}
+  if(typeof XLSX==='undefined')throw new Error('The Excel reader could not load. Check the internet and reload.');
+  const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array',cellDates:true});let rows=[];
+  wb.SheetNames.forEach(n=>{if(rows.length<5)rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:''});});
+  return F.stmtFromGrid(rows,file.name);}
+function takeStatement(st){
+  const txns=get(K.txns,[]),c=ctx(),bank=st.bank,acct=st.acct;
+  const have=new Set(),loose={};const addL=k=>{loose[k]=(loose[k]||0)+1;};
+  txns.forEach(t=>{have.add(t.key);addL(t.lk);});
+  get(K.fin,[]).forEach(e=>{if(!e.stmtKey)return;have.add(e.stmtKey);addL(F.looseKey(e.source||e.stmtKey.split('|')[0],e.date,e.type==='expense',e.amount,e.desc));});   // posted earlier from the Accounts page
+  const res={n:st.txns.length,auto:0,pend:0,dup:0};
+  st.txns.forEach(t=>{const out=!!t.dr,amount=t.dr||t.cr,lk=F.looseKey(bank,t.date,out,amount,t.nar);
+    if(have.has(t.key)||loose[lk]>0){if(loose[lk]>0)loose[lk]--;have.add(t.key);res.dup++;return;}
+    have.add(t.key);
+    const k=F.classify(Object.assign({bank},t),c);
+    txns.push({id:newId(),key:t.key,lk,bank,acct,date:t.date,nar:t.nar,ref:t.ref||'',amount,out,kind:k.kind,party:k.party,cat:k.cat,mode:F.guessMode(t.nar),why:k.why,status:k.sure?'posted':'pending',auto:k.sure,at:new Date().toISOString()});
+    k.sure?res.auto++:res.pend++;});
+  set(K.txns,txns);
+  if(st.closing!=null){const ac=get(K.accts,{}),id=(bank+'_'+(acct||'x')).toLowerCase();if(!ac[id]||!ac[id].asOf||st.closingDate>=ac[id].asOf){ac[id]={id,bank,acct,balance:st.closing,asOf:st.closingDate};set(K.accts,ac);}}
+  res.unread=st.unread||0;res.label=bank+(acct?' ••'+acct:'');return res;
+}
+async function loadFiles(files){files=[...files];const msg=document.getElementById('impMsg');let html='';
+  for(const f of files){msg.innerHTML=html+'Reading '+esc(f.name)+'…';
+    try{const r=takeStatement(await readStatement(f));
+      html+=`<div>🏦 <b>${esc(r.label)}</b> — ${esc(f.name)}: ${r.n} entries read · <span class="g">${r.auto} posted automatically</span> · <span class="o">${r.pend} on the Unposted sheet</span>${r.dup?` · ${r.dup} already here (skipped)`:''}${r.unread?` · <span class="r">${r.unread} line${r.unread>1?'s':''} could not be read — check the statement for the missing entr${r.unread>1?'ies':'y'}</span>`:''}</div>`;}
+    catch(e){html+=`<div class="r">✕ ${esc(f.name)}: ${esc(/password/i.test(e.name+e.message)||/destroy/i.test(e.message)?'not opened (password needed).':e.message)}</div>`;}}
+  P=picture();syncPaid();render();document.getElementById('impMsg').innerHTML=html;}
+const drop=document.getElementById('drop');['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));drop.addEventListener('drop',e=>loadFiles(e.dataTransfer.files));
+
+const kindOpts=(t)=>(t.out?['payment','expense','transfer','receipt']:['receipt','income','transfer','payment']).map(k=>`<option value="${k}" ${k===t.kind?'selected':''}>${t.out&&k==='receipt'?'Refund to customer':!t.out&&k==='payment'?'Refund from supplier':KIND[k]}</option>`).join('');
+function renderPending(){
+  const L=get(K.txns,[]).filter(t=>t.status==='pending').sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('penH').innerHTML='Unposted sheet'+(L.length?` <span class="dim">— ${L.length} entr${L.length>1?'ies':'y'} waiting for you</span>`:'');
+  document.getElementById('tPen').innerHTML=`<tr><th><input type="checkbox" checked onchange="document.querySelectorAll('.pk').forEach(c=>c.checked=this.checked)"></th><th>Date</th><th>Account</th><th class="n">Amount</th><th>Bank narration</th><th>What is it</th><th>Party</th><th>Category</th><th></th></tr>`+
+   (L.length?L.map(t=>`<tr data-id="${t.id}"><td><input type="checkbox" class="pk" checked></td><td style="white-space:nowrap">${esc(t.date)}</td><td class="dim">${esc(t.bank)}${t.acct?' ••'+esc(t.acct):''}</td><td class="n ${t.out?'r':'g'}">${t.out?'−':'+'}${inr(t.amount)}</td><td class="nar">${esc(t.nar)}<div class="o" style="font-family:inherit">${esc(t.why||'')}</div></td>
+   <td><select class="fk" onchange="this.closest('tr').querySelector('.fc').style.visibility=this.value==='expense'?'visible':'hidden'">${kindOpts(t)}</select></td><td><input class="fp" list="dlAll" value="${esc(t.party)}"></td>
+   <td><select class="fc" style="visibility:${t.kind==='expense'?'visible':'hidden'}">${F.EXP_CATS.map(c=>`<option ${c===(t.cat||'Misc')?'selected':''}>${c}</option>`).join('')}</select></td><td><button class="btn sm pri" onclick="postRows([this.closest('tr')])">Post</button></td></tr>`).join('')
+   :'<tr><td colspan="9" class="dim" style="padding:18px;text-align:center">Nothing waiting. Every bank entry is posted.</td></tr>');
+}
+function postRows(trs){
+  const txns=get(K.txns,[]),rules=get(K.rules,{});let n=0,also=0;
+  trs.forEach(tr=>{const t=txns.find(x=>x.id===tr.dataset.id);if(!t||t.status!=='pending')return;
+    t.kind=tr.querySelector('.fk').value;t.party=tr.querySelector('.fp').value.trim().toUpperCase()||t.party;t.cat=t.kind==='expense'?tr.querySelector('.fc').value:(t.kind==='transfer'?'Transfer':'');
+    t.status='posted';t.auto=false;n++;
+    const rk=F.ruleKey(t.out,t.nar);if(rk){rules[rk]={kind:t.kind,party:t.party,cat:t.cat};
+      txns.forEach(o=>{if(o.status==='pending'&&o.id!==t.id&&!trs.some(x=>x.dataset.id===o.id)&&F.ruleKey(o.out,o.nar)===rk){o.kind=t.kind;o.party=t.party;o.cat=t.cat;o.status='posted';o.auto=true;also++;}});}});
+  set(K.rules,rules);set(K.txns,txns);P=picture();syncPaid();render();toast('✓ Posted '+n+(also?' · '+also+' more from the same party posted too':''));
+}
+function ticked(){return [...document.querySelectorAll('#tPen tr[data-id]')].filter(tr=>tr.querySelector('.pk').checked);}
+function postTicked(){const L=ticked();if(!L.length)return;if(!confirm('Post '+L.length+' entr'+(L.length>1?'ies':'y')+' as shown?'))return;postRows(L);}
+function ignoreTicked(){const L=ticked();if(!L.length)return;if(!confirm('Ignore '+L.length+' entr'+(L.length>1?'ies':'y')+'? They will not count anywhere. (You can bring them back from the posted list search by typing "ignored".)'))return;
+  const ids=L.map(tr=>tr.dataset.id),txns=get(K.txns,[]);txns.forEach(t=>{if(ids.includes(t.id))t.status='ignored';});set(K.txns,txns);render();}
+function renderPosted(){
+  const q=(document.getElementById('qT').value||'').toLowerCase();
+  const L=get(K.txns,[]).filter(t=>t.status!=='pending'&&(q?(t.party+' '+t.nar+' '+t.kind+' '+t.cat+' '+t.status+' '+t.date).toLowerCase().includes(q):t.status==='posted')).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,300);
+  document.getElementById('tPost').innerHTML='<tr><th>Date</th><th>Account</th><th class="n">Amount</th><th>What</th><th>Party</th><th>Bank narration</th><th></th></tr>'+
+   (L.length?L.map(t=>`<tr><td style="white-space:nowrap">${esc(t.date)}</td><td class="dim">${esc(t.bank)}${t.acct?' ••'+esc(t.acct):''}</td><td class="n ${t.out?'r':'g'}">${t.out?'−':'+'}${inr(t.amount)}</td><td>${t.status==='ignored'?'<span class="dim">ignored</span>':esc(KIND[t.kind]||t.kind)+(t.cat&&t.kind==='expense'?' · '+esc(t.cat):'')}${t.auto?' <span class="dim" title="Posted by the software">⚙</span>':''}</td><td>${esc(t.party)}</td><td class="nar">${esc(t.nar)}</td><td><button class="btn sm" onclick="unpost('${t.id}')">Change</button></td></tr>`).join('')
+   :'<tr><td colspan="7" class="dim" style="padding:18px;text-align:center">No posted entries yet.</td></tr>');
+}
+function unpost(id){const txns=get(K.txns,[]),t=txns.find(x=>x.id===id);if(!t)return;t.status='pending';t.why='Sent back by you to change';set(K.txns,txns);P=picture();syncPaid();render();toast('Moved to the Unposted sheet');}
+
+function renderExp(){const cats=Object.keys(P.cats).sort((a,b)=>(P.cats[b][P.cur.m]||0)-(P.cats[a][P.cur.m]||0));
+  document.getElementById('tExp').innerHTML='<tr><th>Category</th>'+P.months.map(m=>`<th class="n">${m.m}</th>`).join('')+'</tr>'+(cats.length?cats.map(c=>`<tr><td>${esc(c)}</td>${P.months.map(m=>`<td class="n">${P.cats[c][m.m]?inr(P.cats[c][m.m]):'—'}</td>`).join('')}</tr>`).join('')+`<tr class="tot"><td>Total</td>${P.months.map(m=>`<td class="n">${inr(m.expenses)}</td>`).join('')}</tr>`:'<tr><td colspan="7" class="dim" style="padding:18px;text-align:center">No expenses yet.</td></tr>');}
+
+/* ───────── opening balances ───────── */
+function addOpen(list,side,party,amount,date,ref){party=String(party||'').trim().toUpperCase();amount=F.num(amount);if(!party||!amount)return false;list.push({id:newId(),side,party,amount,date:date||today(),ref:ref||''});return true;}
+function addOpening(){const L=get(K.open,[]);if(!addOpen(L,document.getElementById('oSide').value,document.getElementById('oParty').value,document.getElementById('oAmt').value,document.getElementById('oDate').value,document.getElementById('oRef').value)){alert('Fill the party and the amount.');return;}
+  set(K.open,L);['oParty','oAmt','oRef'].forEach(i=>document.getElementById(i).value='');P=picture();render();toast('✓ Added');}
+function pasteOpening(){const L=get(K.open,[]),side=document.getElementById('oSide').value,date=document.getElementById('oDate').value;let n=0;
+  document.getElementById('oPaste').value.split('\n').forEach(line=>{const m=line.trim().match(/^(.*?)[\t,;]+\s*"?(-?[\d,]+(?:\.\d+)?)\s*(dr|cr)?"?\s*$/i);if(m&&addOpen(L,side,m[1].replace(/^"|"$/g,''),m[2],date,''))n++;});
+  if(!n){alert('No lines could be read. Put the party, then a tab or comma, then the amount.');return;}set(K.open,L);document.getElementById('oPaste').value='';P=picture();render();toast('✓ Added '+n+' opening balances');}
+function offOpening(id){if(!confirm('Remove this opening balance?'))return;const L=get(K.open,[]),o=L.find(x=>x.id===id);if(o){o.off=true;set(K.open,L);P=picture();render();}}
+function renderOpen(){if(!document.getElementById('oDate').value)document.getElementById('oDate').value=today();const L=get(K.open,[]).filter(o=>!o.off);
+  document.getElementById('tOpen').innerHTML='<tr><th>Who</th><th>Party</th><th class="n">Amount</th><th>Date</th><th>Bill no.</th><th></th></tr>'+(L.length?L.map(o=>`<tr><td>${o.side==='pay'?'We owe supplier':'Customer owes us'}</td><td>${esc(o.party)}</td><td class="n">${inr(o.amount)}</td><td>${esc(o.date)}</td><td>${esc(o.ref||'—')}</td><td><button class="btn sm red" onclick="offOpening('${o.id}')">Remove</button></td></tr>`).join(''):'<tr><td colspan="6" class="dim" style="padding:18px;text-align:center">No opening balances added.</td></tr>');}
+
+/* ───────── only the Admin and Sub Admin ───────── */
+function start(){document.getElementById('app').style.display='';render();}
+function noAccess(){document.body.innerHTML='<div style="min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center"><div style="font-size:18px;font-weight:600">Smart Finance is for the Admin and Sub Admin only</div><a href="index.html" style="color:#3b82f6">← Main Page</a></div>';}
+if(!A||!A.enabled)start();else A.ready.then(me=>{if(me&&A.isSecurityAdmin(me))start();else if(me)noAccess();});
+</script>
+</body>
+</html>

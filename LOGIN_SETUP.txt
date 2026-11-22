@@ -65,7 +65,9 @@ HOW IT WORKS
   password (also the Admin's own), add a user or remove a user.
 • Users: use the apps the Admin ticked for them (all apps if nothing was changed), never the "Users" page.
   Apps they may not open are hidden from their Main Page and show "You do not have access".
-• A person stays logged in on a device until they click "Log out" on the Main Page.
+• A person stays logged in on a device until they click "Log out" on the Main Page,
+  or until the device is left unattended for 4 hours (no click, key, touch or scroll).
+  After 4 hours unattended they are logged out and must log in again.
 • When the Admin changes someone's password, that person is logged out everywhere
   within about an hour and must use the new password.
 • A removed user loses access the next time a page opens.

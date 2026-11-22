@@ -184,6 +184,11 @@ if(window.SentireAuth&&SentireAuth.enabled)SentireAuth.ready.then(function(me){
   b.innerHTML='<span class="ic">🛡</span>Security';b.title='Who is logged in, from where — and log them out';
   b.onclick=function(){location.href='security.html';};
   var m=document.querySelector('#nav .nav-btn[data-k="masters"]');if(m)m.after(b);else document.getElementById('nav').appendChild(b);
+  // Smart Finance — only for the Admin and Sub Admin (opens smart_finance.html)
+  var f=document.createElement('button');f.className='nav-btn';f.style.setProperty('--c','#14b8a6');
+  f.innerHTML='<span class="ic">🦅</span>Smart Finance';f.title='Outstanding, bank, stock and what to do next — Admin and Sub Admin only';
+  f.onclick=function(){location.href='smart_finance.html';};
+  b.before(f);
 });
 document.getElementById('tabbar').innerHTML=[HOME,...APPS.filter(a=>a.key!=='masters'&&a.key!=='calculator')].map(a=>`<button data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.short}</button>`).join('');
 document.getElementById('apps').innerHTML=APPS.map(a=>`<button class="app" style="--c:${a.c}" onclick="go('${a.key}')"><div class="ic">${a.ic}</div><h3>${a.name}</h3><p>${a.desc}</p></button>`).join('');
