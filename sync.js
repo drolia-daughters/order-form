@@ -236,3 +236,22 @@
 
   window.SentireSync = { flush: flush, check: function () { return checkVersions().then(function (c) { flush(); changed(c); }); } };
 })();
+
+// ═══ Client / vendor / party names are always saved in CAPITAL letters (22 Nov 2026) ═══
+// Any box listed here turns what is typed into capitals as you type (also in pop-up dialogs added later).
+(function () {
+  var NAME_BOXES = ['c_n', 'v_n', 't_n', 'nv_n', 'nc_n', 'p_name', 'partyNewInput', 'partyEditInput', 'transporterNewInput',
+    'jf_party', 'if_supplier', 'ef_party', 'oParty', 'lf_company', 'cm_company'];
+  function up(e) {
+    var el = e.target;
+    if (!el || el.tagName !== 'INPUT' || NAME_BOXES.indexOf(el.id) < 0) return;
+    var v = el.value, u = v.toUpperCase();
+    if (v === u) return;
+    var a = el.selectionStart, b = el.selectionEnd;
+    el.value = u;
+    try { el.setSelectionRange(a, b); } catch (_) {}
+  }
+  document.addEventListener('input', up, true);
+  document.addEventListener('change', up, true);
+  document.addEventListener('focusout', up, true);
+})();

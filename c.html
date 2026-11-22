@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>YES / NO</title>
+<link rel="icon" href="sentire-32.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth_config.js"></script>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f3f5f9;color:#1b2430;}
+.wrap{max-width:460px;margin:0 auto;padding:20px 16px 40px;}
+.brand{font-weight:800;font-size:18px;color:#0b5cad;margin-bottom:2px;}
+.sub{color:#5b6678;font-size:13px;margin-bottom:18px;}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);}
+h1{font-size:19px;margin:0 0 6px;}
+.party{color:#5b6678;font-size:14px;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;font-size:15px;margin-bottom:16px;}
+td{padding:8px 4px;border-bottom:1px solid #e8ebf0;}
+td.q{text-align:right;font-weight:700;white-space:nowrap;}
+.btns{display:flex;gap:10px;}
+button{flex:1;border:0;border-radius:12px;padding:16px 10px;font-size:18px;font-weight:800;cursor:pointer;}
+.yes{background:#16a34a;color:#fff;}.no{background:#dc2626;color:#fff;}
+.save{background:#0b5cad;color:#fff;width:100%;margin-top:10px;font-size:16px;}
+textarea{width:100%;min-height:90px;border:1px solid #cfd6e0;border-radius:10px;padding:10px;font:inherit;font-size:15px;}
+.msg{text-align:center;padding:10px 0;}
+.big{font-size:54px;line-height:1;margin-bottom:8px;}
+.muted{color:#5b6678;font-size:13px;}
+.err{color:#dc2626;font-size:14px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Sentire Technologies</div>
+  <div class="sub">Stock confirmation</div>
+  <div class="card" id="box"><div class="msg muted">Loading…</div></div>
+</div>
+<script>
+// Public page — no login. Opened from the WhatsApp YES / NO links sent from Job Work → Confirm stock.
+// ?t=<token>&a=yes|no   ·  YES is recorded at once; NO is recorded at once and asks what is different.
+const P=new URLSearchParams(location.search),T=P.get('y')||P.get('n')||P.get('t')||'',A=P.get('y')?'yes':P.get('n')?'no':(P.get('a')||'').toLowerCase();
+const box=document.getElementById('box');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=n=>(Math.round(Number(n)*1000)/1000).toLocaleString('en-IN');
+const when=d=>d?new Date(d).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+let sb=null,req=null;
+try{sb=window.supabase.createClient(window.SENTIRE_SUPABASE_URL,window.SENTIRE_SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});}catch(e){}
+
+function table(r){return '<table>'+(r.lines||[]).map(l=>`<tr><td>${esc(l.item)}</td><td class="q">${num(l.qty)} ${esc(l.unit||'')}</td></tr>`).join('')+'</table>';}
+function head(r){return `<h1>Please confirm the stock of our goods lying with you</h1><div class="party">${esc(r.party)} · asked ${when(r.created_at)}</div>`+table(r);}
+
+function showYes(){box.innerHTML='<div class="msg"><div class="big">✅</div><h1>Thank you!</h1><div class="muted">Your confirmation has been sent to Sentire Technologies.<br>You can close this page.</div></div>';}
+function showNo(note){
+  box.innerHTML=head(req)+`<div style="margin-bottom:8px;"><b style="color:#dc2626;">❌ You said the stock does NOT match.</b><br><span class="muted">Please tell us what is different (item and the quantity you actually have):</span></div>
+    <textarea id="note" placeholder="Example: Item A — we have 180 pcs, not 200">${esc(note||'')}</textarea>
+    <button class="save" onclick="saveNote()">Send to Sentire</button><div class="err" id="err"></div>`;
+}
+function showAsk(){
+  box.innerHTML=head(req)+'<div class="btns"><button class="yes" onclick="answer(\'yes\')">✅ YES, correct</button><button class="no" onclick="answer(\'no\')">❌ NO</button></div><div class="err" id="err"></div>';
+}
+async function answer(a,note){
+  if(!sb){fail();return;}
+  const r=await sb.rpc('wa_confirm_answer',{p_token:T,p_answer:a,p_note:note||null});
+  if(r.error||!r.data||!r.data.ok){fail();return;}
+  req.answer=r.data.answer;
+  if(r.data.answer==='yes')showYes();
+  else if(note){box.innerHTML='<div class="msg"><div class="big">📨</div><h1>Thank you!</h1><div class="muted">Sentire Technologies will check and contact you.</div></div>';}
+  else showNo(req.note);
+}
+function saveNote(){const n=(document.getElementById('note').value||'').trim();if(!n){document.getElementById('err').textContent='Please write what is different.';return;}answer('no',n);}
+function fail(){const e=document.getElementById('err');const m='Could not send. Please check the internet and try again, or reply on WhatsApp.';if(e)e.textContent=m;else box.innerHTML='<div class="msg"><div class="big">⚠️</div><div class="muted">'+m+'</div></div>';}
+
+(async function(){
+  if(!sb||T.length<30){box.innerHTML='<div class="msg"><div class="big">⚠️</div><h1>This link is not valid</h1><div class="muted">Please ask Sentire Technologies to send it again.</div></div>';return;}
+  const r=await sb.rpc('wa_confirm_get',{p_token:T});
+  if(r.error){fail();return;}
+  if(!r.data){box.innerHTML='<div class="msg"><div class="big">⚠️</div><h1>This link is not valid</h1><div class="muted">Please ask Sentire Technologies to send it again.</div></div>';return;}
+  req=r.data;
+  if(req.answer==='yes'){box.innerHTML='<div class="msg"><div class="big">✅</div><h1>Already confirmed</h1><div class="muted">You confirmed this stock on '+when(req.answered_at)+'. Thank you!</div></div>';return;}
+  if(req.answer==='no'){showNo(req.note);return;}
+  if(A==='yes'||A==='no')answer(A);else showAsk();
+})();
+</script>
+</body>
+</html>

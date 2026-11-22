@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Sentire Technologies — Stock confirmation</title>
+<title>YES / NO</title>
 <link rel="icon" href="sentire-32.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth_config.js"></script>
@@ -40,7 +40,7 @@ textarea{width:100%;min-height:90px;border:1px solid #cfd6e0;border-radius:10px;
 <script>
 // Public page — no login. Opened from the WhatsApp YES / NO links sent from Job Work → Confirm stock.
 // ?t=<token>&a=yes|no   ·  YES is recorded at once; NO is recorded at once and asks what is different.
-const P=new URLSearchParams(location.search),T=P.get('t')||'',A=(P.get('a')||'').toLowerCase();
+const P=new URLSearchParams(location.search),T=P.get('y')||P.get('n')||P.get('t')||'',A=P.get('y')?'yes':P.get('n')?'no':(P.get('a')||'').toLowerCase();
 const box=document.getElementById('box');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=n=>(Math.round(Number(n)*1000)/1000).toLocaleString('en-IN');

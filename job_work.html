@@ -196,7 +196,7 @@ const num=n=>(Math.round(n*1000)/1000).toLocaleString('en-IN');
 // ═══ WhatsApp YES / NO stock confirmation (supabase_update_10_wa_confirm.sql, confirm.html) ═══
 // "Confirm stock" saves a request in the cloud and sends the party two links. Their tap on YES or NO
 // is written straight to the cloud; this page reads the answers and shows them on each party card.
-const CONFIRM_URL='https://drolia-daughters.github.io/order-form/confirm.html';
+const CONFIRM_URL='https://drolia-daughters.github.io/order-form/c.html';
 const JW_ROWS={},JW_PHONE={};let JW_CONF={},LOADED_ONCE=false;
 function confirmTag(p){const c=JW_CONF[p];if(!c)return '';const w=d=>new Date(d).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const sent=(c.lines||[]).map(l=>l.item+': '+num(l.qty)+' '+(l.unit||'')).join(', ');
@@ -213,9 +213,9 @@ async function askConfirm(p){const rows=JW_ROWS[p]||[];if(!rows.length)return;co
   const lines=rows.map(r=>({item:r.item,qty:r.qty,unit:r.unit||'pcs'}));let t;
   try{t=await A.rpc('wa_confirm_create',{p_party:p,p_lines:lines,p_kind:'jw_stock'});}catch(e){bail('⚠️ Could not reach the cloud — check the internet and try again');return;}
   if(!t){bail('⚠️ Could not make the link — try again');return;}
-  const link=a=>CONFIRM_URL+'?t='+t+'&a='+a;
+  const link=a=>CONFIRM_URL+'?'+(a==='yes'?'y':'n')+'='+t;
   const msg='Hello, this is Sentire Technologies. Please confirm the stock of our goods lying with you:\n'+lines.map(l=>'• '+l.item+': '+num(l.qty)+' '+l.unit).join('\n')
-    +'\n\n✅ Tap YES if this is correct:\n'+link('yes')+'\n\n❌ Tap NO if it does not match:\n'+link('no')+'\n\nThank you.';
+    +'\n\nYES 👉 '+link('yes')+'\n\nNO 👉 '+link('no');
   let ph=String(JW_PHONE[p]||'').replace(/[^0-9]/g,'');if(ph.length===11&&ph[0]==='0')ph=ph.slice(1);if(ph.length===10)ph='91'+ph;
   const url='https://wa.me/'+ph+'?text='+encodeURIComponent(msg);if(win)win.location.href=url;else window.open(url,'_blank');JW_CONF[p]={party:p,lines,created_at:new Date().toISOString(),answer:null};renderAll();toast('📲 Sent — the answer will show here on its own');}
 setTimeout(loadConfirms,1500);setInterval(loadConfirms,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadConfirms();});
