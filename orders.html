@@ -437,7 +437,7 @@ function markDone(ri){const db=gdb();const o=db[ri];if(o.status==='awaiting'){al
     const tp=tPhone.replace(/[^0-9+]/g,'');const tw=tp.startsWith('+')?tp.slice(1):tp;
     if(tw){
       const wm=`Dear ${o.transporterName||'Transporter'},\n\n📦 *Pickup Request*\n\nOrder *${o.orderNo}* is ready for collection.\n\n• Party: ${o.partyName||'N/A'}\n• Location: ${o.location||'N/A'}\n• No. of Boxes: ________\n• Weight: ________ Kg\n• Order Date: ${o.date||'N/A'}\n\nPlease confirm pickup schedule.\n\nThank you.`;
-      window.open('https://wa.me/'+tw+'?text='+encodeURIComponent(wm),'_blank');
+      (window.SentireWA?window.SentireWA.open(tw,wm):window.open('https://wa.me/'+tw+'?text='+encodeURIComponent(wm),'sentire_whatsapp'));
     }
   }
   renderDB();showToast('success');}
@@ -458,7 +458,7 @@ function sendDespatchNotification(o){
   const cp=(o.clientPhone||'').replace(/[^0-9+]/g,'');const wp=cp.startsWith('+')?cp.slice(1):cp;
   if(wp){
     const wm=`Dear ${o.partyName},\n\nYour order *${o.orderNo}* has been despatched.\n\n📦 *Despatch Details:*\n• Date: ${o.dod||'N/A'}\n• Loadcell: ${o.loadcellType||'N/A'}\n• Qty: ${o.quantity||'N/A'} pcs\n• Wire: ${o.wire||'N/A'}\n• Transporter: ${o.transporterName||'N/A'}\n• L.R. No: ${o.lrNumber||'N/A'}\n• Track: ${o.trackingLink||'N/A'}\n\nThank you!`;
-    window.open('https://wa.me/'+wp+'?text='+encodeURIComponent(wm),'_blank');
+    (window.SentireWA?window.SentireWA.open(wp,wm):window.open('https://wa.me/'+wp+'?text='+encodeURIComponent(wm),'sentire_whatsapp'));
   }
   showToast('despatch');
 }

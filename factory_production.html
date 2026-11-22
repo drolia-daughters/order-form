@@ -417,7 +417,7 @@ const pHead=(t,sub)=>`<div class="hd"><div><h1>${E(t)}</h1><div class="co">${E(S
 function printJobList(all){const fl=shownJobs(all);if(!fl.length)return alert('No jobs to print.');let tq=0;
 const rows=fl.map((j,i)=>{const its=itemsOf(j);const q=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);tq+=q;return `<tr><td>${i+1}</td><td>${E(j.jobNo)}</td><td>${E(j.orderRef)||'—'}</td><td><b>${E(j.party)}</b></td><td>${its.map(x=>E(x.type)+' × '+E(x.qty)+(x.capacity?' ('+E(x.capacity)+')':'')).join('<br>')}</td><td>${q}</td><td>${E(j.stage)}</td><td>${fmtD(j.target)}</td><td>${j.boxes?E(j.boxes)+' / '+E(j.weight||'—')+' kg':'—'}</td><td>${j.priority==='Urgent'?'<span class="urg">URGENT</span>':E(j.priority||'Normal')}</td></tr>`;}).join('');
 openPrint('Production Report',pHead('PRODUCTION REPORT',`${fl.length} jobs · ${tq} pcs`)+`<table><tr><th>#</th><th>Job#</th><th>Order#</th><th>Party</th><th>Items</th><th>Qty</th><th>Stage</th><th>Delivery</th><th>Boxes / Wt</th><th>Priority</th></tr>${rows}<tr><th colspan="5" style="text-align:right">Total</th><th>${tq}</th><th colspan="4"></th></tr></table>`);}
-function waOpen(msg){window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+function waOpen(msg){window.SentireWA?window.SentireWA.open('',msg):window.open('https://wa.me/?text='+encodeURIComponent(msg),'sentire_whatsapp');}
 function waJob(no){const j=getJob(no);if(!j)return alert('Job not found');const its=itemsOf(j);
 const L=['*'+ST.company().name+' — Production Job*','','*Job:* '+j.jobNo];if(j.orderRef)L.push('*Order:* '+j.orderRef);L.push('*Party:* '+j.party);
 its.forEach(i=>L.push('*Item:* '+(i.type||'—')+' × '+(i.qty||'—')+' pcs'+(i.capacity?' · '+i.capacity:'')+(i.wire?' · '+i.wire:'')));

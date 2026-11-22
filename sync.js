@@ -255,3 +255,45 @@
   document.addEventListener('change', up, true);
   document.addEventListener('focusout', up, true);
 })();
+
+// ═══ One WhatsApp tab for the whole day (22 Nov 2026) ═══
+// Every WhatsApp message from the software opens in the SAME browser tab ("sentire_whatsapp"),
+// so staff log in to WhatsApp Web once in the morning and keep using that tab.
+// Computers use WhatsApp Web directly (web.whatsapp.com/send); phones keep the normal wa.me link.
+(function () {
+  var TAB = 'sentire_whatsapp';
+  var MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  function toUrl(phone, text) {
+    var p = String(phone || '').replace(/[^0-9]/g, '');
+    if (p.length === 11 && p[0] === '0') p = p.slice(1);
+    if (p.length === 10) p = '91' + p;
+    if (MOBILE || !p) return 'https://wa.me/' + p + (text ? '?text=' + encodeURIComponent(text) : '');
+    return 'https://web.whatsapp.com/send?phone=' + p + (text ? '&text=' + encodeURIComponent(text) : '');
+  }
+  // wa.me / api.whatsapp.com address → the same chat on WhatsApp Web
+  function fromLink(href) {
+    try {
+      var u = new URL(href, location.href), phone = '', text = u.searchParams.get('text') || '';
+      if (/(^|\.)wa\.me$/i.test(u.hostname)) phone = u.pathname.replace(/\//g, '');
+      else if (/whatsapp\.com$/i.test(u.hostname)) phone = u.searchParams.get('phone') || '';
+      else return null;
+      return toUrl(phone, text);
+    } catch (_) { return null; }
+  }
+  function go(url) { var w = window.open(url, TAB); if (w) try { w.focus(); } catch (_) {} return w; }
+  window.SentireWA = {
+    open: function (phone, text) { return go(toUrl(phone, text)); },
+    // For messages that need a moment to prepare: call reserve() at the click, then send(win, phone, text)
+    reserve: function () { if (MOBILE) return null; return window.open('', TAB); },
+    send: function (win, phone, text) { var url = toUrl(phone, text); if (win && !win.closed) { try { win.location.href = url; win.focus(); return win; } catch (_) {} } return go(url); }
+  };
+  // Any WhatsApp link clicked anywhere in the software goes to the same tab
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var url = fromLink(a.getAttribute('href'));
+    if (!url) return;
+    e.preventDefault();
+    go(url);
+  }, true);
+})();

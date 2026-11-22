@@ -43,7 +43,7 @@ ST.itemsShort=items=>items.map(i=>(i.type||'?')+' '+(i.qty||'?')+' pcs').join(',
 
 // ─── WhatsApp ───
 ST.waPhone=p=>{let d=String(p||'').replace(/[^0-9]/g,'');if(d.length===11&&d[0]==='0')d=d.slice(1);if(d.length===10)d='91'+d;return d;};
-ST.openWA=(phone,text)=>{const p=ST.waPhone(phone);window.open('https://wa.me/'+(p||'')+'?text='+encodeURIComponent(text),'_blank');};
+ST.openWA=(phone,text)=>{if(window.SentireWA)return window.SentireWA.open(phone,text);const p=ST.waPhone(phone);window.open('https://wa.me/'+(p||'')+'?text='+encodeURIComponent(text),'sentire_whatsapp');};
 
 // ─── PIN hashing ───
 async function hashPin(pin){const txt='sentire-approver|'+pin;
