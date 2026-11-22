@@ -278,7 +278,7 @@ function renderOpen(){if(!document.getElementById('oDate').value)document.getEle
 
 /* ───────── only the Admin and Sub Admin ───────── */
 function start(){document.getElementById('app').style.display='';render();}
-function noAccess(){document.body.innerHTML='<div style="min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center"><div style="font-size:18px;font-weight:600">Smart Finance is for the Admin and Sub Admin only</div><a href="index.html" style="color:#3b82f6">← Main Page</a></div>';}
+function noAccess(){location.replace('index.html');}   // auth.js already sends everyone else away; this is a second lock
 if(!A||!A.enabled)start();else A.ready.then(me=>{if(me&&A.isSecurityAdmin(me))start();else if(me)noAccess();});
 </script>
 </body>

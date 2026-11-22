@@ -19,7 +19,7 @@
   function remember(u) { localStorage.setItem(MK, JSON.stringify(u)); }
   function forget() {                             // also wipes Smart Finance data (Admin / Sub Admin only) from this browser; it comes back from the database at their next login
     localStorage.removeItem(MK);
-    try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/^sfin_/.test(k)) localStorage.removeItem(k); } } catch (e) {}
+    try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/^(sfin_|lc_batches$)/.test(k)) localStorage.removeItem(k); } } catch (e) {}
   }
   function hide() { document.documentElement.style.visibility = 'hidden'; }
   function show() { document.documentElement.style.visibility = ''; }
@@ -99,8 +99,16 @@
   var u = cached();
   if (u) A.user = u; else hide();
 
+  // The Admin section (Smart Finance, Loadcell Calculator, Cohort, Security) is for the Admin and Sub Admin only.
+  // Anyone else who opens one of these pages is sent to the Main Page without seeing anything.
+  var ADMIN_ONLY = { 'smart_finance.html': 1, 'loadcell_calculator.html': 1, 'cohort.html': 1, 'security.html': 1 }, adminPage = !!ADMIN_ONLY[page];
+  function goHome() { hide(); var t = window; try { if (window.top !== window && window.top.location.origin === location.origin) t = window.top; } catch (e) {} t.location.replace('index.html'); }
+  function wipeAdminData() { try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/^(sfin_|lc_batches$)/.test(k)) localStorage.removeItem(k); } } catch (e) {} }
+  if (u && !A.isSecurityAdmin(u)) wipeAdminData();
+  if (adminPage && u && !A.isSecurityAdmin(u)) { goHome(); return; }
+
   // An app page this person has no right to open is covered with a notice.
-  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'smart_finance.html': 1, 'backup.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
+  var OPEN_TO_ALL = { 'index.html': 1, 'users.html': 1, 'security.html': 1, 'smart_finance.html': 1, 'loadcell_calculator.html': 1, 'cohort.html': 1, 'backup.html': 1, 'hub.html': 1, '': 1 }, blocked = false;
   function checkRight() {
     if (blocked || OPEN_TO_ALL[page] || A.can(page)) return;
     blocked = true;
@@ -123,7 +131,10 @@
       if (!(r.data && r.data.session)) { forget(); toLogin(); return null; }
       return A.rpc('my_profile').then(function (p) {
         if (!p) { A.kicked(); return null; }       // logged out from the Security page, or login removed by the Admin
-        A.remember(p); checkRight(); show(); return p;
+        A.remember(p);
+        if (!A.isSecurityAdmin(p)) wipeAdminData();
+        if (adminPage && !A.isSecurityAdmin(p)) { goHome(); return null; }
+        checkRight(); show(); return p;
       });
     }).catch(function () {                        // no internet: carry on if this device was logged in
       if (u) { show(); return u; }

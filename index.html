@@ -169,6 +169,11 @@ const APPS=[
   {key:'masters',    file:'masters.html',              name:'Masters',             short:'Masters',    ic:'MS',c:'#64748b',desc:'Clients & payment days, transporters, approvers, company, holidays, reminder rules'}
 ];
 if(window.SentireAuth&&SentireAuth.filterApps)SentireAuth.filterApps(APPS); // rights: hide apps this person may not open
+// The Admin section is for the Admin and Sub Admin only: everyone else does not get the Loadcell Calculator or Cohort at all.
+const ADMIN_KEYS=['calculator','cohort'];
+const ACC_KEYS=['accounts','purchase'];   // the Accounts section: Accounts & Reports, Purchase & GRN
+const IS_ADMIN=!window.SentireAuth||!SentireAuth.enabled||SentireAuth.isSecurityAdmin();
+if(!IS_ADMIN)ADMIN_KEYS.forEach(k=>{const _i=APPS.findIndex(a=>a.key===k);if(_i>=0)APPS.splice(_i,1);});
 const HOME={key:'home',name:'Main Page',short:'Main',ic:'⌂',c:'#3b82f6'};
 const byKey=k=>k==='home'?HOME:APPS.find(a=>a.key===k);
 const byFile=f=>f==='index.html'||f==='hub.html'?HOME:APPS.find(a=>a.file===f);
@@ -176,22 +181,33 @@ let current='home';
 
 // ═══ Build menus ═══
 function navButton(a){return `<button class="nav-btn" data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.name}<span class="badge" id="b-${a.key}"></span></button>`;}
-document.getElementById('nav').innerHTML=navButton(HOME)+'<div class="nav-label">Apps</div>'+APPS.map(navButton).join('');
-// Security button just under Masters — only for the Admin and Sub Admin (opens security.html)
-if(window.SentireAuth&&SentireAuth.enabled)SentireAuth.ready.then(function(me){
-  if(!me||!SentireAuth.isSecurityAdmin(me))return;
-  var b=document.createElement('button');b.className='nav-btn';b.style.setProperty('--c','#ef4444');
-  b.innerHTML='<span class="ic">🛡</span>Security';b.title='Who is logged in, from where — and log them out';
-  b.onclick=function(){location.href='security.html';};
-  var m=document.querySelector('#nav .nav-btn[data-k="masters"]');if(m)m.after(b);else document.getElementById('nav').appendChild(b);
-  // Smart Finance — only for the Admin and Sub Admin (opens smart_finance.html)
-  var f=document.createElement('button');f.className='nav-btn';f.style.setProperty('--c','#14b8a6');
-  f.innerHTML='<span class="ic">🦅</span>Smart Finance';f.title='Outstanding, bank, stock and what to do next — Admin and Sub Admin only';
-  f.onclick=function(){location.href='smart_finance.html';};
-  b.before(f);
-});
-document.getElementById('tabbar').innerHTML=[HOME,...APPS.filter(a=>a.key!=='masters'&&a.key!=='calculator')].map(a=>`<button data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.short}</button>`).join('');
-document.getElementById('apps').innerHTML=APPS.map(a=>`<button class="app" style="--c:${a.c}" onclick="go('${a.key}')"><div class="ic">${a.ic}</div><h3>${a.name}</h3><p>${a.desc}</p></button>`).join('');
+document.getElementById('nav').innerHTML=navButton(HOME)+'<div class="nav-label">Apps</div>'+APPS.filter(a=>!ADMIN_KEYS.includes(a.key)&&!ACC_KEYS.includes(a.key)).map(navButton).join('')+
+  (APPS.some(a=>ACC_KEYS.includes(a.key))?'<div class="nav-label">Accounts</div>'+ACC_KEYS.map(byKey).filter(Boolean).map(navButton).join(''):'');
+// Admin section — Smart Finance, Loadcell Calculator, Cohort, Security. Only the Admin and Sub Admin see it.
+if(IS_ADMIN){
+  var _n=document.getElementById('nav'),_l=document.createElement('div');_l.className='nav-label';_l.textContent='🔒 Admin';_n.appendChild(_l);
+  var _btn=function(ic,name,c,title,href){var x=document.createElement('button');x.className='nav-btn';x.style.setProperty('--c',c);x.innerHTML='<span class="ic">'+ic+'</span>'+name;x.title=title;x.onclick=function(){location.href=href;};_n.appendChild(x);};
+  _btn('🦅','Smart Finance','#14b8a6','Outstanding, bank, stock and what to do next','smart_finance.html');
+  ADMIN_KEYS.forEach(function(k){if(byKey(k))_n.insertAdjacentHTML('beforeend',navButton(byKey(k)));});
+  _btn('🛡','Security','#ef4444','Who is logged in, from where — and log them out','security.html');
+}
+document.getElementById('tabbar').innerHTML=[HOME,...APPS.filter(a=>a.key!=='masters'&&!ADMIN_KEYS.includes(a.key))].map(a=>`<button data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.short}</button>`).join('');
+document.getElementById('apps').innerHTML=APPS.filter(a=>!ADMIN_KEYS.includes(a.key)&&!ACC_KEYS.includes(a.key)).map(a=>`<button class="app" style="--c:${a.c}" onclick="go('${a.key}')"><div class="ic">${a.ic}</div><h3>${a.name}</h3><p>${a.desc}</p></button>`).join('');
+// Main Page: the Accounts section as its own block of cards
+{const acc=ACC_KEYS.map(byKey).filter(Boolean);if(acc.length){const g=document.getElementById('apps'),t=document.createElement('div'),d=document.createElement('div');
+  t.className='sec-title';t.textContent='Accounts';d.className=g.className;
+  d.innerHTML=acc.map(a=>`<button class="app" style="--c:${a.c}" onclick="go('${a.key}')"><div class="ic">${a.ic}</div><h3>${a.name}</h3><p>${a.desc}</p></button>`).join('');
+  g.after(t);t.after(d);}}
+// Main Page: the Admin section as its own block of cards (Admin and Sub Admin only); quick buttons for it are removed for everyone else
+if(IS_ADMIN){
+  const card=(ic,c,name,desc,act)=>`<button class="app" style="--c:${c}" onclick="${act}"><div class="ic">${ic}</div><h3>${name}</h3><p>${desc}</p></button>`;
+  const g=document.getElementById('apps'),t=document.createElement('div'),d=document.createElement('div');
+  t.className='sec-title';t.textContent='🔒 Admin — only the Admin and Sub Admin see this';d.className=g.className;
+  d.innerHTML=card('🦅','#14b8a6','Smart Finance','Outstanding, bank, stock, expenses and what to do next',"location.href='smart_finance.html'")+
+    ADMIN_KEYS.map(k=>byKey(k)).filter(Boolean).map(a=>card(a.ic,a.c,a.name,a.desc,"go('"+a.key+"')")).join('')+
+    card('🛡','#ef4444','Security','Who is logged in, from where — and log them out',"location.href='security.html'");
+  g.after(t);t.after(d);
+}else document.querySelectorAll('button.q').forEach(b=>{if(ADMIN_KEYS.some(k=>(b.getAttribute('onclick')||'').includes("'"+k+"'")))b.remove();});
 
 // ═══ Switch views (apps open inside this window and stay open) ═══
 function go(key){if(!byKey(key))key='home';if(location.hash!=='#'+key)location.hash=key;else show(key);}

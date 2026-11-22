@@ -6,17 +6,17 @@
 --  After this update nobody else can read or write those rows — not even an approver ("User 10").
 -- ═══════════════════════════════════════════════════════════════
 
--- READ: members read the shared lists as before; sfin_ rows only the Admin / Sub Admin.
+-- READ: members read the shared lists as before; Admin-section rows (sfin_…, lc_batches) only the Admin / Sub Admin.
 drop policy if exists kv_read on public.kv_store;
 create policy kv_read on public.kv_store for select to authenticated
-  using ((select public.is_member()) and (key !~ '^sfin_' or (select public.is_security_admin())));
+  using ((select public.is_member()) and (key !~ '^(sfin_|lc_batches$)' or (select public.is_security_admin())));
 
 -- WRITE: every save goes through kv_put; this guard stops a save to an sfin_ row by anyone else.
 create or replace function public.kv_guard_private()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  if new.key ~ '^sfin_' and not public.is_security_admin() then
-    raise exception 'Only the Admin or Sub Admin can use Smart Finance.';
+  if new.key ~ '^(sfin_|lc_batches$)' and not public.is_security_admin() then
+    raise exception 'Only the Admin or Sub Admin can use the Admin section.';
   end if;
   return new;
 end $$;

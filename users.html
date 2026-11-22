@@ -72,9 +72,10 @@ input:focus{outline:none;border-color:var(--accent);}
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
 var users = [], max = 10, editing = null, newSlot = null;
 // The apps a user can be given. Keep in step with the APPS list in index.html.
+// (Smart Finance, Loadcell Calculator, Cohort and Security are the Admin section: Admin and Sub Admin only, never given here.)
 var APPS = [['orders.html', 'Order Sheet'], ['marketing_crm.html', 'Marketing CRM'], ['factory_production.html', 'Factory Production'], ['job_work.html', 'Job Work'],
-  ['loadcell_calculator.html', 'Loadcell Calculator'], ['inventory_management.html', 'Inventory'], ['purchase.html', 'Purchase & GRN'], ['accounts_reports.html', 'Accounts & Reports'], ['repairs.html', 'Repairs & Warranty'],
-  ['reminders.html', 'Reminders'], ['cohort.html', 'Cohort'], ['masters.html', 'Masters']];
+  ['inventory_management.html', 'Inventory'], ['purchase.html', 'Purchase & GRN'], ['accounts_reports.html', 'Accounts & Reports'], ['repairs.html', 'Repairs & Warranty'],
+  ['reminders.html', 'Reminders'], ['masters.html', 'Masters']];
 function rightsText(u) {
   if (u.role === 'Admin') return 'Can open: everything, and this Users page';
   if (!Array.isArray(u.apps)) return 'Can open: all apps';

@@ -12,10 +12,10 @@
   if (page === 'login.html' || page === 'users.html' || page === 'hub.html') return;
 
   // Which browser-storage names are shared business data (everything else stays on this computer).
-  // Names starting sfin_ are Smart Finance (bank entries, outstanding): shared ONLY between the Admin and Sub Admin.
+  // Admin section data — names starting sfin_ (Smart Finance) and lc_batches (Loadcell Calculator): shared ONLY between the Admin and Sub Admin.
   // The database refuses them to everyone else (supabase_update_9_smart_finance.sql), and they are wiped from
   // this browser when anyone else is logged in here.
-  var SHARED_ALL = /^(ordersheet_|prod_|fin_|st_|inv_|crm_|jw_(?!admin_until)|lc_batches$|stmt_|repairs_)/, PRIVATE = /^sfin_/;
+  var SHARED_ALL = /^(ordersheet_|prod_|fin_|st_|inv_|crm_|jw_(?!admin_until)|stmt_|repairs_)/, PRIVATE = /^(sfin_|lc_batches$)/;
   var SHARED = { test: function (k) { k = String(k); return SHARED_ALL.test(k) || (PRIVATE.test(k) && A.isSecurityAdmin()); } };
   function wipePrivate() {
     if (A.isSecurityAdmin()) return;
