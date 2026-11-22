@@ -256,44 +256,70 @@
   document.addEventListener('focusout', up, true);
 })();
 
-// ═══ One WhatsApp tab for the whole day (22 Nov 2026) ═══
-// Every WhatsApp message from the software opens in the SAME browser tab ("sentire_whatsapp"),
-// so staff log in to WhatsApp Web once in the morning and keep using that tab.
-// Computers use WhatsApp Web directly (web.whatsapp.com/send); phones keep the normal wa.me link.
+// ═══ WhatsApp without piles of tabs (22 Nov 2026) ═══
+// WhatsApp Web refuses to let other sites reuse its tab (security setting), so every message opened a new tab.
+// Each laptop now chooses once (remembered on that laptop):
+//   "app"     → the WhatsApp Desktop app (whatsapp://send) — ONE window all day, no browser tabs   ← recommended
+//   "browser" → WhatsApp Web in a new tab (old way)
+// Phones always use the normal wa.me link (opens the WhatsApp app).
 (function () {
-  var TAB = 'sentire_whatsapp';
+  var KEY = 'sentire_wa_mode';
   var MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  function toUrl(phone, text) {
+  function digits(phone) {
     var p = String(phone || '').replace(/[^0-9]/g, '');
     if (p.length === 11 && p[0] === '0') p = p.slice(1);
     if (p.length === 10) p = '91' + p;
-    if (MOBILE || !p) return 'https://wa.me/' + p + (text ? '?text=' + encodeURIComponent(text) : '');
-    return 'https://web.whatsapp.com/send?phone=' + p + (text ? '&text=' + encodeURIComponent(text) : '');
+    return p;
   }
-  // wa.me / api.whatsapp.com address → the same chat on WhatsApp Web
-  function fromLink(href) {
-    try {
-      var u = new URL(href, location.href), phone = '', text = u.searchParams.get('text') || '';
-      if (/(^|\.)wa\.me$/i.test(u.hostname)) phone = u.pathname.replace(/\//g, '');
-      else if (/whatsapp\.com$/i.test(u.hostname)) phone = u.searchParams.get('phone') || '';
-      else return null;
-      return toUrl(phone, text);
-    } catch (_) { return null; }
+  function mode() { try { return localStorage.getItem(KEY) || ''; } catch (_) { return ''; } }
+  function setMode(m) { try { localStorage.setItem(KEY, m); } catch (_) {} }
+  function appUrl(p, t) { return 'whatsapp://send?' + (p ? 'phone=' + p : '') + (t ? (p ? '&' : '') + 'text=' + encodeURIComponent(t) : ''); }
+  function webUrl(p, t) { return p ? 'https://web.whatsapp.com/send?phone=' + p + (t ? '&text=' + encodeURIComponent(t) : '') : 'https://wa.me/?text=' + encodeURIComponent(t || ''); }
+  function launchApp(url) { var a = document.createElement('a'); a.href = url; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 1000); }
+
+  // One-time question on each laptop
+  function ask() {
+    return new Promise(function (res) {
+      var ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;';
+      ov.innerHTML = '<div style="background:#141820;color:#e8ecf4;border:1px solid #262d3a;border-radius:12px;padding:22px;max-width:440px;width:92%;">' +
+        '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">How does this laptop send WhatsApp?</div>' +
+        '<div style="font-size:14px;color:#9aa5b8;margin-bottom:16px;line-height:1.5;">Asked once on this laptop.<br><b style="color:#22c55e;">WhatsApp app</b> = every message opens in the same WhatsApp Desktop window, no new tabs. Needs the WhatsApp app installed and logged in.</div>' +
+        '<button data-m="app" style="width:100%;padding:13px;border:0;border-radius:9px;background:#22c55e;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:8px;">WhatsApp app (recommended)</button>' +
+        '<button data-m="browser" style="width:100%;padding:11px;border:1px solid #262d3a;border-radius:9px;background:transparent;color:#e8ecf4;font-size:14px;cursor:pointer;margin-bottom:8px;">Browser (WhatsApp Web, opens a tab each time)</button>' +
+        '<button data-m="" style="width:100%;padding:8px;border:0;background:transparent;color:#7a8599;font-size:13px;cursor:pointer;">Cancel</button></div>';
+      ov.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; ov.remove(); var m = b.getAttribute('data-m'); if (m) setMode(m); res(m); });
+      document.body.appendChild(ov);
+    });
   }
-  function go(url) { var w = window.open(url, TAB); if (w) try { w.focus(); } catch (_) {} return w; }
+  function deliver(m, p, t) {
+    if (MOBILE) { window.open('https://wa.me/' + p + (t ? '?text=' + encodeURIComponent(t) : ''), '_blank'); return; }
+    if (m === 'app') launchApp(appUrl(p, t));
+    else window.open(webUrl(p, t), '_blank');
+  }
+  function openWA(phone, text) {
+    var p = digits(phone), m = MOBILE ? 'mobile' : mode();
+    if (m) { deliver(m, p, text); return; }
+    ask().then(function (m2) { if (m2) deliver(m2, p, text); });
+  }
   window.SentireWA = {
-    open: function (phone, text) { return go(toUrl(phone, text)); },
-    // For messages that need a moment to prepare: call reserve() at the click, then send(win, phone, text)
-    reserve: function () { if (MOBILE) return null; return window.open('', TAB); },
-    send: function (win, phone, text) { var url = toUrl(phone, text); if (win && !win.closed) { try { win.location.href = url; win.focus(); return win; } catch (_) {} } return go(url); }
+    open: openWA,
+    reserve: function () { return null; },
+    send: function (_w, phone, text) { openWA(phone, text); },
+    setMode: setMode, mode: mode,
+    reset: function () { try { localStorage.removeItem(KEY); } catch (_) {} }
   };
-  // Any WhatsApp link clicked anywhere in the software goes to the same tab
+  // Any WhatsApp link clicked anywhere in the software goes the same way
   document.addEventListener('click', function (e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
-    var url = fromLink(a.getAttribute('href'));
-    if (!url) return;
-    e.preventDefault();
-    go(url);
+    try {
+      var u = new URL(a.getAttribute('href'), location.href), phone = null;
+      if (/(^|\.)wa\.me$/i.test(u.hostname)) phone = u.pathname.replace(/\//g, '');
+      else if (/(api|web)\.whatsapp\.com$/i.test(u.hostname)) phone = u.searchParams.get('phone') || '';
+      if (phone === null) return;
+      e.preventDefault();
+      openWA(phone, u.searchParams.get('text') || '');
+    } catch (_) {}
   }, true);
 })();
