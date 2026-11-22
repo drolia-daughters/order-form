@@ -85,10 +85,14 @@ KEYS — IMPORTANT
 
 LOST ADMIN PASSWORD
 -------------------
-Supabase → SQL Editor → paste this one line → Run:
-    delete from auth.users where id in (select user_id from public.profiles);
-All logins are erased; open the site and create the Admin again, then add the users
-again. Your orders and other data are not touched.
+There are two Admins (Abhishek = login ID admin, Kamna = login ID ka01).
+1. If ONE Admin forgot: the other Admin logs in → Users → Edit on that line →
+   type a New password → Save. Nothing else changes.
+2. If BOTH forgot: Supabase → SQL Editor → New query → paste this one line, put the
+   new password between the quotes and the login ID at the end → Run:
+     update auth.users set encrypted_password = extensions.crypt('NewPassword1', extensions.gen_salt('bf')) where id = (select user_id from public.profiles where login_id = 'admin');
+   Only that one login changes. Clear the query box afterwards.
+   After 5 wrong tries a login is locked for 15 minutes — wait before trying the new password.
 
 TO SWITCH THE LOGIN OFF
 -----------------------
