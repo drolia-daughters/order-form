@@ -193,6 +193,33 @@ const daysSince=d=>Math.floor((new Date(today())-new Date(d))/86400000);
 const toast=m=>{const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
 const num=n=>(Math.round(n*1000)/1000).toLocaleString('en-IN');
 
+// ═══ WhatsApp YES / NO stock confirmation (supabase_update_10_wa_confirm.sql, confirm.html) ═══
+// "Confirm stock" saves a request in the cloud and sends the party two links. Their tap on YES or NO
+// is written straight to the cloud; this page reads the answers and shows them on each party card.
+const CONFIRM_URL='https://drolia-daughters.github.io/order-form/confirm.html';
+const JW_ROWS={},JW_PHONE={};let JW_CONF={},LOADED_ONCE=false;
+function confirmTag(p){const c=JW_CONF[p];if(!c)return '';const w=d=>new Date(d).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  const sent=(c.lines||[]).map(l=>l.item+': '+num(l.qty)+' '+(l.unit||'')).join(', ');
+  if(c.answer==='yes')return `<div class="proc" style="color:var(--green);font-weight:700;" title="${esc('Stock asked: '+sent)}">✅ Party confirmed stock — ${w(c.answered_at)}</div>`;
+  if(c.answer==='no')return `<div class="proc" style="color:var(--red);font-weight:700;" title="${esc('Stock asked: '+sent)}">❌ Party says stock does NOT match — ${w(c.answered_at)}${c.note?': “'+esc(c.note)+'”':''}</div>`;
+  return `<div class="proc" style="color:var(--orange,#f59e0b);" title="${esc('Stock asked: '+sent)}">⏳ Asked on WhatsApp ${w(c.created_at)} — no reply yet</div>`;}
+async function loadConfirms(){const A=window.SentireAuth;if(!A||!A.rpc)return;try{const list=await A.rpc('wa_confirm_latest',{p_kind:'jw_stock'});const prev=JW_CONF,first=!LOADED_ONCE;LOADED_ONCE=true;const m={};(list||[]).forEach(c=>m[c.party]=c);
+  const fresh=first?[]:Object.values(m).filter(c=>c.answer&&!(prev[c.party]||{}).answer);JW_CONF=m;
+  if(JSON.stringify(m)!==JSON.stringify(prev)){renderAll();fresh.forEach(c=>toast((c.answer==='yes'?'✅ ':'❌ ')+c.party+(c.answer==='yes'?' confirmed the stock':' says the stock does NOT match')));}}catch(e){}}
+async function askConfirm(p){const rows=JW_ROWS[p]||[];if(!rows.length)return;const A=window.SentireAuth;
+  if(!A||!A.rpc){toast('⚠️ Not connected to the cloud — log in and try again');return;}
+  const win=window.open('about:blank','_blank');   // opened now, while the click still counts, so the browser does not block it
+  const bail=m=>{if(win)win.close();toast(m);};
+  const lines=rows.map(r=>({item:r.item,qty:r.qty,unit:r.unit||'pcs'}));let t;
+  try{t=await A.rpc('wa_confirm_create',{p_party:p,p_lines:lines,p_kind:'jw_stock'});}catch(e){bail('⚠️ Could not reach the cloud — check the internet and try again');return;}
+  if(!t){bail('⚠️ Could not make the link — try again');return;}
+  const link=a=>CONFIRM_URL+'?t='+t+'&a='+a;
+  const msg='Hello, this is Sentire Technologies. Please confirm the stock of our goods lying with you:\n'+lines.map(l=>'• '+l.item+': '+num(l.qty)+' '+l.unit).join('\n')
+    +'\n\n✅ Tap YES if this is correct:\n'+link('yes')+'\n\n❌ Tap NO if it does not match:\n'+link('no')+'\n\nThank you.';
+  let ph=String(JW_PHONE[p]||'').replace(/[^0-9]/g,'');if(ph.length===11&&ph[0]==='0')ph=ph.slice(1);if(ph.length===10)ph='91'+ph;
+  const url='https://wa.me/'+ph+'?text='+encodeURIComponent(msg);if(win)win.location.href=url;else window.open(url,'_blank');JW_CONF[p]={party:p,lines,created_at:new Date().toISOString(),answer:null};renderAll();toast('📲 Sent — the answer will show here on its own');}
+setTimeout(loadConfirms,1500);setInterval(loadConfirms,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadConfirms();});
+
 const TYPES={
   send:    {label:'Send out',             tag:'t-send',    c:'#ec4899',help:'Our factory → a job worker',             from:'own',  to:'party'},
   transfer:{label:'Transfer',             tag:'t-transfer',c:'#3b82f6',help:'One job worker → another job worker',    from:'party',to:'party'},
@@ -306,10 +333,10 @@ function renderWhere(){
   const shown=parties.filter(p=>!q||p.toLowerCase().includes(q)||rows.some(r=>r.party===p&&r.item.toLowerCase().includes(q)));
   if(!shown.length){html+=`<div class="empty"><b>${rows.length?'Nothing matches your search':'No goods are outside Baroda right now'}</b>${rows.length?'':'When you send goods to a job worker or to Ahmedabad, they will appear here.'}</div>`;}
   shown.sort((a,b)=>(isOwn(a)-isOwn(b))||(Math.max(...rows.filter(r=>r.party===b).map(r=>statusOf(r).level))-Math.max(...rows.filter(r=>r.party===a).map(r=>statusOf(r).level))));
-  for(const p of shown){const pr=rows.filter(r=>r.party===p&&(!q||p.toLowerCase().includes(q)||r.item.toLowerCase().includes(q)));const info=pinfo[p]||{};
+  for(const p of shown){const pr=rows.filter(r=>r.party===p&&(!q||p.toLowerCase().includes(q)||r.item.toLowerCase().includes(q)));const info=pinfo[p]||{};JW_ROWS[p]=rows.filter(r=>r.party===p);JW_PHONE[p]=info.phone||'';
     const phone=(info.phone||'').replace(/[^0-9+]/g,'');const wa=phone.startsWith('+')?phone.slice(1):phone;
-    html+=`<div class="party-card${isOwn(p)?' own':''}"><div class="party-head"><div><h3>${esc(p)} ${isOwn(p)?'<span class="tag t-own">OUR FACTORY</span>':''}</h3><div class="proc">${isOwn(p)?'Goods lying here until they go back to Baroda':esc(info.process||pr[0]?.proc||'')}</div></div><div class="sp"></div>
-      ${wa&&!isOwn(p)?`<a class="mini g" href="https://wa.me/${wa}?text=${encodeURIComponent('Hello, please confirm the stock of our goods lying with you:\n'+pr.map(r=>'• '+r.item+': '+num(r.qty)+' '+r.unit).join('\n'))}" target="_blank" data-tip="Ask this party on WhatsApp to confirm the stock they hold" style="text-decoration:none;">💬 Confirm stock</a>`:''}
+    html+=`<div class="party-card${isOwn(p)?' own':''}"><div class="party-head"><div><h3>${esc(p)} ${isOwn(p)?'<span class="tag t-own">OUR FACTORY</span>':''}</h3><div class="proc">${isOwn(p)?'Goods lying here until they go back to Baroda':esc(info.process||pr[0]?.proc||'')}</div>${isOwn(p)?'':confirmTag(p)}</div><div class="sp"></div>
+      ${wa&&!isOwn(p)?`<button class="mini g" onclick="askConfirm('${esc(p).replace(/'/g,"\\'")}')" data-tip="WhatsApp this party with YES / NO links — their answer shows here on its own">💬 Confirm stock</button>`:''}
       <button class="mini" onclick="openRegister('${esc(p).replace(/'/g,"\\'")}')" data-tip="See every challan with this party">📜 History</button></div>
       <div style="overflow-x:auto;"><table><thead><tr><th>Item</th><th>${isOwn(p)?'Qty here':'Qty with them'}</th><th>${isOwn(p)?'Arrived':'First sent'}</th><th>${isOwn(p)?'Days here':'Days out'}</th><th>Expected back</th><th>Status</th><th>Actions</th></tr></thead><tbody>
       ${pr.map(r=>{const st=statusOf(r);const ip=esc(p).replace(/'/g,"\\'"),ii=esc(r.item).replace(/'/g,"\\'");return `<tr><td><strong>${esc(r.item)}</strong></td><td style="font-family:var(--mono);font-weight:700;">${num(r.qty)} ${esc(r.unit)}</td><td style="font-family:var(--mono);">${fmtD(r.oldest)}</td><td style="font-family:var(--mono);">${daysSince(r.oldest)}</td><td style="font-family:var(--mono);">${fmtD(r.expected)}</td><td><span class="tag ${st.cls}">${st.txt}</span></td>
