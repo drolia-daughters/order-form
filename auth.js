@@ -29,6 +29,27 @@
     top_.location.replace('login.html' + (next && page !== 'index.html' ? '?next=' + encodeURIComponent(next) : ''));
   }
 
+  // ─── No "Save password?" pop-up: every password / PIN box becomes a text box that shows dots. ───
+  // The browser only offers to save what it sees in a real password box, so it has nothing to offer.
+  // (Browsers that cannot show dots in a text box keep the normal password box.)
+  var DOTS = !!(window.CSS && CSS.supports && CSS.supports('-webkit-text-security', 'disc'));
+  function noSave(root) {
+    if (!DOTS || !root || !root.querySelectorAll) return;
+    var list = root.matches && root.matches('input[type=password]') ? [root] : root.querySelectorAll('input[type=password]');
+    [].forEach.call(list, function (i) {
+      i.type = 'text'; i.classList.add('st-pw'); i.setAttribute('autocomplete', 'off');
+      i.setAttribute('spellcheck', 'false'); i.setAttribute('autocapitalize', 'off'); i.setAttribute('autocorrect', 'off'); i.setAttribute('data-lpignore', 'true');
+    });
+  }
+  if (DOTS) {
+    var pwCss = document.createElement('style');
+    pwCss.textContent = 'input.st-pw{-webkit-text-security:disc;text-security:disc;}input.st-pw.st-pw-show{-webkit-text-security:none;text-security:none;}';
+    (document.head || document.documentElement).appendChild(pwCss);
+    new MutationObserver(function (ms) { ms.forEach(function (m) { [].forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) noSave(n); }); }); })
+      .observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', function () { noSave(document); });
+  }
+
   var A = window.SentireAuth = {
     enabled: !!(URL_ && KEY), user: null, client: null, ready: Promise.resolve(null),
     // Call a database function; gives its result, or throws an Error with a plain message.

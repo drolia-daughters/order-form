@@ -41,20 +41,20 @@ input:focus{outline:none;border-color:var(--accent);}
 
   <div id="wait"><h1>One moment…</h1><p class="sub" id="waitMsg">Checking the login service.</p></div>
 
-  <form id="fLogin" hidden>
+  <form id="fLogin" autocomplete="off" hidden>
     <h1>Log in</h1>
-    <label for="l_id">Login ID</label><input id="l_id" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="l_id">Login ID</label><input id="l_id" autocomplete="off" autocapitalize="none" spellcheck="false" required>
     <label for="l_pw">Password</label><div class="pw"><input id="l_pw" type="password" autocomplete="current-password" required><button type="button" onclick="showPw('l_pw',this)">Show</button></div>
     <button class="go" id="l_go">Log in</button>
     <div class="err" id="l_err"></div>
     <div class="foot">Forgot your password? Ask the Admin to set a new one.</div>
   </form>
 
-  <form id="fSetup" hidden>
+  <form id="fSetup" autocomplete="off" hidden>
     <h1>Create the Admin login</h1>
     <p class="sub">This is the first time the site is opened. Create the <b>Admin</b> login now. After that the Admin adds the four users under <b>Users</b>.</p>
     <label for="s_name">Your name</label><input id="s_name" placeholder="e.g. Abhishek" required>
-    <label for="s_id">Admin login ID</label><input id="s_id" placeholder="e.g. admin" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="s_id">Admin login ID</label><input id="s_id" placeholder="e.g. admin" autocomplete="off" autocapitalize="none" spellcheck="false" required>
     <label for="s_pw">Password (at least 6 characters)</label><div class="pw"><input id="s_pw" type="password" autocomplete="new-password" required><button type="button" onclick="showPw('s_pw',this)">Show</button></div>
     <label for="s_pw2">Password again</label><input id="s_pw2" type="password" autocomplete="new-password" required>
     <button class="go" id="s_go">Create Admin</button>
@@ -67,7 +67,11 @@ input:focus{outline:none;border-color:var(--accent);}
 <script>
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
 function show(id) { ['wait', 'fLogin', 'fSetup', 'off'].forEach(function (x) { $(x).hidden = x !== id; }); }
-function showPw(id, b) { var i = $(id); i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? 'Show' : 'Hide'; }
+function showPw(id, b) {
+  var i = $(id);
+  if (i.classList.contains('st-pw')) { var on = i.classList.toggle('st-pw-show'); b.textContent = on ? 'Hide' : 'Show'; return; }   // dots box (no "Save password?" pop-up)
+  i.type = i.type === 'password' ? 'text' : 'password'; b.textContent = i.type === 'password' ? 'Show' : 'Hide';
+}
 function nextPage() {
   var n = new URLSearchParams(location.search).get('next') || '';
   return /^[a-z_]+\.html([?#].*)?$/.test(n) && n.indexOf('login.html') !== 0 ? n : 'index.html';   // only pages of this site
