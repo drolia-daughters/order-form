@@ -183,3 +183,6 @@ The WhatsApp text ends with just `YES 👉 link` and `NO 👉 link` (short page 
 
 ## Names in capitals (22 Nov 2026)
 `sync.js` (on every app page) turns client / vendor / party / transporter / supplier / lead-company name boxes into CAPITALS as you type: ids `c_n v_n t_n nv_n nc_n p_name partyNewInput partyEditInput transporterNewInput jf_party if_supplier ef_party oParty lf_company cm_company`. Add a new name box's id to `NAME_BOXES`. Names saved before this stay as they were.
+
+## Planned: WhatsApp Business API with real YES / NO buttons (noted 22 Nov 2026, not started)
+Owner wants real WhatsApp tap buttons (no web link) for the Job Work stock confirmation. Plan: Meta WhatsApp Cloud API sending from ONE company number for all laptops/users (the cloud sends, not the laptops); replies come to a Supabase Edge Function webhook and are written to `wa_confirms` automatically. Company number to use for now: **9723510000** (the owner may change the number later — keep it a setting, not hard-coded). Until then the YES / NO links (`c.html`) stay in use.
