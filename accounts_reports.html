@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script><script src="invoice_engine.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Accounts & Reports — Sentire Technologies</title>
@@ -120,7 +120,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 
 <!-- INVOICE INBOX -->
 <div class="view" id="v_invoices"><h2 style="margin-bottom:6px;">📥 Invoice Inbox</h2>
-<p style="color:var(--text-dim);margin-bottom:12px;font-size:13px;">Add all your sales and purchase invoice PDFs here, then press <b>Data Migration</b>. Your own Tally sales invoices post automatically; supplier purchase bills are shown for a quick check first.</p>
+<p style="color:var(--text-dim);margin-bottom:12px;font-size:13px;">Add all your sales and purchase invoice PDFs here, then press <b>Data Migration</b>. Your own Tally sales invoices post automatically; supplier purchase bills are shown for a quick check first. Bills of <b>AKRITI SALES CORPORATION</b> and <b>PUNAM SALES</b> are never migrated. If a bill is not posted, press <b>👁 View</b> to see why.</p>
 <div id="dropZone" style="border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;cursor:pointer;margin-bottom:12px;">
   <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none;">
   <div style="font-size:28px;margin-bottom:6px;">🧾</div>
@@ -377,12 +377,14 @@ function parseInvoice(text){
   let party=(t.match(/Buyer \(Bill to\)\s+(.+?)\s+(?:Block|Plot|Shop|Flat|Survey|Door|No\.|GSTIN|State Name|\d{1,4}[/,])/i)||[])[1]||(t.match(/(?:To|Buyer)\s+(M\/S[^,]+?)\s+GSTIN/i)||[])[1]||'';
   if(!party && !weAreSeller){party=(t.match(/^\s*([A-Z][A-Za-z0-9 .&'\-]{3,40})\s+(?:GSTIN|Invoice)/)||[])[1]||'';}
   party=(party||'').replace(/^M\/S\s*/i,'').replace(/\s+/g,' ').trim();
-  const amt=(lbl)=>{const m=t.match(new RegExp(lbl+'\\s*:?\\s*([\\d,]+\\.\\d{2})','i'));return m?_num(m[1]):0;};
-  const taxable=amt('Tot\\.?Taxable Amt')||amt('Taxable Value')||amt('Total Taxable');
+  const amt=(lbl)=>{const m=t.match(new RegExp(lbl+'(?:\\s*\\d{1,2}(?:\\.\\d+)?\\s*%)?\\s*:?\\s*([\\d,]+\\.\\d{2})','i'));return m?_num(m[1]):0;};
+  let taxable=amt('Tot\\.?Taxable Amt')||amt('Taxable Value')||amt('Total Taxable');
+  if(!taxable&&window.InvoiceEngine)taxable=InvoiceEngine.hsnTaxable(t);
   const igst=amt('IGST Amt')||amt('Out Put IGST')||amt('Output IGST');
   const cgst=amt('CGST Amt')||amt('Out Put CGST')||amt('Output CGST');
   const sgst=amt('SGST Amt')||amt('Out Put SGST')||amt('Output SGST');
   let total=amt('Total Inv Amt')||amt('Grand Total')||amt('Invoice Total');
+  if(!total&&window.InvoiceEngine)total=InvoiceEngine.rupeeTotal(t);
   const computed=Math.round((taxable+igst+cgst+sgst)*100)/100;
   if(!total||Math.abs(total-computed)>1)total=computed||total;
   const gstType=igst>0?'IGST':((cgst>0||sgst>0)?'CGST+SGST':'');
@@ -444,7 +446,7 @@ async function runMigration(){
   const b=document.getElementById('migrateBtn'),msg=document.getElementById('inboxMsg');const old=b.textContent;b.disabled=true;b.textContent='Reading…';
   try{
     for(const it of inbox){if(it.parsed||it.error)continue;if(msg)msg.textContent='Reading '+it.name+'…';try{it.text=await pdfText(it.file);it.parsed=parseInvoice(it.text);}catch(e){it.error=e.message||'could not read';}}
-    inbox.forEach(it=>{if(it.posted||it.error||!it.parsed)return;if(it.parsed.kind==='sale'&&it.parsed.confident){const r=postSale(it.parsed,it.name);it.status=r.status;it.orderNo=r.orderNo;it.posted=(r.status==='posted');}else it.status='review';});
+    inbox.forEach(it=>{if(it.posted||it.error||!it.parsed)return;if(it.parsed.kind==='sale'&&window.InvoiceEngine&&InvoiceEngine.skipParty(it.parsed.party)){it.status='skip';return;}if(it.parsed.kind==='sale'&&it.parsed.confident){const r=postSale(it.parsed,it.name);it.status=r.status;it.orderNo=r.orderNo;it.posted=(r.status==='posted');if(r.status==='dup')it.dup=g(FK).find(e=>e.kind==='sale'&&e.invoiceNo===it.parsed.invoiceNo);}else it.status='review';});
     if(msg)msg.textContent='';
   }catch(e){if(msg)msg.textContent=e.message;}
   b.disabled=false;b.textContent=old;renderResults();renderSales();renderPurchase();
@@ -453,13 +455,15 @@ function renderResults(){
   const el=document.getElementById('inboxResults');if(!el)return;
   if(!inbox.some(it=>it.parsed||it.error)){el.innerHTML='';return;}
   const rows=inbox.map((it,i)=>{
-    if(it.error)return `<tr><td>📄 ${aEsc(it.name)}</td><td colspan="7" style="color:var(--red);">Could not read: ${aEsc(it.error)}. Post it by hand in + Add Entry.</td></tr>`;
+    const vb=`<button class="act-btn" style="margin-left:6px;" onclick="inboxWhy(${i})">👁 View</button>`;
+    if(it.error)return `<tr><td>📄 ${aEsc(it.name)} ${vb}</td><td colspan="7" style="color:var(--red);">Could not read: ${aEsc(it.error)}. Post it by hand in + Add Entry.</td></tr>`;
+    if(it.status==='skip')return `<tr style="opacity:.55;"><td>📄 ${aEsc(it.name)} ${vb}</td><td><span class="tag" style="background:rgba(148,163,184,.12);color:var(--text-dim);">skipped — never migrated</span></td><td style="font-family:var(--mono);font-size:11px;">${aEsc((it.parsed||{}).invoiceNo)}</td><td>${aEsc((it.parsed||{}).party)}</td><td colspan="4"></td></tr>`;
     const p=it.parsed||{};
     if(it.status==='posted')return `<tr style="background:rgba(34,197,94,.06);"><td>📄 ${aEsc(it.name)}</td><td><span class="tag" style="background:var(--green-dim);color:var(--green);">✓ Sale posted${it.orderNo?' → '+aEsc(it.orderNo):''}</span></td><td style="font-family:var(--mono);font-size:11px;">${aEsc(p.invoiceNo)}</td><td>${aEsc(p.party)}</td><td style="font-size:11px;">${aEsc(p.date)}</td><td>${INR(p.taxable)}</td><td style="font-size:11px;">${gstText(p)}</td><td style="font-weight:700;color:var(--green);">${INR(p.total)}</td></tr>`;
-    if(it.status==='dup')return `<tr style="opacity:.55;"><td>📄 ${aEsc(it.name)}</td><td><span class="tag" style="background:rgba(245,158,11,.12);color:var(--orange);">already posted</span></td><td style="font-family:var(--mono);font-size:11px;">${aEsc(p.invoiceNo)}</td><td>${aEsc(p.party)}</td><td colspan="4"></td></tr>`;
+    if(it.status==='dup')return `<tr style="opacity:.55;"><td>📄 ${aEsc(it.name)} ${vb}</td><td><span class="tag" style="background:rgba(245,158,11,.12);color:var(--orange);">already posted</span></td><td style="font-family:var(--mono);font-size:11px;">${aEsc(p.invoiceNo)}</td><td>${aEsc(p.party)}</td><td colspan="4"></td></tr>`;
     if(p.kind!=='sale'&&p.grnNo==null)p.grnNo=grnGuess(p);
     const gst=(p.igst||0)+(p.cgst||0)+(p.sgst||0);
-    return `<tr style="background:rgba(245,158,11,.05);"><td>📄 ${aEsc(it.name)}</td>
+    return `<tr style="background:rgba(245,158,11,.05);"><td>📄 ${aEsc(it.name)} ${vb}</td>
       <td><select onchange="inbox[${i}].parsed.kind=this.value;renderResults();"><option value="purchase" ${p.kind==='purchase'?'selected':''}>Purchase</option><option value="sale" ${p.kind==='sale'?'selected':''}>Sale</option></select>${p.kind!=='sale'?`<select style="margin-top:4px;min-width:150px;" onchange="inbox[${i}].parsed.grnNo=this.value">${grnOptions(p)}</select>`:''}</td>
       <td><input value="${aEsc(p.invoiceNo||'')}" oninput="inbox[${i}].parsed.invoiceNo=this.value" style="width:100px;"></td>
       <td><input value="${aEsc(p.party||'')}" oninput="inbox[${i}].parsed.party=this.value" style="width:130px;"></td>
@@ -470,6 +474,9 @@ function renderResults(){
   }).join('');
   el.innerHTML='<p style="font-size:12px;color:var(--text-dim);margin:8px 0;">Green = posted automatically. Amber = check the figures, change Type if needed, then press Post.</p><div class="table-wrap"><table><thead><tr><th>File</th><th>Type</th><th>Invoice #</th><th>Party</th><th>Date</th><th>Taxable</th><th>GST</th><th>Total / Post</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
+function inboxWhy(i){const it=inbox[i];if(!it||!window.InvoiceEngine)return;
+  InvoiceEngine.whyModal({name:it.name,file:it.file,text:it.text,p:it.parsed,error:it.error,status:it.status,dup:it.dup,canPost:!it.error&&!it.posted&&it.status!=='dup',
+    onPost:q=>{const r=postSale(q,it.name);it.parsed=q;it.status=r.status;it.posted=(r.status==='posted');it.orderNo=r.orderNo;renderResults();renderSales();renderPurchase();if(it.posted)toast('✓ '+q.invoiceNo+' posted');return r;}});}
 function postReview(i){
   const it=inbox[i];if(!it||!it.parsed)return;const p=it.parsed;
   if(p._gst!=null&&!p.igst&&!p.cgst&&!p.sgst)p.igst=p._gst;

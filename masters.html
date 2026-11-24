@@ -72,7 +72,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 <div class="fg"><label>Reminders before escalation</label><input id="r_max" type="number" min="1" max="10"><div class="hint">After this many reminders + one more gap → Admin & Sub Admin</div></div>
 </div><div id="r_eg" class="hint" style="margin-top:14px;font-size:12px;"></div><div style="display:flex;justify-content:flex-end;margin-top:16px;"><button class="btn ok" onclick="saveRules()">✓ Save rules</button></div></div></div>
 <div class="view" id="v_migrate"><h2>📥 Migrate Invoices</h2>
-<p class="sub">Point this at your <b>Sales</b> folder of invoice PDFs and press Migrate. Every bill is read, matched to its order, and its customer details are added to the Clients master — the same as we did by hand this morning, but for the whole folder at once.</p>
+<p class="sub">Point this at your <b>Sales</b> folder of invoice PDFs and press Migrate. Every bill is read, matched to its order, and its customer details are added to the Clients master. Bills of <b>AKRITI SALES CORPORATION</b> and <b>PUNAM SALES</b> are never migrated — the same as we did by hand this morning, but for the whole folder at once.</p>
 <div class="card">
   <h3 style="font-size:15px;margin-bottom:10px;">🟢 Sales invoices</h3>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
@@ -212,22 +212,37 @@ function wireMig(){const fo=document.getElementById('salFolder'),fi=document.get
   const add=list=>{const pdfs=InvoiceEngine.pdfFiles(list);salQueue=salQueue.concat(pdfs);document.getElementById('salPicked').textContent=salQueue.length+' PDF(s) ready';document.getElementById('salMigrateBtn').disabled=!salQueue.length;};
   fo.onchange=()=>add(fo.files);fi.onchange=()=>add(fi.files);}
 function renderMigrate(){salQueue=[];wireMig();const p=document.getElementById('salPicked');if(p)p.textContent='';const b=document.getElementById('salMigrateBtn');if(b)b.disabled=true;}
+let salRes=[];
 async function runSalesMigration(){
   if(!salQueue.length)return;const btn=document.getElementById('salMigrateBtn'),msg=document.getElementById('salMsg');btn.disabled=true;const old=btn.textContent;btn.textContent='Reading…';
-  let posted=0,dup=0,review=0;const rows=[];
-  for(const file of salQueue){msg.textContent='Reading '+file.name+'…';let p,err;
-    try{const txt=await InvoiceEngine.pdfText(file);p=InvoiceEngine.parse(txt);}catch(e){err=e.message||'could not read';}
-    if(err){rows.push(`<tr><td>${E(file.name)}</td><td colspan="6" style="color:var(--red);">Could not read: ${E(err)}</td></tr>`);review++;continue;}
-    if(p.kind!=='sale'){rows.push(`<tr style="background:rgba(245,158,11,.06);"><td>${E(file.name)}</td><td>${E(p.invoiceNo||'—')}</td><td>${E(p.party||'—')}</td><td colspan="4" style="color:var(--orange);">Not a Sentire sales invoice — skipped</td></tr>`);review++;continue;}
-    if(!p.confident){rows.push(`<tr style="background:rgba(245,158,11,.06);"><td>${E(file.name)}</td><td>${E(p.invoiceNo||'—')}</td><td>${E(p.party||'—')}</td><td>${E(p.date||'—')}</td><td colspan="3" style="color:var(--orange);">Some fields unclear — post it by hand in Accounts → Invoices</td></tr>`);review++;continue;}
-    const res=InvoiceEngine.postSale(p,file.name);
-    if(res.status==='dup'){dup++;rows.push(`<tr style="opacity:.6;"><td>${E(file.name)}</td><td style="font-family:var(--mono);">${E(p.invoiceNo)}</td><td>${E(p.party)}</td><td>${E(p.date)}</td><td style="font-family:var(--mono);">${ST.inr(p.total)}</td><td></td><td>already posted</td></tr>`);}
-    else{posted++;rows.push(`<tr style="background:rgba(34,197,94,.06);"><td>${E(file.name)}</td><td style="font-family:var(--mono);">${E(p.invoiceNo)}</td><td><strong>${E(p.party)}</strong></td><td>${E(p.date)}</td><td style="font-family:var(--mono);">${ST.inr(p.total)}</td><td>${res.orderNo?'→ '+E(res.orderNo):'<span style="color:var(--text-dim)">no order</span>'}</td><td style="color:var(--green);">✓ posted</td></tr>`);}
+  salRes=[];
+  for(const file of salQueue){msg.textContent='Reading '+file.name+'…';const r={file,name:file.name};salRes.push(r);
+    try{r.text=await InvoiceEngine.pdfText(file);r.p=InvoiceEngine.parse(r.text);}catch(e){r.error=e.message||'could not read';r.status='error';continue;}
+    const p=r.p;
+    if(p.kind==='sale'&&InvoiceEngine.skipParty(p.party)){r.status='skip';continue;}
+    if(p.kind!=='sale'){r.status='notsale';continue;}
+    if(!p.confident){r.status='unclear';continue;}
+    salPost(r,p);
   }
-  msg.textContent='';btn.textContent=old;
-  document.getElementById('salResults').innerHTML='<div class="hint" style="margin-bottom:8px;">Posted <b>'+posted+'</b> · already there '+dup+' · need checking '+review+'. Customer details were added to the Clients master. See the bills in Accounts → 🟢 Sales.</div><div class="table-wrap"><table><thead><tr><th>File</th><th>Invoice</th><th>Customer</th><th>Date</th><th>Total</th><th>Order</th><th>Status</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
+  msg.textContent='';btn.textContent=old;salRender();
   salQueue=[];document.getElementById('salPicked').textContent='';document.getElementById('salMigrateBtn').disabled=true;
-  toast('✓ '+posted+' sales invoice(s) posted');renderClients();renderVendors();
+  toast('✓ '+salRes.filter(r=>r.status==='posted').length+' sales invoice(s) posted');renderClients();renderVendors();
+}
+function salPost(r,p){const res=InvoiceEngine.postSale(p,r.name);r.p=p;r.status=res.status;r.orderNo=res.orderNo;
+  if(res.status==='dup')r.dup=(ST.get('fin_entries',[])||[]).find(e=>e.kind==='sale'&&e.invoiceNo===p.invoiceNo);return res;}
+function salWhy(i){const r=salRes[i];if(!r)return;
+  InvoiceEngine.whyModal({name:r.name,file:r.file,text:r.text,p:r.p,error:r.error,status:r.status,dup:r.dup,canPost:!r.error&&r.status!=='dup'&&r.status!=='posted',
+    onPost:q=>{const res=salPost(r,q);salRender();if(res.status==='posted'){toast('✓ '+q.invoiceNo+' posted');renderClients();}return res;}});}
+function salRender(){
+  const n=k=>salRes.filter(r=>r.status===k).length;
+  const why=i=>`<button class="btn" style="padding:4px 10px;font-size:12px;" onclick="salWhy(${i})">👁 View</button>`;
+  const rows=salRes.map((r,i)=>{const p=r.p||{};
+    const cells=`<td>${E(r.name)}</td><td style="font-family:var(--mono);">${E(p.invoiceNo||'—')}</td><td>${E(p.party||'—')}</td><td>${E(p.date||'—')}</td><td style="font-family:var(--mono);">${p.total?ST.inr(p.total):'—'}</td>`;
+    if(r.status==='posted')return `<tr style="background:rgba(34,197,94,.06);">${cells}<td>${r.orderNo?'→ '+E(r.orderNo):'<span style="color:var(--text-dim)">no order</span>'}</td><td style="color:var(--green);">✓ posted</td><td></td></tr>`;
+    const st={error:['var(--red)','Could not read the PDF'],skip:['var(--text-dim)','Skipped — '+E(InvoiceEngine.skipParty(p.party))+' is never migrated'],notsale:['var(--orange)','Not a Sentire sales bill'],unclear:['var(--orange)','Not posted — some details missing'],dup:['var(--text-dim)','Already posted earlier']}[r.status]||['var(--orange)',r.status];
+    return `<tr style="${r.status==='dup'||r.status==='skip'?'opacity:.65;':'background:rgba(245,158,11,.06);'}">${cells}<td></td><td style="color:${st[0]};">${st[1]}</td><td>${why(i)}</td></tr>`;}).join('');
+  const notPosted=n('error')+n('notsale')+n('unclear');
+  document.getElementById('salResults').innerHTML='<div class="hint" style="margin-bottom:8px;">Posted <b>'+n('posted')+'</b> · already there '+n('dup')+' · skipped (excluded parties) '+n('skip')+' · <b style="color:var(--orange)">not posted '+notPosted+'</b>'+(notPosted?' — press <b>👁 View</b> on a row to see why and fix it.':'')+'</div><div class="table-wrap"><table><thead><tr><th>File</th><th>Invoice</th><th>Customer</th><th>Date</th><th>Total</th><th>Order</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 renderClients();
