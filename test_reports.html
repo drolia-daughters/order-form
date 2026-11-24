@@ -97,6 +97,8 @@ function renderCust(){const box=document.getElementById('custBox');const cells=S
     else if(l.tested>=l.q)checks.push(['ok','All '+l.q+' tested — '+nm,l.desp?'Despatched'+(l.o.dod?' on '+fd(l.o.dod):'')+(l.inv?' · invoice '+l.inv.no:''):'Ready to despatch.']);
     if(l.capBad)checks.push(['warn','Capacity differs — '+nm,'Tested capacity is not the same as the order’s actual capacity. Fill Actual Cap. on the order if this is intended.']);});
   Object.keys(byInv).forEach(k=>checks.push(['ok',byInv[k].n+' load cell(s) → bill '+k+' ('+fd(byInv[k].date)+')','No order in the Order Sheet, so linked by date: the first bill of '+P+' on or after the test date.']));
+  const late=G.cells.filter(c=>!ALLOC[c.sn]&&orders.some(o=>o.dod&&String(c.testDate||'')>String(o.dod).slice(0,10)));
+  if(late.length)checks.push(['bad',late.length+' load cell(s) tested AFTER the order was despatched','Tested '+[...new Set(late.map(c=>fd(c.testDate)))].join(', ')+' but the order(s) were despatched '+[...new Set(orders.filter(o=>o.dod).map(o=>fd(o.dod)))].join(', ')+' — they cannot be in that despatch. A new order / bill for them is missing, or the test name is wrong.']);
   if(unlinked)checks.push(['bad',unlinked+' load cell(s) not linked to any order or bill',orders.length?'No order of '+P+' with the same type / capacity has room, and no bill of '+P+' within 45 days after the test date.':'No order of '+P+' and no bill of '+P+' within 45 days after the test date (bill not migrated yet?).']);
   if(!orders.length&&!Object.keys(byInv).length)checks.push(['warn','No order found for '+P,'Make the order in the Order Sheet, or migrate the bill — the serial numbers link automatically.']);
   const bad=checks.filter(c=>c[0]==='bad').length;

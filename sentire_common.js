@@ -368,7 +368,10 @@ ST.allocate=function(){const out={},cells=ST.cells(),orders=ST.orders().filter(o
   Object.keys(byP).forEach(p=>{const os=orders.filter(o=>pk(o.partyName)===pk(p));
     byP[p].sort((a,b)=>String(a.testDate||'').localeCompare(String(b.testDate||''))||String(a.sn).localeCompare(String(b.sn))).forEach(c=>{
       const tk=ST.typeKey(c.type),cn=ST.capNum(c.capacity);let best=null;
-      for(const pass of [1,2])for(const o of os){if(best)break;ST.items(o).forEach((it,i)=>{if(best||left[o.orderNo+'#'+i]<=0||ST.typeKey(it.type)!==tk)return;const ic=ST.capNum(it.capacityActual||it.capacity);if(pass===1&&ic!==cn)return;best={orderNo:o.orderNo,idx:i,capOk:ic===cn};});}
+      const td=String(c.testDate||'').slice(0,10),cw=ST.wireStd(c.cable);
+      // 1.9.1: a load cell tested AFTER the order was despatched cannot be in that despatch. Pass 1 = same capacity + same wire, 2 = same capacity, 3 = type only
+      for(const pass of [1,2,3])for(const o of os){if(best)break;const dd=String(o.dod||'').slice(0,10);if(dd&&td&&td>dd)continue;
+        ST.items(o).forEach((it,i)=>{if(best||left[o.orderNo+'#'+i]<=0||ST.typeKey(it.type)!==tk)return;const ic=ST.capNum(it.capacityActual||it.capacity);if(pass<=2&&ic!==cn)return;if(pass===1&&cw&&ST.wireStd(it.wire)!==cw)return;best={orderNo:o.orderNo,idx:i,capOk:ic===cn,wireOk:!cw||ST.wireStd(it.wire)===cw};});}
       if(best){left[best.orderNo+'#'+best.idx]--;out[c.sn]=best;}});});
   // 1.6.0: no order? link to the party's sales invoice by date — the first bill on/after the test date (within 45 days)
   const sales=ST.get(ST.K.fin,[]).filter(e=>e.kind==='sale'&&e.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
