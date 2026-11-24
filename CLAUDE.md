@@ -9,6 +9,7 @@ Every change that goes live gets a NEW version number:
    - New feature → middle digit (1.1.x → 1.2.0)
 2. Add a line at the top of `CHANGELOG.md`.
 3. Tell the owner the new version number so he can check the corner badge after Ctrl+F5.
+4. Always save it to this GitHub repo straight away (commit message starts with the version number) — the repo IS the live app.
 
 See PROJECT_CONTEXT.md for how the apps work.
 
