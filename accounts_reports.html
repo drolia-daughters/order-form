@@ -540,7 +540,7 @@ function linkBill(id){const sel=document.getElementById('btLink');if(!sel||!sel.
 /* 1.9.0: serial numbers of ONE bill (same rule as its test report) */
 function billSerials(e){let ono=billOrderNo(e);let o=ono&&ST.findOrder(ono);if(o&&!sameParty(o.partyName,e.party)){o=null;ono='';}
   const al=ST.allocate();const invU=String(e.invoiceNo||'').toUpperCase();
-  const cs=ST.cells().filter(c=>{const a=al[c.sn];if(!a)return false;if(ono&&a.orderNo===ono)return true;return !a.orderNo&&String(a.invoiceNo||'').toUpperCase()===invU&&ST.sameParty(ST.partyFor(c.client),e.party);}).sort((a,b)=>String(a.sn).localeCompare(String(b.sn)));
+  const cs=ST.cells().filter(c=>{const a=al[c.sn];if(!a)return false;if(a.manualInv)return String(a.invoiceNo||'').toUpperCase()===invU;if(ono&&a.orderNo===ono)return true;return !a.orderNo&&String(a.invoiceNo||'').toUpperCase()===invU&&ST.sameParty(ST.partyFor(c.client),e.party);}).sort((a,b)=>String(a.sn).localeCompare(String(b.sn)));
   const noW=!!(o&&ST.items(o).length&&ST.items(o).every(ST.noWarr));return {cells:cs,years:o?(parseFloat(o.warrantyYears)||1):1,noWarr:noW};}
 /* Print the serial numbers into the empty space under "Description of Goods" of the original Tally PDF (the saved original is not changed) */
 function loadLib(src,test){return test()?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});}
@@ -565,7 +565,7 @@ async function stampSerials(bytes,info){const sns=info.cells.map(c=>String(c.sn)
   return await pdf.save();}
 function billTestHtml(e){let ono=billOrderNo(e);let o=ono&&ST.findOrder(ono);if(o&&!sameParty(o.partyName,e.party)){o=null;ono='';}
   const al=ST.allocate();const invU=String(e.invoiceNo||'').toUpperCase();
-  const cs=ST.cells().filter(c=>{const a=al[c.sn];if(!a)return false;if(ono&&a.orderNo===ono)return true;return !a.orderNo&&String(a.invoiceNo||'').toUpperCase()===invU&&ST.sameParty(ST.partyFor(c.client),e.party);}).sort((a,b)=>String(a.sn).localeCompare(String(b.sn)));
+  const cs=ST.cells().filter(c=>{const a=al[c.sn];if(!a)return false;if(a.manualInv)return String(a.invoiceNo||'').toUpperCase()===invU;if(ono&&a.orderNo===ono)return true;return !a.orderNo&&String(a.invoiceNo||'').toUpperCase()===invU&&ST.sameParty(ST.partyFor(c.client),e.party);}).sort((a,b)=>String(a.sn).localeCompare(String(b.sn)));
   const yrs=o?(parseFloat(o.warrantyYears)||1):1;const q=o?(parseFloat(o.quantity)||0):0;const td='style="border:1px solid #ccc;padding:5px 7px;"',th='style="border:1px solid #ccc;padding:5px 7px;background:#f1f5f9;text-align:left;font-size:11px;"';
   const head='<div style="display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:10px;"><div><div style="font-size:18px;font-weight:800;">Sentire Technologies</div><div style="font-size:12px;color:#555;">LOAD CELL TEST REPORT</div></div><div style="text-align:right;font-size:12px;">Invoice <b>'+aEsc(e.invoiceNo||e.ref||'—')+'</b><br>Date '+aEsc(e.date||'')+(ono?'<br>Order '+aEsc(ono):'')+'</div></div>'
     +'<div style="font-size:13px;margin-bottom:10px;">Customer: <b>'+aEsc(e.party||'')+'</b>'+(o&&o.dod?' · Despatched '+ST.fmtDate(o.dod):'')+' · Warranty: '+(o&&ST.items(o).every(ST.noWarr)?'none (SP)':yrs+' year'+(yrs>1?'s':''))+'</div>';

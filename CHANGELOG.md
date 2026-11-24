@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.11.0 | 24 Nov 2026 | Masters → Load cell S/N: '🔁 Change client / invoice' — besides the client, pick the client's sales bill by hand when the app linked the load cells to the wrong bill ('Automatic' = let the app decide). Hand-set bill wins everywhere (bill View/Print serials, test report, S/N card shows 'set by hand'); history kept |
 | 1.10.0 | 24 Nov 2026 | Masters → Load cell S/N: 🔁 Change client (one load cell, or all shown) — pick the new client from the list, optional reason, OK; the load cell moves to the new client (links to that client's order / bill) and leaves the old one. History kept ('Tested for' + moved from → to, date, who); re-uploading the test file keeps the new client |
 | 1.9.1 | 24 Nov 2026 | Fix (Sanatan): a load cell tested AFTER an order's despatch date is never linked to that order; linking prefers same capacity + same wire. Detail Test Report flags 'tested after the order was despatched' |
 | 1.9.0 | 24 Nov 2026 | Accounts → Sales → View / Print: the bill's load cell serial numbers (same rule as its test report) are printed into the empty space under 'Description of Goods' of the original Tally PDF, with the warranty line. Space found automatically; smaller text or '… and N more' when very many. The saved original PDF is not changed |
