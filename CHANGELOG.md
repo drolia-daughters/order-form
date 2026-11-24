@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.5.2 | 24 Nov 2026 | Accounts → Sales: bills sorted by GST bill number (newest first, by financial year); only the latest 10 shown, older bills behind a 'Show older bills' button |
 | 1.5.1 | 24 Nov 2026 | Accounts → Sales: 🧪 Test Reports button at the top, and a 🧪 button on every sales bill that opens Test Reports on that customer / order |
 | 1.5.0 | 24 Nov 2026 | Share invoices from WhatsApp: Command Center appears in the phone/PC Share list (installed app); shared PDF invoices open Accounts → Invoice Inbox and Data Migration runs by itself (share_handler.js in both service workers, share_target in sentire.webmanifest) |
 | 1.4.0 | 24 Nov 2026 | Load cell serial numbers: new Test Reports app (upload testing-machine Excel; by customer: ordered / tested / despatched / not tested + checks; all load cells search); serial nos. linked to customer → order (type + actual capacity) → sales invoice; 🧪 Test Reports button in Accounts → Invoice Inbox; serial list in order details and in sales bill view; Masters → 🔎 Load cell S/N search (test data, order, invoice, warranty, repairs); Repairs looks up typed S/N and fills customer, order, warranty; Order Sheet: optional extended warranty (1/2/3/5 years) and Wire as a drop-down list (Masters → Wires) |
