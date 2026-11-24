@@ -452,7 +452,8 @@ async function runMigration(){
   const b=document.getElementById('migrateBtn'),msg=document.getElementById('inboxMsg');const old=b.textContent;b.disabled=true;b.textContent='Reading…';
   try{
     for(const it of inbox){if(it.parsed||it.error)continue;if(msg)msg.textContent='Reading '+it.name+'…';try{if(window.InvoiceEngine){it.text=await InvoiceEngine.pdfText(it.file);const q=InvoiceEngine.parse(it.text);it.parsed=q.kind==='sale'?q:Object.assign(parseInvoice(it.text.replace(/\n/g,' ')),{party:q.party||'',address:q.address,gstin:q.gstin||''});}else{it.text=await pdfText(it.file);it.parsed=parseInvoice(it.text);}}catch(e){it.error=e.message||'could not read';}}
-    inbox.forEach(it=>{if(it.posted||it.error||!it.parsed)return;if(it.parsed.kind==='sale'&&window.InvoiceEngine&&InvoiceEngine.skipParty(it.parsed.party)){it.status='skip';return;}if(it.parsed.kind==='sale'&&it.parsed.confident){const r=postSale(it.parsed,it.name);it.status=r.status;it.orderNo=r.orderNo;it.posted=(r.status==='posted');if(r.status==='dup')it.dup=g(FK).find(e=>e.kind==='sale'&&e.invoiceNo===it.parsed.invoiceNo);}else it.status='review';});
+    inbox.forEach(it=>{if(it.posted||it.error||!it.parsed)return;if(it.parsed.kind==='sale'&&window.InvoiceEngine&&InvoiceEngine.skipParty(it.parsed.party)){it.status='skip';return;}if(it.parsed.kind==='sale'&&it.parsed.confident){const r=postSale(it.parsed,it.name);it.status=r.status;it.orderNo=r.orderNo;it.posted=(r.status==='posted');if(r.status==='dup')it.dup=g(FK).find(e=>e.kind==='sale'&&e.invoiceNo===it.parsed.invoiceNo);}else it.status='review';});    for(const it of inbox){if(it.file&&it.parsed&&(it.status==='posted'||it.status==='dup')&&!it.pdfSaved&&window.InvoiceEngine){if(msg)msg.textContent='Saving original PDF '+it.name+'…';try{it.pdfSaved=!!(await InvoiceEngine.savePdf(it.file,it.parsed.kind==='sale'?'sale':'purchase',it.parsed.invoiceNo,it.parsed.party));}catch(e){}}}
+
     if(msg)msg.textContent='';
   }catch(e){if(msg)msg.textContent=e.message;}
   b.disabled=false;b.textContent=old;renderResults();renderSales();renderPurchase();
@@ -491,6 +492,7 @@ function postReview(i){
   if(p.kind!=='sale'&&!p.grnNo){toast('Choose the GRN No. of these goods (or "No goods" for a service bill)');return;}
   const r=p.kind==='sale'?postSale(p,it.name):postPurchase(p,it.name);
   it.status=r.status;it.posted=(r.status==='posted');it.orderNo=r.orderNo;
+  if(it.file&&window.InvoiceEngine&&(r.status==='posted'||r.status==='dup'))InvoiceEngine.savePdf(it.file,p.kind==='sale'?'sale':'purchase',p.invoiceNo,p.party).then(x=>{it.pdfSaved=!!x;});
   renderResults();renderSales();renderPurchase();toast(r.status==='dup'?'Already posted':'✓ Posted');
 }
 
@@ -557,9 +559,13 @@ function billCells(e){if(!window.ST||!ST.allocate||e.kind!=='sale')return '';con
   const cs=ST.cells().filter(c=>al[c.sn]&&al[c.sn].orderNo===ono);
   return '<div style="max-width:640px;margin:0 auto 18px;padding:12px 16px;font-family:system-ui,Arial;color:#111;border:1px solid #ddd;border-radius:8px;"><div style="font-weight:700;margin-bottom:6px;">Load cells in this invoice — order '+aEsc(ono)+' · '+cs.length+' serial no.</div>'
     +(cs.length?'<div style="font-family:monospace;font-size:12px;line-height:1.8;">'+cs.map(c=>'<a href="test_reports.html?sn='+encodeURIComponent(c.sn)+'" style="color:#1d4ed8;margin-right:10px;">'+aEsc(c.sn)+'</a>').join('')+'</div>':'<div style="font-size:12px;color:#777;">No tested serial numbers linked yet.</div>')+'</div>';}
-function viewBill(id){const e=billEntry(id);if(!e)return;const mb=document.getElementById('billModalBody');mb.innerHTML=billHtml(e)+billCells(e);const m=document.getElementById('billModal');m.dataset.id=id;m.style.display='flex';}
+async function viewBill(id){const e=billEntry(id);if(!e)return;const mb=document.getElementById('billModalBody');const box=document.querySelector('#billModal > div');
+  if(e.pdfPath&&window.InvoiceEngine){box.style.maxWidth='1000px';mb.innerHTML='<div style="padding:30px;text-align:center;color:#555;">Opening the original bill…</div>';const m0=document.getElementById('billModal');m0.dataset.id=id;m0.style.display='flex';
+    const url=await InvoiceEngine.pdfUrl(e.pdfPath);if(url){m0.dataset.url=url;mb.innerHTML='<iframe src="'+url+'" style="width:100%;height:78vh;border:0;display:block;"></iframe>'+billCells(e);return;}}
+  box.style.maxWidth='680px';document.getElementById('billModal').dataset.url='';
+  mb.innerHTML=(e.source==='migration'?'<div style="margin:12px 16px 0;padding:8px 12px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;font-size:12px;color:#9a3412;font-family:system-ui,Arial;">Original PDF not saved for this bill yet — drop the bill PDF in 📥 Invoices once more and press Data Migration; it is attached (nothing is posted twice). Summary below.</div>':'')+billHtml(e)+billCells(e);const m=document.getElementById('billModal');m.dataset.id=id;m.style.display='flex';}
 function closeBill(){document.getElementById('billModal').style.display='none';}
-function printBill(id){const e=billEntry(id);if(!e)return;const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print.');return;}w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+aEsc(e.invoiceNo||'Invoice')+'</title></head><body onload="window.focus();window.print();">'+billHtml(e)+'</body></html>');w.document.close();}
+function printBill(id){const e=billEntry(id);if(!e)return;const u=document.getElementById('billModal').dataset.url;if(e.pdfPath&&u&&document.getElementById('billModal').dataset.id===id){window.open(u,'_blank');return;}if(e.pdfPath&&window.InvoiceEngine){InvoiceEngine.pdfUrl(e.pdfPath).then(x=>{if(x)window.open(x,'_blank');});return;}const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print.');return;}w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+aEsc(e.invoiceNo||'Invoice')+'</title></head><body onload="window.focus();window.print();">'+billHtml(e)+'</body></html>');w.document.close();}
 
 setType('income');renderDash();initInbox();
 /* 1.5.0: invoices shared from WhatsApp (Share → Sentire Command Center) land here and are migrated at once */

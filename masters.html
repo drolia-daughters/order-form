@@ -243,7 +243,7 @@ async function runSalesMigration(){
   salQueue=[];document.getElementById('salPicked').textContent='';document.getElementById('salMigrateBtn').disabled=true;
   toast('✓ '+salRes.filter(r=>r.status==='posted').length+' sales invoice(s) posted');renderClients();renderVendors();
 }
-function salPost(r,p){const res=InvoiceEngine.postSale(p,r.name);r.p=p;r.status=res.status;r.orderNo=res.orderNo;
+function salPost(r,p){const res=InvoiceEngine.postSale(p,r.name);r.p=p;r.status=res.status;r.orderNo=res.orderNo;if((res.status==='posted'||res.status==='dup')&&r.file)InvoiceEngine.savePdf(r.file,'sale',p.invoiceNo,p.party).catch(()=>{});
   if(res.status==='dup')r.dup=(ST.get('fin_entries',[])||[]).find(e=>e.kind==='sale'&&e.invoiceNo===p.invoiceNo);return res;}
 function salWhy(i){const r=salRes[i];if(!r)return;
   InvoiceEngine.whyModal({name:r.name,file:r.file,text:r.text,p:r.p,error:r.error,status:r.status,dup:r.dup,canPost:!r.error&&r.status!=='dup'&&r.status!=='posted',

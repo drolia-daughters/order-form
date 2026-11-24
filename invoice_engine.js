@@ -195,6 +195,21 @@
     return true;
   };
 
+  // 1.8.0: keep the ORIGINAL bill PDF (Tally format) in the private 'invoices' store, so View shows the bill exactly as printed.
+  function sb() { return window.SentireAuth && SentireAuth.enabled && SentireAuth.client ? SentireAuth.client : null; }
+  E.pdfPathFor = function (kind, invoiceNo, party) { var n = String(invoiceNo || 'bill').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, ''); return (kind === 'purchase' ? 'purchase/' + String(party || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 40) + '__' : 'sales/') + n + '.pdf'; };
+  // Upload the PDF and note its place on the matching Accounts entry (also for bills posted earlier: re-migrating attaches the PDF)
+  E.savePdf = async function (file, kind, invoiceNo, party) {
+    var c = sb(); if (!c || !file || !invoiceNo) return '';
+    var path = E.pdfPathFor(kind, invoiceNo, party);
+    var r = await c.storage.from('invoices').upload(path, file, { upsert: true, contentType: 'application/pdf' });
+    if (r.error) { console.warn('PDF not saved', r.error); return ''; }
+    var all = fin(), ch = false; all.forEach(function (e) { if (e.kind === kind && String(e.invoiceNo || '').toUpperCase() === String(invoiceNo).toUpperCase() && (kind === 'sale' || sameP(e.party, party))) { if (e.pdfPath !== path) { e.pdfPath = path; ch = true; } } });
+    if (ch) ST.set(FK, all);
+    return path;
+  };
+  E.pdfUrl = async function (path) { var c = sb(); if (!c || !path) return ''; var r = await c.storage.from('invoices').createSignedUrl(path, 3600); return r.error ? '' : r.data.signedUrl; };
+
   E.postPurchase = function (p, pdfName) {
     var all = fin();
     if (p.invoiceNo && all.some(function (e) { return e.kind === 'purchase' && (e.invoiceNo || '') === p.invoiceNo && cleanName(e.party) === cleanName(p.party); })) return { status: 'dup' };
