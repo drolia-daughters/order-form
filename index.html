@@ -236,7 +236,7 @@ function show(key){
   const a=byKey(key)||HOME;current=a.key;
   if(a.key!=='home'&&!document.getElementById('v-'+a.key)){
     const v=document.createElement('section');v.className='view';v.id='v-'+a.key;
-    v.innerHTML=`<iframe src="${a.file}" title="${a.name}"></iframe>`;
+    v.innerHTML=`<iframe src="${a.file}?v=${encodeURIComponent(window.SENTIRE_VERSION||'')}" title="${a.name}"></iframe>`;   // ?v= : a new version always loads fresh (no old cached app)
     document.getElementById('views').appendChild(v);
   }
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v-'+a.key));
@@ -257,7 +257,7 @@ window.addEventListener('message',e=>{
   const fromOurApp=[...document.querySelectorAll('iframe')].some(f=>f.contentWindow===e.source);
   if(!fromOurApp||!e.data||!e.data.sentireNav)return;
   const a=byFile(e.data.sentireNav);if(!a)return;go(a.key);
-  if(e.data.q){setTimeout(()=>{const f=document.querySelector('#v-'+a.key+' iframe');if(f)f.src=a.file+'?'+e.data.q;},50);}
+  if(e.data.q){setTimeout(()=>{const f=document.querySelector('#v-'+a.key+' iframe');if(f)f.src=a.file+'?'+e.data.q+'&v='+encodeURIComponent(window.SENTIRE_VERSION||'');},50);}
 });
 
 // ═══ Today at a glance — read straight from each app's saved data ═══

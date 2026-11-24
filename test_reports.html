@@ -67,7 +67,7 @@ td.sn{font-family:var(--mono);font-weight:600;color:#93c5fd;cursor:pointer;}td.s
 </div>
 <div class="toast" id="toast"></div>
 <script>
-const E=ST.esc;let CUR='',ALLOC={};
+const E=ST.esc;let CUR='',ALLOC={},LOCK='';
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 document.getElementById('tabs').onclick=e=>{const b=e.target.closest('.tab-btn');if(b)showV(b.dataset.v);};
 function showV(v){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v_'+v));render();}
@@ -79,10 +79,10 @@ function render(){ALLOC=ST.allocate();renderCust();renderAll();renderAlias();}
 function custGroups(){const g={};ST.cells().forEach(c=>{const p=ST.partyFor(c.client);const k=p||('? '+String(c.client||'(no name)').toUpperCase());(g[k]=g[k]||{party:p,names:new Set(),cells:[]}).cells.push(c);g[k].names.add(String(c.client||''));});return g;}
 function renderCust(){const box=document.getElementById('custBox');const cells=ST.cells();
   if(!cells.length){box.innerHTML='<div class="empty">No test report uploaded yet.<br><br><button class="btn pri" onclick="showV(\'up\')">⬆ Upload test report</button></div>';return;}
-  const g=custGroups();const keys=Object.keys(g).sort((a,b)=>g[b].cells.length-g[a].cells.length);if(!CUR||!g[CUR])CUR=keys[0];
+  const g=custGroups();const keys=Object.keys(g).sort((a,b)=>g[b].cells.length-g[a].cells.length);if(LOCK){CUR=LOCK;if(!g[CUR]){box.innerHTML='';return;}}else if(!CUR||!g[CUR])CUR=keys[0];
   const files=[...new Set(cells.map(c=>c.file).filter(Boolean))];const dates=cells.map(c=>c.testDate).filter(Boolean).sort();
   let h='<div class="sub">'+cells.length+' load cells · '+keys.length+' customers · tested '+fd(dates[0])+' to '+fd(dates[dates.length-1])+(files.length?' · from '+E(files.slice(-2).join(', ')):'')+'</div>';
-  h+='<div class="chips">'+keys.map(k=>'<button class="chip'+(k===CUR?' on':'')+(g[k].party?'':' warn')+'" onclick="CUR=\''+E(k).replace(/'/g,"\\'")+'\';renderCust()" title="'+(g[k].party?'':'Name not matched to a customer — fix it in Upload')+'">'+E(g[k].party||[...g[k].names][0])+'<i>'+g[k].cells.length+'</i></button>').join('')+'</div>';
+  if(LOCK)h='';else h+='<div class="chips">'+keys.map(k=>'<button class="chip'+(k===CUR?' on':'')+(g[k].party?'':' warn')+'" onclick="CUR=\''+E(k).replace(/'/g,"\\'")+'\';renderCust()" title="'+(g[k].party?'':'Name not matched to a customer — fix it in Upload')+'">'+E(g[k].party||[...g[k].names][0])+'<i>'+g[k].cells.length+'</i></button>').join('')+'</div>';
   const G=g[CUR];
   if(!G.party){box.innerHTML=h+'<div class="checks"><div class="ck warn"><div class="ic">!</div><div><b>"'+E([...G.names].join(', '))+'" is not matched to a customer in Command Center</b><p>Go to <a href="#" onclick="showV(\'up\');return false" style="color:#93c5fd">Upload</a> and pick the right customer once — it is remembered.</p></div></div></div>'+cellTable(G.cells,true);return;}
   const P=G.party,orders=ST.orders().filter(o=>o.status!=='cancelled'&&String(o.partyName||'').toUpperCase()===String(P).toUpperCase()).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -147,10 +147,11 @@ function setAlias(sel){const al=ST.get(ST.K.alias,{});const n=sel.dataset.n;if(s
 
 const q0=new URLSearchParams(location.search);
 if(q0.get('sn')){showV('all');document.getElementById('q').value=q0.get('sn');renderAll();}
-else if(q0.get('order')||q0.get('party')){const o=q0.get('order')?ST.findOrder(q0.get('order')):null;const want=String((o&&o.partyName)||q0.get('party')||'').toUpperCase().replace(/^M\/S\.?\s*/,'');
-  render();const g=custGroups();const pk=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+else if(q0.get('order')||q0.get('party')){   // opened for ONE party: show that party only, never any other party
+  const o=q0.get('order')?ST.findOrder(q0.get('order')):null;const want=String((o&&o.partyName)||q0.get('party')||'').toUpperCase().replace(/^M\/S\.?\s*/,'');
+  document.getElementById('tabs').style.display='none';ALLOC=ST.allocate();const g=custGroups();const pk=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
   const k=Object.keys(g).find(k=>g[k].party&&pk(g[k].party)===pk(want))||Object.keys(g).find(k=>g[k].party&&(pk(want).startsWith(pk(g[k].party))||pk(g[k].party).startsWith(pk(want).slice(0,8))));
-  if(k){CUR=k;renderCust();}else{document.getElementById('custBox').insertAdjacentHTML('afterbegin','<div class="checks"><div class="ck warn"><div class="ic">!</div><div><b>No test report yet for '+E(want||'this customer')+'</b><p>Upload the testing machine file in ⬆ Upload test report, or match the name there.</p></div></div></div>');}}
+  if(k){LOCK=k;CUR=k;renderCust();}else{document.getElementById('custBox').innerHTML='<div class="checks"><div class="ck warn"><div class="ic">!</div><div><b>No test report yet for '+E(want||'this customer')+'</b><p>None of this party’s load cells are in the uploaded test reports yet.</p></div></div></div>';}}
 else render();
 window.addEventListener('storage',e=>{if(e.key&&/testcells|alias|ordersheet_master_db|fin_entries/.test(e.key))render();});
 </script>

@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.5.7 | 24 Nov 2026 | Fix: a party's test report never falls back to another party (RAM showed Southern Scale). Opened for one party it shows that party only, no customer buttons. Apps inside the Main Page now load with ?v=<version>, so a new version is never hidden by an old cached copy |
 | 1.5.6 | 24 Nov 2026 | Bill test report locked to the bill's own party: an order of another party is never used, so no other party's load cells can show. Unlinked bill: pick from THIS party's orders only and press Link (also fills the order's bill no.) |
 | 1.5.5 | 24 Nov 2026 | Sales → 🧪 Test report now shows ONLY the load cells despatched under that bill (through its order), printable as a Load Cell Test Report. The full customer-wise page is renamed 'Detail Test Report' and opens from Masters (tab 🧪 Detail Test Report); removed from the menus and from the Sales / Invoice Inbox headers |
 | 1.5.4 | 24 Nov 2026 | Accounts → Sales: '🧪 Test report' button moved to the end of each row, right after View / Print / Delete |
