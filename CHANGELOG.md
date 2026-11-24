@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.5.6 | 24 Nov 2026 | Bill test report locked to the bill's own party: an order of another party is never used, so no other party's load cells can show. Unlinked bill: pick from THIS party's orders only and press Link (also fills the order's bill no.) |
 | 1.5.5 | 24 Nov 2026 | Sales → 🧪 Test report now shows ONLY the load cells despatched under that bill (through its order), printable as a Load Cell Test Report. The full customer-wise page is renamed 'Detail Test Report' and opens from Masters (tab 🧪 Detail Test Report); removed from the menus and from the Sales / Invoice Inbox headers |
 | 1.5.4 | 24 Nov 2026 | Accounts → Sales: '🧪 Test report' button moved to the end of each row, right after View / Print / Delete |
 | 1.5.3 | 24 Nov 2026 | Accounts → Sales: '🧪 Test report' button now sits right beside each invoice number |
