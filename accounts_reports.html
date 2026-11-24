@@ -399,6 +399,7 @@ function parseInvoice(text){
 /* ---- Posting ---- */
 function _newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function postSale(p,pdfName){
+  if(window.InvoiceEngine&&window.ST){const r=InvoiceEngine.postSale(p,pdfName);if(r.despatched)toast('📦 '+(p.invoiceNo||'')+' → order '+r.orderNo+' moved to Despatched');return r;}   // 1.7.0
   const entries=g(FK);
   if(p.invoiceNo&&entries.some(e=>e.kind==='sale'&&(e.invoiceNo||'')===p.invoiceNo))return {status:'dup'};
   const orders=ordersAll();let orderNo='';
@@ -421,6 +422,7 @@ function grnMark(grnNo,p,pdfName,entryId){if(!grnNo||grnNo==='NO-GOODS')return;c
   if(!x.billNo&&p.invoiceNo)x.billNo=p.invoiceNo;x.billFile=pdfName||'';x.billEntryId=entryId;x.billPostedAt=new Date().toISOString();localStorage.setItem('inv_grn',JSON.stringify(L));}
 
 function postPurchase(p,pdfName){
+  p.party=String(p.party||'').replace(/^M\/S\.?\s*/i,'').replace(/\s+/g,' ').trim().toUpperCase();   // 1.7.0: names always in CAPS
   const entries=g(FK);
   if(p.invoiceNo&&entries.some(e=>e.kind==='purchase'&&(e.invoiceNo||'')===p.invoiceNo&&(e.party||'').toLowerCase()===(p.party||'').toLowerCase()))return {status:'dup'};
   const _id=_newId();
@@ -449,7 +451,7 @@ async function runMigration(){
   if(!inbox.length)return;
   const b=document.getElementById('migrateBtn'),msg=document.getElementById('inboxMsg');const old=b.textContent;b.disabled=true;b.textContent='Reading…';
   try{
-    for(const it of inbox){if(it.parsed||it.error)continue;if(msg)msg.textContent='Reading '+it.name+'…';try{it.text=await pdfText(it.file);it.parsed=parseInvoice(it.text);}catch(e){it.error=e.message||'could not read';}}
+    for(const it of inbox){if(it.parsed||it.error)continue;if(msg)msg.textContent='Reading '+it.name+'…';try{if(window.InvoiceEngine){it.text=await InvoiceEngine.pdfText(it.file);const q=InvoiceEngine.parse(it.text);it.parsed=q.kind==='sale'?q:Object.assign(parseInvoice(it.text.replace(/\n/g,' ')),{party:q.party||'',address:q.address,gstin:q.gstin||''});}else{it.text=await pdfText(it.file);it.parsed=parseInvoice(it.text);}}catch(e){it.error=e.message||'could not read';}}
     inbox.forEach(it=>{if(it.posted||it.error||!it.parsed)return;if(it.parsed.kind==='sale'&&window.InvoiceEngine&&InvoiceEngine.skipParty(it.parsed.party)){it.status='skip';return;}if(it.parsed.kind==='sale'&&it.parsed.confident){const r=postSale(it.parsed,it.name);it.status=r.status;it.orderNo=r.orderNo;it.posted=(r.status==='posted');if(r.status==='dup')it.dup=g(FK).find(e=>e.kind==='sale'&&e.invoiceNo===it.parsed.invoiceNo);}else it.status='review';});
     if(msg)msg.textContent='';
   }catch(e){if(msg)msg.textContent=e.message;}

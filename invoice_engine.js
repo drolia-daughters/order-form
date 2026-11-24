@@ -96,6 +96,11 @@
       address = block.slice((nm ? nm[1] : '').length).replace(/^[,\s]+/, '').trim();
     }
     party = cleanName(party);
+    // 1.7.0: customer's phone is written in Tally's "Other References" box (e.g. "mo:9897035019")
+    var phone = '';
+    var ori = lines.findIndex(function (l) { return /Other\s+References/i.test(l); });
+    if (ori >= 0) { for (var q = ori; q < Math.min(lines.length, ori + 4) && !phone; q++) { var pm = lines[q].replace(/Other\s+References/i, '').match(/(?:\+?91[\s-]?)?([6-9]\d{9})\b/); if (pm) phone = pm[1]; } }
+    if (!phone) { var pm2 = t.match(/\b(?:mo|mob|mobile)\s*[:.\-]?\s*(?:\+?91[\s-]?)?([6-9]\d{9})\b/i); if (pm2) phone = pm2[1]; }
     var stateCode = gstin ? gstin.slice(0, 2) : '';
     var pin = (t.match(/Ship To[\s\S]{0,260}?\b(\d{6})\b/i) || [])[1] || '';
     if (!pin) { var all6 = t.match(/\b\d{6}\b/g) || []; pin = all6.length ? all6[all6.length - 1] : ''; }
@@ -121,7 +126,7 @@
     var gstPct = taxable ? Math.round((igst + cgst + sgst) / taxable * 100) : 0;
     return {
       kind: kind, invoiceNo: invoiceNo, eway: eway, date: date, party: party, gstin: gstin,
-      address: address, pincode: pin, stateCode: stateCode, city: city,
+      address: address, pincode: pin, stateCode: stateCode, city: city, phone: phone,
       taxable: taxable, cgst: cgst, sgst: sgst, igst: igst, gstType: gstType, gstPct: gstPct, total: total, items: items,
       confident: !!(invoiceNo && date && taxable && total && party)
     };
@@ -141,6 +146,7 @@
     if (p.pincode && !rec.pincode) rec.pincode = p.pincode;
     if (p.stateCode) rec.stateCode = p.stateCode;
     if (p.city && !rec.location) rec.location = p.city;
+    if (p.phone && !rec.phone) rec.phone = p.phone;
     if (rec.phone === undefined) rec.phone = '';
     if (rec.email === undefined) rec.email = '';
     obj[name] = rec; ST.set(storeKey, obj);
@@ -151,7 +157,7 @@
     var all = fin();
     if (p.invoiceNo && all.some(function (e) { return e.kind === 'sale' && (e.invoiceNo || '') === p.invoiceNo; })) return { status: 'dup' };
     var os = orders(); var orderNo = '';
-    var m = os.filter(function (o) { return (o.billNo || '') && o.billNo === p.invoiceNo; })[0] || os.filter(function (o) { return (o.partyName || '').toUpperCase() === cleanName(p.party) && !o.billNo; })[0];
+    var m = os.filter(function (o) { return (o.billNo || '') && o.billNo === p.invoiceNo; })[0] || E.readyOrder(p);
     if (m) orderNo = m.orderNo;
     var name = upsertParty(CLIENTS, p);
     if (name) {
@@ -161,7 +167,29 @@
     all.push({ id: newId(), type: 'income', kind: 'sale', category: 'Sales', date: p.date, party: name || cleanName(p.party), invoiceNo: p.invoiceNo, ref: p.invoiceNo, gstin: p.gstin, address: p.address, pincode: p.pincode, stateCode: p.stateCode, taxable: p.taxable, cgst: p.cgst, sgst: p.sgst, igst: p.igst, gstType: p.gstType, gstPct: p.gstPct, total: p.total, amount: p.total, ewayBill: p.eway, orderNo: orderNo, status: 'Unpaid', mode: '', desc: 'Sales invoice', notes: 'From invoice ' + (p.invoiceNo || ''), pdfName: pdfName || '', source: 'migration' });
     ST.set(FK, all);
     try { E.addStockItems(p.items); } catch (e) {}
-    return { status: 'posted', orderNo: orderNo, matched: !!m };
+    var desp = false; if (m) { try { desp = E.despatchFromBill(m.orderNo, p); } catch (e) {} }
+    return { status: 'posted', orderNo: orderNo, matched: !!m, despatched: desp };
+  };
+
+  // 1.7.0: the order of this party whose production job is READY (oldest first) — the migrated bill is its despatch bill
+  function sameP(a, b) { var x = String(a || '').toUpperCase().replace(/^M\/S\.?\s*/, '').replace(/[^A-Z0-9]/g, ''), y = String(b || '').toUpperCase().replace(/^M\/S\.?\s*/, '').replace(/[^A-Z0-9]/g, ''); if (!x || !y) return false; return x === y || x.indexOf(y) === 0 || y.indexOf(x) === 0 || (x.length >= 8 && y.length >= 8 && x.slice(0, 8) === y.slice(0, 8)); }
+  E.sameParty = sameP;
+  E.readyOrder = function (p) {
+    var jobs = ST.get('prod_jobs', []);
+    return orders().filter(function (o) { if (o.status === 'cancelled' || o.billNo || !sameP(o.partyName, p.party)) return false; var j = jobs.filter(function (x) { return x.orderRef === o.orderNo; })[0]; return j && j.stage === 'Ready'; })
+      .sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); })[0] || null;
+  };
+  // Post the bill + e-way bill on the order and its production job, and move the job from Ready to Dispatched
+  E.despatchFromBill = function (orderNo, p) {
+    var o = ST.findOrder(orderNo); if (!o) return false;
+    ST.updateOrder(orderNo, function (x) { x.billNo = x.billNo || p.invoiceNo; x.billDate = p.date; x.billTotal = p.total; x.billTaxable = p.taxable; x.billIgst = p.igst; x.billCgst = p.cgst; x.billSgst = p.sgst; x.billGstType = p.gstType; x.billGstPct = p.gstPct; if (p.eway) x.ewayBill = p.eway; });
+    var jobs = ST.get('prod_jobs', []); var j = jobs.filter(function (x) { return x.orderRef === orderNo; })[0];
+    if (j && j.stage !== 'Ready' && j.stage !== 'Dispatched') return false;   // only a READY job is despatched from a bill
+    var dod = o.dod || p.date;
+    ST.recordDespatch(orderNo, { lr: o.lrNumber || '', dod: dod, transporter: o.transporterName || '' });
+    var jobs2 = ST.get('prod_jobs', []); var j2 = jobs2.filter(function (x) { return x.orderRef === orderNo; })[0];
+    if (j2) { j2.billNo = p.invoiceNo; if (p.eway) j2.ewayBill = p.eway; var h = j2.history || []; if (h.length && h[h.length - 1].stage === 'Dispatched') h[h.length - 1].note = 'Despatched · bill ' + p.invoiceNo + (p.eway ? ' · e-way bill ' + p.eway : '') + ' (from migrated sales bill)'; ST.set('prod_jobs', jobs2); }
+    return true;
   };
 
   E.postPurchase = function (p, pdfName) {
