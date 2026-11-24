@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.5.3 | 24 Nov 2026 | Accounts → Sales: '🧪 Test report' button now sits right beside each invoice number |
 | 1.5.2 | 24 Nov 2026 | Accounts → Sales: bills sorted by GST bill number (newest first, by financial year); only the latest 10 shown, older bills behind a 'Show older bills' button |
 | 1.5.1 | 24 Nov 2026 | Accounts → Sales: 🧪 Test Reports button at the top, and a 🧪 button on every sales bill that opens Test Reports on that customer / order |
 | 1.5.0 | 24 Nov 2026 | Share invoices from WhatsApp: Command Center appears in the phone/PC Share list (installed app); shared PDF invoices open Accounts → Invoice Inbox and Data Migration runs by itself (share_handler.js in both service workers, share_target in sentire.webmanifest) |
