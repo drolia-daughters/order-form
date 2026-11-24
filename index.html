@@ -177,7 +177,7 @@ const APPS=[
   {key:'calculator', file:'loadcell_calculator.html',  name:'Loadcell Calculator', short:'Calc',       ic:'LC',c:'#84cc16',desc:'Sensitivity trim: series resistor per leg, 750 Ω shunt, fitting sheet, matched sets'},
   {key:'inventory',  file:'inventory_management.html', name:'Inventory',           short:'Stock',      ic:'IM',c:'#f59e0b',desc:'Stock, BOM, reorder alerts and China import tracking'},
   {key:'purchase',   file:'purchase.html',              name:'Purchase & GRN',      short:'Purchase',   ic:'📦',c:'#0ea5e9',desc:'Purchase orders emailed to suppliers, GRN for every inward, store location, bills filed by GRN No.'},
-  {key:'tests',      file:'test_reports.html',          name:'Test Reports',        short:'Tests',      ic:'🧪',c:'#14b8a6',desc:'Load cell serial numbers from the testing machine — linked to customer, order, invoice and warranty'},
+  {key:'tests',      file:'test_reports.html',          name:'Detail Test Report',  short:'Tests',      ic:'🧪',c:'#14b8a6',desc:'Load cell serial numbers from the testing machine — linked to customer, order, invoice and warranty'},
   {key:'accounts',   file:'accounts_reports.html',     name:'Accounts & Reports',  short:'Accounts',   ic:'AR',c:'#06b6d4',desc:'Income, expenses, P&L, receivables, bank statement import'},
   {key:'repairs',    file:'repairs.html',               name:'Repairs & Warranty',  short:'Repairs',    ic:'🔧',c:'#f97316',desc:'Warranty returns & rejections — intake, warranty check, fault & fix log, repeat-fault knowledge base, job card'},
   {key:'reminders',  file:'reminders.html',            name:'Reminders',           short:'Remind',     ic:'⏰',c:'#f43f5e',desc:'ODS (monthly), Annual and Business reminders — voice agent, Gmail & WhatsApp, phone alerts'},
@@ -187,7 +187,8 @@ const APPS=[
 if(window.SentireAuth&&SentireAuth.filterApps)SentireAuth.filterApps(APPS); // rights: hide apps this person may not open
 // The Admin section is for the Admin and Sub Admin only: everyone else does not get the Loadcell Calculator or Cohort at all.
 const ADMIN_KEYS=['calculator','cohort'];
-const ACC_KEYS=['accounts','purchase','tests'];   // the Accounts section: Accounts & Reports, Purchase & GRN
+const ACC_KEYS=['accounts','purchase'];
+const HIDDEN_KEYS=['tests'];   // Detail Test Report: opened from Masters, not listed in the menus   // the Accounts section: Accounts & Reports, Purchase & GRN
 const IS_ADMIN=!window.SentireAuth||!SentireAuth.enabled||SentireAuth.isSecurityAdmin();
 if(!IS_ADMIN)ADMIN_KEYS.forEach(k=>{const _i=APPS.findIndex(a=>a.key===k);if(_i>=0)APPS.splice(_i,1);});
 const HOME={key:'home',name:'Main Page',short:'Main',ic:'⌂',c:'#3b82f6'};
@@ -197,7 +198,7 @@ let current='home';
 
 // ═══ Build menus ═══
 function navButton(a){return `<button class="nav-btn" data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.name}<span class="badge" id="b-${a.key}"></span></button>`;}
-document.getElementById('nav').innerHTML=navButton(HOME)+'<div class="nav-label">Apps</div>'+APPS.filter(a=>!ADMIN_KEYS.includes(a.key)&&!ACC_KEYS.includes(a.key)).map(navButton).join('')+
+document.getElementById('nav').innerHTML=navButton(HOME)+'<div class="nav-label">Apps</div>'+APPS.filter(a=>!ADMIN_KEYS.includes(a.key)&&!ACC_KEYS.includes(a.key)&&!HIDDEN_KEYS.includes(a.key)).map(navButton).join('')+
   (APPS.some(a=>ACC_KEYS.includes(a.key))?'<div class="nav-label">Accounts</div>'+ACC_KEYS.map(byKey).filter(Boolean).map(navButton).join(''):'');
 // Admin section — Smart Finance, Loadcell Calculator, Cohort, Security. Only the Admin and Sub Admin see it.
 // One button in the left panel (keeps it short); it opens the Admin cards on the Main Page.
@@ -211,8 +212,8 @@ function openAdmin(){
   setTimeout(function(){var t=document.getElementById('adminCards');if(!t)return;t.scrollIntoView({behavior:'smooth',block:'start'});
     t.style.transition='box-shadow .3s';t.style.boxShadow='0 0 0 2px #14b8a6';t.style.borderRadius='14px';setTimeout(function(){t.style.boxShadow='';},1400);},60);
 }
-document.getElementById('tabbar').innerHTML=[HOME,...APPS.filter(a=>a.key!=='masters'&&!ADMIN_KEYS.includes(a.key))].map(a=>`<button data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.short}</button>`).join('');
-document.getElementById('apps').innerHTML=APPS.filter(a=>!ADMIN_KEYS.includes(a.key)&&!ACC_KEYS.includes(a.key)).map(a=>`<button class="app" style="--c:${a.c}" onclick="go('${a.key}')"><div class="ic">${a.ic}</div><h3>${a.name}</h3><p>${a.desc}</p></button>`).join('');
+document.getElementById('tabbar').innerHTML=[HOME,...APPS.filter(a=>a.key!=='masters'&&!ADMIN_KEYS.includes(a.key)&&!HIDDEN_KEYS.includes(a.key))].map(a=>`<button data-k="${a.key}" style="--c:${a.c}" onclick="go('${a.key}')"><span class="ic">${a.ic}</span>${a.short}</button>`).join('');
+document.getElementById('apps').innerHTML=APPS.filter(a=>!ADMIN_KEYS.includes(a.key)&&!ACC_KEYS.includes(a.key)&&!HIDDEN_KEYS.includes(a.key)).map(a=>`<button class="app" style="--c:${a.c}" onclick="go('${a.key}')"><div class="ic">${a.ic}</div><h3>${a.name}</h3><p>${a.desc}</p></button>`).join('');
 // Main Page: the Accounts section as its own block of cards
 {const acc=ACC_KEYS.map(byKey).filter(Boolean);if(acc.length){const g=document.getElementById('apps'),t=document.createElement('div'),d=document.createElement('div');
   t.className='sec-title';t.textContent='Accounts';d.className=g.className;d.id='accBlock';
