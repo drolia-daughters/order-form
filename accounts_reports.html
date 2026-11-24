@@ -537,6 +537,32 @@ function sameParty(a,b){const x=pKey(a),y=pKey(b);if(!x||!y)return false;return 
 function partyOrders(e){return ST.orders().filter(o=>o.status!=='cancelled'&&sameParty(o.partyName,e.party)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));}
 function linkBill(id){const sel=document.getElementById('btLink');if(!sel||!sel.value)return;const all=g(FK);const e=all.find(x=>x.id===id);if(!e)return;const o=ST.findOrder(sel.value);if(!o||!sameParty(o.partyName,e.party)){alert('That order belongs to another party.');return;}
   e.orderNo=o.orderNo;s(FK,all);if(!o.billNo)ST.updateOrder(o.orderNo,x=>{x.billNo=e.invoiceNo||e.ref||'';});toast('✓ '+(e.invoiceNo||'')+' linked to '+o.orderNo);document.querySelectorAll('.bt-modal').forEach(x=>x.remove());renderSales();billTest(id);}
+/* 1.9.0: serial numbers of ONE bill (same rule as its test report) */
+function billSerials(e){let ono=billOrderNo(e);let o=ono&&ST.findOrder(ono);if(o&&!sameParty(o.partyName,e.party)){o=null;ono='';}
+  const al=ST.allocate();const invU=String(e.invoiceNo||'').toUpperCase();
+  const cs=ST.cells().filter(c=>{const a=al[c.sn];if(!a)return false;if(ono&&a.orderNo===ono)return true;return !a.orderNo&&String(a.invoiceNo||'').toUpperCase()===invU&&ST.sameParty(ST.partyFor(c.client),e.party);}).sort((a,b)=>String(a.sn).localeCompare(String(b.sn)));
+  const noW=!!(o&&ST.items(o).length&&ST.items(o).every(ST.noWarr));return {cells:cs,years:o?(parseFloat(o.warrantyYears)||1):1,noWarr:noW};}
+/* Print the serial numbers into the empty space under "Description of Goods" of the original Tally PDF (the saved original is not changed) */
+function loadLib(src,test){return test()?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});}
+async function stampSerials(bytes,info){const sns=info.cells.map(c=>String(c.sn));if(!sns.length)return null;
+  await InvoiceEngine.loadPdfJs();await loadLib('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',()=>window.PDFLib);
+  const doc=await pdfjsLib.getDocument({data:bytes.slice(0)}).promise;let pg=null,pi=0,its=[];
+  for(let i=1;i<=doc.numPages&&!pg;i++){const p=await doc.getPage(i);const t=await p.getTextContent();if(t.items.some(x=>/Description/i.test(x.str))){pg=p;pi=i-1;its=t.items.map(x=>({s:x.str,x:x.transform[4],y:x.transform[5],w:x.width||0}));}}
+  if(!pg)return null;const hd=its.find(x=>/Description/i.test(x.s));const hY=hd.y;const near=x=>Math.abs(x.y-hY)<6;
+  const hsn=its.find(x=>near(x)&&/HSN/i.test(x.s)),sl=its.find(x=>near(x)&&/^\s*Sl\b/i.test(x.s));
+  const x0=(sl?sl.x+14:hd.x-80),x1=(hsn?hsn.x-6:hd.x+160);
+  const tot=its.filter(x=>/^\s*Total\s*$/i.test(x.s)&&x.y<hY).sort((a,b)=>b.y-a.y)[0];const bottom=(tot?tot.y:60)+14;
+  const used=its.filter(x=>x.y<hY-2&&x.y>bottom&&x.x>=x0-12&&x.x<x1+40&&String(x.s).trim());const top=(used.length?Math.min(...used.map(x=>x.y)):hY-10)-14;
+  const L=PDFLib,pdf=await L.PDFDocument.load(bytes),page=pdf.getPages()[pi],fH=await pdf.embedFont(L.StandardFonts.Helvetica),fC=await pdf.embedFont(L.StandardFonts.Courier);
+  const black=L.rgb(0,0,0),grey=L.rgb(.3,.3,.3);let fs=7.5,lh=10,cols=Math.max(2,Math.floor((x1-x0)/(fC.widthOfTextAtSize('W'.repeat(Math.max(...sns.map(s=>s.length))),7.5)+10)));
+  const avail=top-bottom-24;let rows=Math.ceil(sns.length/cols);
+  if(rows*lh>avail){fs=6;lh=8;cols=Math.max(2,Math.floor((x1-x0)/(fC.widthOfTextAtSize('W'.repeat(Math.max(...sns.map(s=>s.length))),6)+8)));rows=Math.ceil(sns.length/cols);}
+  const maxRows=Math.max(1,Math.floor(avail/lh));let show=sns,more=0;if(rows>maxRows){show=sns.slice(0,maxRows*cols-1);more=sns.length-show.length;}
+  let y=top;page.drawText('LOAD CELL SERIAL NOS. ('+sns.length+' pcs) - tested & despatched:',{x:x0,y,size:7.5,font:fH,color:black});y-=11;const cw=(x1-x0)/cols;
+  show.forEach((s,i)=>{const r=Math.floor(i/cols),c=i%cols;page.drawText(s,{x:x0+c*cw,y:y-r*lh,size:fs,font:fC,color:black});});
+  y-=Math.ceil(show.length/cols)*lh+3;if(more){page.drawText('... and '+more+' more - see the attached test report',{x:x0,y,size:6.5,font:fH,color:black});y-=9;}
+  page.drawText(info.noWarr?'No warranty (special price items).':'Warranty: '+info.years+' year'+(info.years>1?'s':'')+' from despatch. Test report available on request.',{x:x0,y,size:6.5,font:fH,color:grey});
+  return await pdf.save();}
 function billTestHtml(e){let ono=billOrderNo(e);let o=ono&&ST.findOrder(ono);if(o&&!sameParty(o.partyName,e.party)){o=null;ono='';}
   const al=ST.allocate();const invU=String(e.invoiceNo||'').toUpperCase();
   const cs=ST.cells().filter(c=>{const a=al[c.sn];if(!a)return false;if(ono&&a.orderNo===ono)return true;return !a.orderNo&&String(a.invoiceNo||'').toUpperCase()===invU&&ST.sameParty(ST.partyFor(c.client),e.party);}).sort((a,b)=>String(a.sn).localeCompare(String(b.sn)));
@@ -561,7 +587,9 @@ function billCells(e){if(!window.ST||!ST.allocate||e.kind!=='sale')return '';con
     +(cs.length?'<div style="font-family:monospace;font-size:12px;line-height:1.8;">'+cs.map(c=>'<a href="test_reports.html?sn='+encodeURIComponent(c.sn)+'" style="color:#1d4ed8;margin-right:10px;">'+aEsc(c.sn)+'</a>').join('')+'</div>':'<div style="font-size:12px;color:#777;">No tested serial numbers linked yet.</div>')+'</div>';}
 async function viewBill(id){const e=billEntry(id);if(!e)return;const mb=document.getElementById('billModalBody');const box=document.querySelector('#billModal > div');
   if(e.pdfPath&&window.InvoiceEngine){box.style.maxWidth='1000px';mb.innerHTML='<div style="padding:30px;text-align:center;color:#555;">Opening the original bill…</div>';const m0=document.getElementById('billModal');m0.dataset.id=id;m0.style.display='flex';
-    const url=await InvoiceEngine.pdfUrl(e.pdfPath);if(url){m0.dataset.url=url;mb.innerHTML='<iframe src="'+url+'" style="width:100%;height:78vh;border:0;display:block;"></iframe>'+billCells(e);return;}}
+    let url=await InvoiceEngine.pdfUrl(e.pdfPath);if(url){
+      try{if(e.kind==='sale'){const info=billSerials(e);if(info.cells.length){const raw=new Uint8Array(await (await fetch(url)).arrayBuffer());const out=await stampSerials(raw,info);if(out)url=URL.createObjectURL(new Blob([out],{type:'application/pdf'}));}}}catch(err){console.warn('serials not added',err);}
+      m0.dataset.url=url;mb.innerHTML='<iframe src="'+url+'" style="width:100%;height:78vh;border:0;display:block;"></iframe>'+billCells(e);return;}}
   box.style.maxWidth='680px';document.getElementById('billModal').dataset.url='';
   mb.innerHTML=(e.source==='migration'?'<div style="margin:12px 16px 0;padding:8px 12px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa;font-size:12px;color:#9a3412;font-family:system-ui,Arial;">Original PDF not saved for this bill yet — drop the bill PDF in 📥 Invoices once more and press Data Migration; it is attached (nothing is posted twice). Summary below.</div>':'')+billHtml(e)+billCells(e);const m=document.getElementById('billModal');m.dataset.id=id;m.style.display='flex';}
 function closeBill(){document.getElementById('billModal').style.display='none';}
