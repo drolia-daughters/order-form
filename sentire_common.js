@@ -35,6 +35,9 @@ ST.approvers=()=>ST.get(ST.K.approvers,[]);
 // ─── Items: an order can have several loadcell lines ───
 ST.items=o=>{if(o&&Array.isArray(o.items)&&o.items.length)return o.items;
   return [{type:(o&&(o.loadcellType||o.type))||'',qty:(o&&(o.quantity||o.qty))||'',capacity:(o&&(o.capacity||o.cap))||'',wire:(o&&o.wire)||''}];};
+/* SP = special price for an item sold WITHOUT warranty (e.g. old pieces). When SP is filled it is THE selling price: billed and collected. */
+ST.noWarr=x=>!!x&&(parseFloat(x.sp)>0||x.noWarranty===true);
+ST.price=x=>{const sp=parseFloat(x&&x.sp);return sp>0?sp:(parseFloat(x&&x.rate)||0);};
 ST.itemsSummary=items=>{const uniq=a=>[...new Set(a.map(x=>String(x||'').trim()).filter(Boolean))];
   const total=items.reduce((s,i)=>s+(parseFloat(i.qty)||0),0);
   return {loadcellType:uniq(items.map(i=>i.type)).join(', '),quantity:total?String(total):'',capacity:uniq(items.map(i=>i.capacity)).join(' / '),wire:uniq(items.map(i=>i.wire)).join(' / '),
@@ -182,7 +185,7 @@ ST.printDoc=function(doc,name){
 // Shows only what production needs. Client contact, payment, transporter ID/email, L.R. and tracking stay in the database.
 ST.drawOrderSheet=function(doc,o,top,opt){opt=opt||{};
   const W=210,M=10,CW=W-2*M,HH=opt.full?297:148.5;let y=top+7;
-  const items=ST.items(o);const multi=items.length>1;
+  const items=ST.items(o).map(x=>ST.noWarr(x)?Object.assign({},x,{type:(x.type||'')+' (NO WARRANTY)'}):x);const multi=items.length>1;
   // Header
   doc.setFillColor(30,41,59);doc.rect(M,y,CW,13,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(255);doc.text('ORDER SHEET',M+4,y+8.5);
@@ -325,6 +328,6 @@ ST.canBill=()=>!window.SentireAuth||!SentireAuth.canBill||SentireAuth.canBill();
 ST.isAdmin=()=>!window.SentireAuth||!SentireAuth.enabled||!SentireAuth.user||SentireAuth.user.role==='Admin';
 ST.advanceCheck=function(o){o=o||{};const mode=(ST.payInfo(o)||{}).mode;
   const r={needed:mode==='Advance',total:0,adv:0,min:0,pct:0,ok:true,noPrice:false};if(!r.needed)return r;
-  r.total=ST.items(o).reduce((s,x)=>s+(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0),0);if(!r.total&&parseFloat(o.billTotal)>0)r.total=parseFloat(o.billTotal);
+  r.total=ST.items(o).reduce((s,x)=>s+(parseFloat(x.qty)||0)*ST.price(x),0);if(!r.total&&parseFloat(o.billTotal)>0)r.total=parseFloat(o.billTotal);
   r.adv=parseFloat(o.advanceReceived)||0;r.min=r.total*ST.ADV_MIN/100;r.pct=r.total?Math.round(r.adv*1000/r.total)/10:0;
   r.noPrice=!r.total;r.ok=!r.noPrice&&r.adv>=r.min-0.005;return r;};

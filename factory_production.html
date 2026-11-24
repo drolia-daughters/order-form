@@ -166,7 +166,7 @@ async function notifyAcs(no){const j=getJob(no);if(!j)return;const o=orderOf(j),
 // Bill details WITH rates — for Accounts (ACS) and Admins only
 function billDetails(no){const j=getJob(no);if(!j||!ST.canBill())return;const o=orderOf(j);if(!o){alert('This job has no linked order.');return;}
   const its=ST.items(o),cl=ST.client(o.partyName)||{};let tot=0;
-  const rows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*(parseFloat(x.rate)||0);tot+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td><td>'+(x.rate?ST.inr(x.rate):'<i>not entered</i>')+'</td><td>'+(a?ST.inr(a):'—')+'</td></tr>';}).join('');
+  const rows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*ST.price(x);tot+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+(ST.noWarr(x)?' <b style="color:#ef4444">· NO WARRANTY (SP)</b>':'')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td><td>'+(parseFloat(x.sp)>0?'<b>SP '+ST.inr(x.sp)+'</b>':(x.rate?ST.inr(x.rate):'<i>not entered</i>'))+'</td><td>'+(a?ST.inr(a):'—')+'</td></tr>';}).join('');
   const tn=trOf(j),tc=tn?ST.transporter(tn):{};const D=(l,v)=>(v===undefined||v===null||v==='')?'':'<div><span style="opacity:.6">'+E(l)+':</span> <b>'+E(String(v))+'</b></div>';
   const sec=t=>'<div style="margin:12px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.6">'+t+'</div>';
   ST.modal({title:'💰 Bill details — '+E(o.orderNo),sub:E(o.partyName)+(o.location?' · '+E(o.location):''),wide:true,
@@ -231,7 +231,7 @@ function billFromJob(j){const bills=ST.get(ST.K.bills,[]);const ex=bills.find(b=
   const gstin=(cl.gstin||'').toUpperCase();const sc=gstin?gstin.slice(0,2):(cl.stateCode||c.stateCode);
   return {no:nextInvNo(),date:ST.today(),jobNo:j.jobNo,orderNo:j.orderRef||'',
     buyer:{name:j.party,gstin,address:cl.address||'',place:o.location||cl.location||'',pincode:cl.pincode||'',stateCode:sc,phone:o.clientPhone||cl.phone||''},
-    items:itemsOf(j).map(i=>({desc:'Load Cell '+(i.type||'')+(i.capacity?' '+i.capacity:''),hsn:c.hsn||'',qty:i.qty||'',unit:'NOS',rate:'',gst:c.gst==null?18:c.gst})),
+    items:itemsOf(j).map(i=>({desc:'Load Cell '+(i.type||'')+(i.capacity?' '+i.capacity:'')+(ST.noWarr(i)?' - WITHOUT WARRANTY':''),hsn:c.hsn||'',qty:i.qty||'',unit:'NOS',rate:parseFloat(i.sp)>0?+i.sp:'',gst:c.gst==null?18:c.gst})),
     transport:{name:tname,id:t.transporterId||'',vehicle:'',distance:'',boxes:j.boxes||'',weight:j.weight||''}};}
 async function openBill(no){const j=getJob(no);if(!j)return;
   let b=billFromJob(j);const c=ST.company();
