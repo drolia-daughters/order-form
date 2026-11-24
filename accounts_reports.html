@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script><script src="invoice_engine.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script><script src="sentire_common.js"></script><script src="invoice_engine.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Accounts & Reports — Sentire Technologies</title>
@@ -119,7 +119,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Invoice #</th><th>GRN No.</th><th>Supplier</th><th>GSTIN</th><th>Taxable</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody id="purBody"></tbody></table></div></div>
 
 <!-- INVOICE INBOX -->
-<div class="view" id="v_invoices"><h2 style="margin-bottom:6px;">📥 Invoice Inbox</h2>
+<div class="view" id="v_invoices"><h2 style="margin-bottom:6px;display:flex;align-items:center;gap:10px;">📥 Invoice Inbox <button class="btn" style="margin-left:auto;font-size:13px;" onclick="openTests()">🧪 Test Reports</button></h2>
 <p style="color:var(--text-dim);margin-bottom:12px;font-size:13px;">Add all your sales and purchase invoice PDFs here, then press <b>Data Migration</b>. Your own Tally sales invoices post automatically; supplier purchase bills are shown for a quick check first. Bills of <b>AKRITI SALES CORPORATION</b> and <b>PUNAM SALES</b> are never migrated. If a bill is not posted, press <b>👁 View</b> to see why.</p>
 <div id="dropZone" style="border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;cursor:pointer;margin-bottom:12px;">
   <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none;">
@@ -519,7 +519,14 @@ function billHtml(e){
     +'<div style="margin-top:12px;font-size:10px;color:#999;">Recorded in Sentire Command Center from the '+(isSale?'Tally sales':'supplier purchase')+' invoice.'+(e.pdfName?' Source file: '+aEsc(e.pdfName):'')+'</div>'
   +'</div>';
 }
-function viewBill(id){const e=billEntry(id);if(!e)return;const mb=document.getElementById('billModalBody');mb.innerHTML=billHtml(e);const m=document.getElementById('billModal');m.dataset.id=id;m.style.display='flex';}
+function openTests(q){const f='test_reports.html'+(q?'?sn='+encodeURIComponent(q):'');if(window.parent!==window&&!q)window.parent.postMessage({sentireNav:'test_reports.html'},'*');else location.href=f;}
+function billCells(e){if(!window.ST||!ST.allocate||e.kind!=='sale')return '';const al=ST.allocate();let ono=e.orderNo;
+  if(!ono){const o=ST.orders().find(x=>x.billNo&&String(x.billNo).toUpperCase()===String(e.invoiceNo||'').toUpperCase());if(o)ono=o.orderNo;}
+  if(!ono)return '<div style="max-width:640px;margin:0 auto 18px;padding:10px 14px;font-size:12px;color:#555;border:1px dashed #ccc;border-radius:8px;">Load cells: this invoice is not linked to an order yet, so no serial numbers. Tip: type the order no. in Tally’s “Buyer’s Order No.”.</div>';
+  const cs=ST.cells().filter(c=>al[c.sn]&&al[c.sn].orderNo===ono);
+  return '<div style="max-width:640px;margin:0 auto 18px;padding:12px 16px;font-family:system-ui,Arial;color:#111;border:1px solid #ddd;border-radius:8px;"><div style="font-weight:700;margin-bottom:6px;">Load cells in this invoice — order '+aEsc(ono)+' · '+cs.length+' serial no.</div>'
+    +(cs.length?'<div style="font-family:monospace;font-size:12px;line-height:1.8;">'+cs.map(c=>'<a href="test_reports.html?sn='+encodeURIComponent(c.sn)+'" style="color:#1d4ed8;margin-right:10px;">'+aEsc(c.sn)+'</a>').join('')+'</div>':'<div style="font-size:12px;color:#777;">No tested serial numbers linked yet.</div>')+'</div>';}
+function viewBill(id){const e=billEntry(id);if(!e)return;const mb=document.getElementById('billModalBody');mb.innerHTML=billHtml(e)+billCells(e);const m=document.getElementById('billModal');m.dataset.id=id;m.style.display='flex';}
 function closeBill(){document.getElementById('billModal').style.display='none';}
 function printBill(id){const e=billEntry(id);if(!e)return;const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print.');return;}w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+aEsc(e.invoiceNo||'Invoice')+'</title></head><body onload="window.focus();window.print();">'+billHtml(e)+'</body></html>');w.document.close();}
 

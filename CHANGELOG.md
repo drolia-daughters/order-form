@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.4.0 | 24 Nov 2026 | Load cell serial numbers: new Test Reports app (upload testing-machine Excel; by customer: ordered / tested / despatched / not tested + checks; all load cells search); serial nos. linked to customer → order (type + actual capacity) → sales invoice; 🧪 Test Reports button in Accounts → Invoice Inbox; serial list in order details and in sales bill view; Masters → 🔎 Load cell S/N search (test data, order, invoice, warranty, repairs); Repairs looks up typed S/N and fills customer, order, warranty; Order Sheet: optional extended warranty (1/2/3/5 years) and Wire as a drop-down list (Masters → Wires) |
 | 1.3.2 | 24 Nov 2026 | Undo of 1.3.1: column name is back to 'Type of Loadcell' |
 | 1.3.1 | 24 Nov 2026 | Order Sheet: column 'Type of Loadcell' renamed to 'Item / Loadcell' (undone in 1.3.2) |
 | 1.3.0 | 24 Nov 2026 | Main Page: every number in 'Today at a glance' opens a list of the items behind it; clicking a row opens that order / job / app directly (orders open their details, jobs open their job card, job workers open their register). Order details: items table now fits in the box |

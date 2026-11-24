@@ -37,7 +37,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 </head>
 <body>
 <div class="topbar"><div class="brand"><div class="icon">MS</div><h1>Masters</h1></div>
-<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="clients">Clients</button><button class="tab-btn" data-v="vendors">Vendors</button><button class="tab-btn" data-v="trans">Transporters</button><button class="tab-btn" data-v="appr">Approvers</button><button class="tab-btn" data-v="company">Company</button><button class="tab-btn" data-v="hol">Holidays</button><button class="tab-btn" data-v="rules">Payment Rules</button><button class="tab-btn" data-v="migrate">📥 Migrate Invoices</button></div></div>
+<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="clients">Clients</button><button class="tab-btn" data-v="vendors">Vendors</button><button class="tab-btn" data-v="trans">Transporters</button><button class="tab-btn" data-v="appr">Approvers</button><button class="tab-btn" data-v="company">Company</button><button class="tab-btn" data-v="hol">Holidays</button><button class="tab-btn" data-v="rules">Payment Rules</button><button class="tab-btn" data-v="sn">🔎 Load cell S/N</button><button class="tab-btn" data-v="wires">Wires</button><button class="tab-btn" data-v="migrate">📥 Migrate Invoices</button></div></div>
 <div class="main">
 
 <div class="view active" id="v_clients"><h2>Clients</h2><p class="sub">Payment terms here are used for every new order and for reminders. GSTIN, address and pincode are used on the bill and e-way bill. WhatsApp numbers get despatch messages and payment reminders.</p>
@@ -71,6 +71,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 <div class="fg"><label>Gap between reminders (days)</label><input id="r_gap" type="number" min="1"></div>
 <div class="fg"><label>Reminders before escalation</label><input id="r_max" type="number" min="1" max="10"><div class="hint">After this many reminders + one more gap → Admin & Sub Admin</div></div>
 </div><div id="r_eg" class="hint" style="margin-top:14px;font-size:12px;"></div><div style="display:flex;justify-content:flex-end;margin-top:16px;"><button class="btn ok" onclick="saveRules()">✓ Save rules</button></div></div></div>
+<div class="view" id="v_sn"><h2>🔎 Search load cell by serial number</h2><p class="sub">Type the serial number written on the load cell (from the testing machine). You see the customer, order, sales invoice, despatch date, test results, warranty (1 year, extended, or none for SP items) and any earlier repairs. Several numbers can be typed together, separated by commas.</p>
+<div class="toolbar"><input id="snQ" placeholder="e.g. 2602492221" style="max-width:420px;font-family:var(--mono);font-size:15px" onkeydown="if(event.key==='Enter')snSearch()"><button class="btn pri" onclick="snSearch()">Search</button><span class="sp"></span><a class="btn" href="test_reports.html">🧪 Test Reports</a></div>
+<div id="snOut" style="display:grid;gap:12px"></div></div>
+<div class="view" id="v_wires"><h2>Wires</h2><p class="sub">The wire list used in the Order Sheet drop-down. Keep the same names in Tally and in the testing machine so all data matches (for example ARMOURED 16M, ORANGE 16M). A wire added from the Order Sheet appears here too.</p>
+<div class="toolbar"><input id="wNew" placeholder="New wire, e.g. ARMOURED 12M" style="max-width:300px" onkeydown="if(event.key==='Enter')addWireM()"><button class="btn pri" onclick="addWireM()">+ Add</button></div>
+<div class="table-wrap" style="max-width:640px"><table><thead><tr><th>Wire</th><th class="num">Used in orders</th><th></th></tr></thead><tbody id="wBody"></tbody></table></div></div>
 <div class="view" id="v_migrate"><h2>📥 Migrate Invoices</h2>
 <p class="sub">Point this at your <b>Sales</b> folder of invoice PDFs and press Migrate. Every bill is read, matched to its order, and its customer details are added to the Clients master. Bills of <b>AKRITI SALES CORPORATION</b> and <b>PUNAM SALES</b> are never migrated — the same as we did by hand this morning, but for the whole folder at once.</p>
 <div class="card">
@@ -97,7 +103,7 @@ const E=ST.esc;const K=ST.K;
 function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab-btn');if(!b)return;showV(b.dataset.v);});
 function showV(v){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v_'+v));
-  const _mv={clients:renderClients,trans:renderTrans,appr:renderAppr,company:renderCompany,hol:renderHol,rules:renderRules,vendors:renderVendors,migrate:renderMigrate};(_mv[v]||function(){})();}
+  const _mv={clients:renderClients,trans:renderTrans,appr:renderAppr,company:renderCompany,hol:renderHol,rules:renderRules,vendors:renderVendors,migrate:renderMigrate,sn:()=>document.getElementById('snQ').focus(),wires:renderWires};(_mv[v]||function(){})();}
 const stateName=c=>({'24':'Gujarat','27':'Maharashtra','08':'Rajasthan','23':'Madhya Pradesh','07':'Delhi','09':'Uttar Pradesh','06':'Haryana','03':'Punjab','29':'Karnataka','33':'Tamil Nadu','36':'Telangana','37':'Andhra Pradesh','19':'West Bengal','10':'Bihar','21':'Odisha','22':'Chhattisgarh','20':'Jharkhand','32':'Kerala','30':'Goa','26':'Dadra & Nagar Haveli and Daman & Diu','05':'Uttarakhand','02':'Himachal Pradesh','01':'Jammu & Kashmir','18':'Assam'})[String(c||'').padStart(2,'0')]||'';
 
 /* ═════ CLIENTS ═════ */
@@ -205,6 +211,14 @@ async function editVendor(name){const isNew=!name;const vv=ST.get(K.vendors,{});
       const g=q('v_g').toUpperCase();if(g&&!/^\d{2}[A-Z0-9]{13}$/.test(g)){err.textContent='GSTIN should be 15 characters.';return false;}
       return {n:n.toUpperCase(),l:q('v_l'),p:q('v_p'),e:q('v_e'),g,a:q('v_a'),pin:q('v_pin'),sc:q('v_sc')||(g?g.slice(0,2):'')};}}]});
   if(!r)return;const x=vv[r.n]=vv[r.n]||{};Object.assign(x,{location:r.l,phone:r.p,email:r.e,gstin:r.g,address:r.a,pincode:r.pin,stateCode:r.sc});ST.set(K.vendors,vv);toast('✓ Vendor saved');renderVendors();}
+
+/* ═════ LOAD CELL S/N SEARCH · WIRES (1.4.0) ═════ */
+function snSearch(){const q=document.getElementById('snQ').value;const list=q.split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);const out=document.getElementById('snOut');if(!list.length){out.innerHTML='';return;}
+  const al=ST.allocate();out.innerHTML=list.slice(0,50).map(sn=>ST.cellCard(ST.cellInfo(sn,al))).join('');}
+function wireUse(){const u={};ST.orders().forEach(o=>ST.items(o).forEach(it=>{const w=ST.wireStd(it.wire);if(w)u[w]=(u[w]||0)+1;}));return u;}
+function renderWires(){const u=wireUse();document.getElementById('wBody').innerHTML=ST.wires().map((w,i)=>`<tr><td><strong>${E(w)}</strong></td><td class="num" style="font-family:var(--mono)">${u[w]||0}</td><td><button class="btn sm del" onclick="delWire(${i})">Remove</button></td></tr>`).join('');}
+function addWireM(){const v=document.getElementById('wNew').value;const w=ST.addWire(v);if(!w)return;document.getElementById('wNew').value='';toast('✓ '+w+' added');renderWires();}
+function delWire(i){const l=ST.wires();if(!confirm('Remove '+l[i]+' from the list? Old orders keep their wire.'))return;l.splice(i,1);ST.set(ST.K.wires,l);renderWires();}
 
 /* ═════ MIGRATE INVOICES (sales) ═════ */
 let salQueue=[];

@@ -149,6 +149,12 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
       <div class="mini-note" style="margin-top:4px;">Default payment days for each client are set in Masters → Clients</div><div id="advanceBox" style="display:none;margin-top:8px;"><label style="font-size:11px;color:var(--green,#22c55e);margin-bottom:4px;">Advance received (₹) 🔒 Admin only</label><input type="number" id="advanceReceived" min="0" step="any" placeholder="0" style="width:160px;"><div class="mini-note" id="advanceNote" style="margin-top:4px;"></div></div><div id="creditDaysBox" style="display:none;margin-top:8px;"><label style="font-size:11px;color:var(--orange);margin-bottom:4px;">Credit Days (e.g. 30, 45, 60)</label><input type="number" id="creditDays" placeholder="30" min="1" max="99" style="width:100px;"><div class="auto-hint" id="creditHint">↑ Auto-filled from client</div></div>
     </div>
 
+    <!-- WARRANTY (1.4.0) -->
+    <div class="form-group"><label><span class="sl">11b</span> Warranty</label>
+      <select id="warrantyYears"><option value="1">Standard — 1 year</option><option value="2">Extended — 2 years</option><option value="3">Extended — 3 years</option><option value="5">Extended — 5 years</option></select>
+      <div class="mini-note" style="margin-top:4px;">The tested load cell serial numbers of this order get this warranty (from the despatch date). Items with an SP price have no warranty.</div>
+    </div>
+
     <!-- LASER/LOGO -->
     <div class="form-group full-width"><label><span class="sl">12</span> Laser / Logo</label>
       <input type="text" id="laserLogo" placeholder="Logo text">
@@ -257,7 +263,12 @@ async function addNewStockItem(){const E=ST.esc;
   const b=document.getElementById('itemsBody');let row=b.rows[b.rows.length-1];const ti=row&&row.querySelector('.it-type');if(ti&&ti.value)row=addItemRow({});
   if(row){row.querySelector('.it-type').value=r.n;row.querySelector('.it-qty').focus();}updItemsTotal();showToast('success');}
 
-function itemRowHtml(it,i){it=it||{};return `<tr><td class="it-n">${i+1}</td><td><input class="it-type" list="lcTypes" placeholder="DLC" value="${ST.esc(it.type||'')}" oninput="updItemsTotal()"></td><td style="width:120px;"><input class="it-qty" type="number" min="1" placeholder="12" value="${ST.esc(it.qty||'')}" oninput="updItemsTotal()"></td><td><input class="it-cap" placeholder="33T / 2 MV" value="${ST.esc(it.capacity||'')}"></td><td class="actual-col"><input class="it-capa" placeholder="actual (optional)" value="${ST.esc(it.capacityActual||'')}"></td><td><input class="it-wire" placeholder="Blue - 16 Mtrs" value="${ST.esc(it.wire||'')}"></td><td class="rate-col" style="width:120px;"><input class="it-rate" type="number" min="0" step="any" placeholder="optional" value="${ST.esc(it.rate||'')}"></td><td class="rate-col" style="width:120px;"><input class="it-sp" type="number" min="0" step="any" placeholder="only if no warranty" title="Special price: item sold WITHOUT warranty" value="${ST.esc(it.sp||'')}" oninput="this.style.borderColor=this.value?'var(--red,#ef4444)':''" ${it.sp?'style="border-color:var(--red,#ef4444)"':''}></td><td style="width:44px;"><button type="button" class="it-del" data-tip="Remove this item" onclick="delItemRow(this)">×</button></td></tr>`;}
+/* 1.4.0 Wire = fixed list (Masters → Wires), same names as Tally and the testing machine */
+function wireOpts(v){const L=ST.wires();const std=v?ST.wireStd(v):'';const inL=std&&L.includes(std);
+  return '<option value="">— select wire —</option>'+L.map(w=>'<option'+(inL&&w===std?' selected':'')+'>'+ST.esc(w)+'</option>').join('')+(v&&!inL&&std!=='NO WIRE'?'<option value="'+ST.esc(v)+'" selected>'+ST.esc(v)+' (old — pick from list)</option>':'')+'<option value="NO WIRE"'+(std==='NO WIRE'?' selected':'')+'>No wire</option><option value="__new">➕ Add new wire…</option>';}
+function onWirePick(sel){if(sel.value!=='__new')return;const n=prompt('New wire — type and length, e.g. ARMOURED 12M or ORANGE 20M');const w=n?ST.addWire(n):'';
+  document.querySelectorAll('#itemsBody .it-wire').forEach(x=>{const keep=x===sel?w:x.value;x.innerHTML=wireOpts(keep);x.value=keep;});if(w)showToast&&0;}
+function itemRowHtml(it,i){it=it||{};return `<tr><td class="it-n">${i+1}</td><td><input class="it-type" list="lcTypes" placeholder="DLC" value="${ST.esc(it.type||'')}" oninput="updItemsTotal()"></td><td style="width:120px;"><input class="it-qty" type="number" min="1" placeholder="12" value="${ST.esc(it.qty||'')}" oninput="updItemsTotal()"></td><td><input class="it-cap" placeholder="33T / 2 MV" value="${ST.esc(it.capacity||'')}"></td><td class="actual-col"><input class="it-capa" placeholder="actual (optional)" value="${ST.esc(it.capacityActual||'')}"></td><td><select class="it-wire" onchange="onWirePick(this)">${wireOpts(it.wire)}</select></td><td class="rate-col" style="width:120px;"><input class="it-rate" type="number" min="0" step="any" placeholder="optional" value="${ST.esc(it.rate||'')}"></td><td class="rate-col" style="width:120px;"><input class="it-sp" type="number" min="0" step="any" placeholder="only if no warranty" title="Special price: item sold WITHOUT warranty" value="${ST.esc(it.sp||'')}" oninput="this.style.borderColor=this.value?'var(--red,#ef4444)':''" ${it.sp?'style="border-color:var(--red,#ef4444)"':''}></td><td style="width:44px;"><button type="button" class="it-del" data-tip="Remove this item" onclick="delItemRow(this)">×</button></td></tr>`;}
 // Price per piece: seen only by the person who took the order and by Admins (hidden in everyone else's screen)
 const isAdminMe=()=>!window.SentireAuth||!SentireAuth.enabled||!SentireAuth.user||SentireAuth.user.role==='Admin';
 /* Who may SEE item prices on ALL orders: Admins always; billing users (can_bill, e.g. jaimini); and these order-taker login_ids. an01 = anjali. Plus whoever created a given order sees that order's price. Edit ORDER_TAKERS to change who. */
@@ -275,7 +286,7 @@ function updItemsTotal(){const it=getItems();const tot=it.reduce((s,x)=>s+(parse
 // Voice: "loadcell DLC" fills the last row (or adds a row if it already has a type); quantity/capacity/wire fill the last row
 function orderVoiceItem(f,v){const b=document.getElementById('itemsBody');let r=b.rows[b.rows.length-1];
   if(f==='type'&&r.querySelector('.it-type').value)r=addItemRow({});
-  const el=r.querySelector({type:'.it-type',qty:'.it-qty',capacity:'.it-cap',wire:'.it-wire'}[f]);if(el){el.value=f==='type'?normType(v):v;updItemsTotal();}}
+  const el=r.querySelector({type:'.it-type',qty:'.it-qty',capacity:'.it-cap',wire:'.it-wire'}[f]);if(el){if(f==='wire'){const w=ST.wireStd(v);if(w&&!ST.wires().includes(w))ST.addWire(w);el.innerHTML=wireOpts(w);el.value=w;}else el.value=f==='type'?normType(v):v;updItemsTotal();}}
 
 // ─── PARTY EDIT / DELETE ───
 function editPartyName(){
@@ -329,7 +340,7 @@ function onPartyChange(){const p=document.getElementById('partyName').value;
   document.getElementById('location').value='';
   document.getElementById('clientEmail').value='';
   document.getElementById('clientPhone').value='';
-  document.getElementById('paymentMode').value='';onPaymentModeChange();
+  document.getElementById('paymentMode').value='';onPaymentModeChange();document.getElementById('warrantyYears').value='1';
   document.getElementById('creditDays').value='';
   document.getElementById('laserLogo').value='';
   document.getElementById('savedLogoArea').style.display='none';
@@ -480,7 +491,7 @@ function editOrder(ri){const db=gdb(),o=db[ri];if(!o)return;editingIndex=ri;show
   document.getElementById('transporterEmail').value=o.transporterEmail||'';document.getElementById('transporterPhone').value=o.transporterPhone||'';
   document.getElementById('lrNumber').value=o.lrNumber||'';document.getElementById('trackingLink').value=o.trackingLink||'';document.getElementById('trackingLink').dataset.auto='';
   document.getElementById('dod').value=o.dod||'';document.getElementById('dod')._stCheck&&document.getElementById('dod')._stCheck();
-  document.getElementById('paymentMode').value=o.paymentMode||'';document.getElementById('advanceReceived').value=o.advanceReceived||'';onPaymentModeChange();document.getElementById('creditDays').value=o.creditDays||'';
+  document.getElementById('warrantyYears').value=String(o.warrantyYears||'1');document.getElementById('paymentMode').value=o.paymentMode||'';document.getElementById('advanceReceived').value=o.advanceReceived||'';onPaymentModeChange();document.getElementById('creditDays').value=o.creditDays||'';
   // Show saved logo if exists
   if(o.logoImage){logoBase64=o.logoImage;document.getElementById('logoPreviewImg').src=logoBase64;document.getElementById('logoPreview').classList.add('visible');document.getElementById('uploadZone').style.display='none';document.getElementById('savedLogoArea').style.display='none';}
   else{removeLogo();const cc=gm(CCK);if(cc[o.partyName]&&cc[o.partyName].logo){document.getElementById('savedLogoArea').style.display='block';document.getElementById('savedLogoImg').src=cc[o.partyName].logo;logoBase64=cc[o.partyName].logo;}else{document.getElementById('savedLogoArea').style.display='none';}}
@@ -521,7 +532,7 @@ async function submitOrder(e){e.preventDefault();
   const form={orderNo:v('orderNo'),date:v('orderDate'),partyName:v('partyName'),location:v('location'),clientEmail:v('clientEmail'),clientPhone:v('clientPhone'),
     items:items,loadcellType:sum.loadcellType,quantity:sum.quantity,capacity:sum.capacity,wire:sum.wire,itemsText:sum.itemsText,
     laserLogo:v('laserLogo'),logoImage:logoBase64,productionRemarks:v('productionRemarks'),transporterName:v('transporterName'),transporterId:v('transporterId'),transporterEmail:v('transporterEmail'),transporterPhone:v('transporterPhone'),
-    lrNumber:v('lrNumber'),trackingLink:v('trackingLink'),dod:v('dod'),paymentMode:v('paymentMode'),creditDays:v('creditDays'),orderRemarks:v('orderRemarks'),wiringBy:v('wiringBy'),packingBy:v('packingBy'),testingBy:v('testingBy')};
+    lrNumber:v('lrNumber'),trackingLink:v('trackingLink'),dod:v('dod'),paymentMode:v('paymentMode'),creditDays:v('creditDays'),warrantyYears:v('warrantyYears'),orderRemarks:v('orderRemarks'),wiringBy:v('wiringBy'),packingBy:v('packingBy'),testingBy:v('testingBy')};
   if(isAdminMe())form.advanceReceived=v('advanceReceived');
   // Learn parties / transporters / client details
   if(form.partyName){const l=g(PK);if(!l.includes(form.partyName)){l.push(form.partyName);s(PK,l);popDD('partyName',PK);}}
@@ -691,14 +702,16 @@ function viewOrder(ri){const o=gdb()[ri];if(!o)return;const E=ST.esc;
   const its=ST.items(o);
   const showR=canRate(o);let amt=0;
   const itemRows=its.map((x,i)=>{const a=(parseFloat(x.qty)||0)*ST.price(x);amt+=a;return '<tr><td>'+(i+1)+'</td><td>'+E(x.type||'—')+(ST.noWarr(x)?' <b style="color:#ef4444">· NO WARRANTY</b>':'')+'</td><td>'+E(x.qty||'—')+'</td><td>'+E(x.capacity||'—')+'</td><td>'+E(x.wire||'—')+'</td>'+(showR?'<td>'+(x.rate?'₹ '+E(x.rate):'—')+(parseFloat(x.sp)>0?'<br><b style="color:#ef4444">SP ₹ '+E(x.sp)+'</b>':'')+'</td><td>'+(a?'₹ '+a.toLocaleString('en-IN'):'—')+'</td>':'')+'</tr>';}).join('')+(showR&&amt?'<tr><td colspan="6" style="text-align:right"><b>Total (qty × price, SP where given)</b></td><td><b>₹ '+amt.toLocaleString('en-IN')+'</b></td></tr>':'');
-  const known=new Set(['orderNo','date','deliveryDate','partyName','location','clientEmail','clientPhone','items','loadcellType','quantity','capacity','wire','itemsText','laserLogo','logoImage','productionRemarks','transporterName','transporterId','transporterEmail','transporterPhone','lrNumber','trackingLink','dod','paymentMode','creditDays','orderRemarks','wiringBy','packingBy','testingBy','status','billNo','billTotal','boxes','weight','approvedAt','reminders','escalatedAt','paidDate','paymentDone']);
+  const known=new Set(['warrantyYears','orderNo','date','deliveryDate','partyName','location','clientEmail','clientPhone','items','loadcellType','quantity','capacity','wire','itemsText','laserLogo','logoImage','productionRemarks','transporterName','transporterId','transporterEmail','transporterPhone','lrNumber','trackingLink','dod','paymentMode','creditDays','orderRemarks','wiringBy','packingBy','testingBy','status','billNo','billTotal','boxes','weight','approvedAt','reminders','escalatedAt','paidDate','paymentDone']);
   const more=Object.keys(o).filter(k=>!known.has(k)&&typeof o[k]!=='object'&&o[k]!==''&&o[k]!==null&&String(o[k]).length<200&&!/image|logo|photo|base64/i.test(k)).map(k=>g(k.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase()),o[k])).join('');
   const logo=o.logoImage?'<img src="'+o.logoImage+'" style="max-height:90px;border-radius:6px;background:#fff;padding:4px;margin-top:6px;">':'';
   document.getElementById('ovbox').innerHTML=
    '<h3>Order '+E(o.orderNo)+' — '+E(o.partyName)+'</h3><div class="ovsub">'+E(status)+'</div>'
-   +'<div class="ovsec">Order</div><div class="ovgrid">'+g('Order No',o.orderNo)+g('Order date',d(o.date)||o.date)+g('Delivery date',d(o.deliveryDate))+g('Despatched on',d(o.dod))+g('Total quantity',o.quantity)+g('Job no',pj&&pj.jobNo)+g('Bill no',o.billNo)+g('Bill total',o.billTotal?ST.inr(o.billTotal):'')+g('Approved on',o.approvedAt?d(String(o.approvedAt).slice(0,10)):'')+'</div>'
+   +'<div class="ovsec">Order</div><div class="ovgrid">'+g('Order No',o.orderNo)+g('Order date',d(o.date)||o.date)+g('Delivery date',d(o.deliveryDate))+g('Despatched on',d(o.dod))+g('Total quantity',o.quantity)+g('Warranty',(parseFloat(o.warrantyYears)||1)>1?o.warrantyYears+' years (extended)':'1 year (standard)')+g('Job no',pj&&pj.jobNo)+g('Bill no',o.billNo)+g('Bill total',o.billTotal?ST.inr(o.billTotal):'')+g('Approved on',o.approvedAt?d(String(o.approvedAt).slice(0,10)):'')+'</div>'
    +'<div class="ovsec">Customer</div><div class="ovgrid">'+g('Party',o.partyName)+g('Location',o.location)+g('Email',o.clientEmail)+g('Phone',o.clientPhone)+'</div>'
    +'<div class="ovsec">Items</div><table class="ovtbl"><tr><th>#</th><th>Type</th><th>Qty</th><th>Capacity</th><th>Wire</th>'+(showR?'<th>Price/pc</th><th>Amount</th>':'')+'</tr>'+(itemRows||'<tr><td colspan="5">No items</td></tr>')+'</table>'
+   +(()=>{const al=ST.allocate();const cs=ST.cells().filter(c=>al[c.sn]&&al[c.sn].orderNo===o.orderNo);const q=parseFloat(o.quantity)||0;if(!cs.length&&!ST.cells().length)return '';
+      return '<div class="ovsec">Load cells — tested serial numbers ('+cs.length+' of '+q+')</div>'+(cs.length?'<div style="font-family:var(--mono);font-size:12px;line-height:1.9;">'+cs.map(c=>'<a href="test_reports.html?sn='+encodeURIComponent(c.sn)+'" style="color:#93c5fd;margin-right:10px;">'+E(c.sn)+'</a>').join('')+'</div>':'<div style="font-size:12px;color:var(--text-dim)">None in the test reports yet.</div>')+(q&&cs.length<q?'<div style="font-size:12px;color:var(--orange);margin-top:4px;">'+(q-cs.length)+' still to be tested.</div>':'');})()
    +'<div class="ovsec">Branding &amp; production</div><div class="ovgrid">'+g('Laser logo / text',o.laserLogo)+g('Wiring by',o.wiringBy)+g('Packing by',o.packingBy)+g('Testing by',o.testingBy)+g('Production remarks',o.productionRemarks)+'</div>'+logo
    +'<div class="ovsec">Transport</div><div class="ovgrid">'+g('Transporter',o.transporterName)+g('Transporter email',o.transporterEmail)+g('Transporter phone',o.transporterPhone)+g('L.R. number',o.lrNumber)+g('Boxes',o.boxes)+g('Weight (kg)',o.weight)+g('Tracking link',o.trackingLink)+'</div>'
    +'<div class="ovsec">Payment</div><div class="ovgrid">'+g('Payment mode',o.paymentMode)+(isAdminMe()&&pi&&pi.mode==='Advance'?(()=>{const ac=ST.advanceCheck(o);return g('Advance received',ac.adv?ST.inr(ac.adv):'₹0')+g('Order value',ac.total?ST.inr(ac.total):'price not entered')+g('Minimum advance ('+ST.ADV_MIN+'%)',ac.total?ST.inr(ac.min):'')+g('Laser approval',ac.ok?'Allowed':'Blocked');})():'')+g('Credit days',o.creditDays)+g('Due date',pi&&pi.due?ST.fmtDate(pi.due):'')+g('Payment status',pi&&pi.action==='paid'?'Paid'+(o.paidDate?' on '+d(String(o.paidDate).slice(0,10)):''):(pi&&pi.label)||'')+g('Reminders sent',pi&&pi.sent)+g('Escalated',o.escalatedAt?'Yes':'')+'</div>'

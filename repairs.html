@@ -73,6 +73,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
       </div>
       <datalist id="prodList"></datalist>
       <div class="form-group"><label>Loadcell No(s).</label><input type="text" id="f_lcno" placeholder="one or many, comma-separated e.g. L001, L002, L003" oninput="onLcno()"><span id="lcnoHint" style="font-size:11px;color:var(--text-dim);"></span></div>
+      <div class="form-group full" id="snBox" style="display:grid;gap:8px"></div>
       <div class="form-group"><label>Warranty</label><select id="f_warranty"><option value="unknown">Not known</option><option value="in">In warranty (free)</option><option value="out">Out of warranty (chargeable)</option></select></div>
       <div class="form-group full"><label>Problem reported by customer</label><textarea id="f_reported" placeholder="What the customer says is wrong" oninput="liveSimilar()"></textarea></div>
       <div class="form-group"><label>Fault category</label><div style="display:flex;gap:6px;"><select id="f_category" onchange="onCatPick()" style="flex:1;min-width:0;"></select><button type="button" class="btn" style="padding:6px 12px;white-space:nowrap;" onclick="addFault()" title="Add a fault that is not in the list">➕ Add</button></div></div>
@@ -170,9 +171,10 @@ function onPartyPick(){
 function onSalePick(){
   const sel=$('f_saleorder');const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value){$('warrLine').textContent='';return;}
   const sold=opt.dataset.date;
-  if(sold){const until=ST.addDays(sold.slice(0,10),365);const recv=$('f_received').value||ST.today();const inW=ST.daysBetween(recv,until)>=0;
+  const _o=ST.findOrder(opt.value),_y=_o?(parseFloat(_o.warrantyYears)||1):1;
+  if(sold){const until=ST.addDays(sold.slice(0,10),Math.round(365.25*_y));const recv=$('f_received').value||ST.today();const inW=ST.daysBetween(recv,until)>=0;
     $('f_warranty').value=inW?'in':'out';
-    $('warrLine').innerHTML='Sold on <b>'+ST.fmtDate(sold)+'</b> · 1-year warranty until <b>'+ST.fmtDate(until)+'</b> · '+(inW?'<span class="warn-in">IN WARRANTY (free repair)</span>':'<span class="warn-out">OUT OF WARRANTY (chargeable)</span>');}
+    $('warrLine').innerHTML='Sold on <b>'+ST.fmtDate(sold)+'</b> · '+(_y>1?_y+'-year extended':'1-year')+' warranty until <b>'+ST.fmtDate(until)+'</b> · '+(inW?'<span class="warn-in">IN WARRANTY (free repair)</span>':'<span class="warn-out">OUT OF WARRANTY (chargeable)</span>');}
   else {$('warrLine').textContent='Sale date not recorded on that order.';}
   if(opt.dataset.nw){const all=opt.dataset.all==='1';if(all)$('f_warranty').value='out';
     $('warrLine').insertAdjacentHTML('beforeend','<div style="margin-top:6px;padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);"><span class="warn-out">NO WARRANTY</span> — '+(all?'this whole order was':'these items were')+' sold at a special price (SP) without warranty: <b>'+ST.esc(opt.dataset.nw)+'</b>. Repair is chargeable'+(all?'.':' for these items — set Warranty to "Out of warranty" if the returned piece is one of them.')+'</div>');}
@@ -199,7 +201,14 @@ function liveSimilar(){
 
 // count comma-separated loadcell numbers -> set quantity automatically
 function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
-function onLcno(){const arr=lcList($('f_lcno').value);const rows=document.querySelectorAll('#prodRows .prow');if(arr.length&&rows.length===1){rows[0].querySelector('.p-qty').value=arr.length;updProdTotal();}$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');}
+function onLcno(){const arr=lcList($('f_lcno').value);const rows=document.querySelectorAll('#prodRows .prow');if(arr.length&&rows.length===1){rows[0].querySelector('.p-qty').value=arr.length;updProdTotal();}$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');snLookup(arr);}
+/* 1.4.0: look up the serial numbers in the test reports → customer, order, invoice, warranty */
+let _snT=null;function snLookup(arr){clearTimeout(_snT);_snT=setTimeout(()=>{const box=$('snBox');if(!box)return;if(!arr.length){box.innerHTML='';return;}
+  const al=ST.allocate();const infos=arr.slice(0,20).map(sn=>ST.cellInfo(sn,al));box.innerHTML=infos.map(ST.cellCard).join('');
+  const f=infos.find(x=>x.found&&x.order);if(!f)return;
+  if(!$('f_party').value&&f.party){const o=[...$('f_party').options].find(x=>x.value.toUpperCase()===f.party.toUpperCase());if(o){$('f_party').value=o.value;onPartyPick();}}
+  const so=$('f_saleorder');if(so&&!so.value&&[...so.options].some(x=>x.value===f.order.orderNo)){so.value=f.order.orderNo;onSalePick();}
+  if(infos.filter(x=>x.found).every(x=>x.years===0))$('f_warranty').value='out';else if(f.inWarranty!=null)$('f_warranty').value=f.inWarranty?'in':'out';},350);}
 
 // ---- products: several items per repair, same item list as the Order Sheet ----
 const PT_BASE=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];

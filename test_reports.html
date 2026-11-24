@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="auth_config.js"></script><script src="auth.js"></script><script src="sync.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Reports — Sentire Technologies</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="sentire_common.js"></script>
+<style>
+:root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--text-muted:#4a5568;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#a855f7;--blue:#3b82f6;--radius:8px;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(12,15,20,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:12px;}.brand .icon{width:32px;height:32px;background:linear-gradient(135deg,#14b8a6,#3b82f6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}.brand h1{font-size:15px;font-weight:600;}
+.tab-bar{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:3px;flex-wrap:wrap;}.tab-btn{padding:7px 12px;border:none;background:transparent;color:var(--text-dim);font-family:var(--sans);font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;}.tab-btn.active{background:var(--blue);color:#fff;}
+.main{padding:22px 24px 50px;max-width:1240px;margin:0 auto;}.view{display:none;}.view.active{display:block;}
+h2{font-size:22px;margin-bottom:4px;}.sub{font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+input,select{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;}
+input:focus,select:focus{border-color:var(--blue);}
+.btn{padding:9px 16px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text);}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff;}.btn.sm{padding:4px 10px;font-size:12px;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.chip{font-size:12px;padding:6px 11px;border-radius:999px;border:1px solid var(--border);color:var(--text-dim);background:var(--surface);cursor:pointer;font-family:var(--sans);}
+.chip.on{border-color:var(--blue);color:#fff;background:rgba(59,130,246,.18);}.chip i{font-style:normal;font-family:var(--mono);opacity:.7;margin-left:4px;}.chip.warn{border-color:rgba(245,158,11,.5);color:var(--orange);}
+.head{display:flex;align-items:flex-end;gap:16px;margin-bottom:14px;flex-wrap:wrap;}.head p{color:var(--text-dim);font-size:13px;margin-top:4px;}
+.verdict{margin-left:auto;padding:8px 14px;border-radius:10px;font-weight:700;font-size:13px;}
+.verdict.bad{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#fca5a5;}.verdict.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.45);color:#86efac;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;}.kpi .l{font-size:12px;color:var(--text-dim);}.kpi .v{font-family:var(--mono);font-size:30px;font-weight:700;margin-top:6px;}.kpi .s{font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:4px;}
+.checks{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px 16px;margin-bottom:14px;}
+.ck{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}.ck:last-child{border:0;}
+.ck .ic{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+.ck.bad .ic{background:rgba(239,68,68,.15);color:var(--red);}.ck.warn .ic{background:rgba(245,158,11,.15);color:var(--orange);}.ck.ok .ic{background:rgba(34,197,94,.15);color:var(--green);}
+.ck b{font-size:13px;}.ck p{font-size:12px;color:var(--text-dim);margin-top:2px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+.card h3{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-dim);padding:13px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;}
+.card h3 .r{margin-left:auto;text-transform:none;letter-spacing:0;font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+.tw{overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim);font-weight:600;padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}tr:last-child td{border-bottom:0;}td.num,th.num{text-align:right;font-family:var(--mono);}
+td.sn{font-family:var(--mono);font-weight:600;color:#93c5fd;cursor:pointer;}td.sn:hover{text-decoration:underline;}td.amber{color:var(--orange);font-weight:700;}td.dim{color:var(--text-muted);}
+.st{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;}.st.y{background:rgba(245,158,11,.15);color:var(--orange);}.st.g{background:rgba(34,197,94,.15);color:var(--green);}.st.r{background:rgba(239,68,68,.15);color:var(--red);}
+.drop{border:2px dashed var(--border);border-radius:14px;padding:34px;text-align:center;cursor:pointer;margin-bottom:14px;}.drop:hover{border-color:var(--blue);}
+.empty{padding:40px;text-align:center;color:var(--text-dim);}
+.md-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:flex;align-items:center;justify-content:center;padding:18px;}.md{width:min(860px,100%);max-height:90vh;overflow:auto;}
+.toast{position:fixed;bottom:28px;right:28px;padding:12px 20px;border-radius:var(--radius);font-weight:600;transform:translateY(100px);opacity:0;transition:all .3s;z-index:1000;background:var(--green);color:#fff;}.toast.show{transform:translateY(0);opacity:1;}
+@media (max-width:800px){.kpis{grid-template-columns:1fr 1fr;}.main{padding:14px;}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="brand"><div class="icon">🧪</div><h1>Test Reports</h1></div>
+<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="cust">By customer</button><button class="tab-btn" data-v="all">All load cells</button><button class="tab-btn" data-v="up">⬆ Upload test report</button></div></div>
+<div class="main">
+
+<div class="view active" id="v_cust"><div id="custBox"></div></div>
+
+<div class="view" id="v_all"><h2>All load cells</h2><p class="sub">Every serial number from the testing machine, with its customer, order and sales invoice. Click a serial number for full details and warranty.</p>
+<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><input id="q" placeholder="Search S/N, customer, order, invoice…" style="flex:1;min-width:240px" oninput="renderAll()"><select id="qf" onchange="renderAll()"><option value="">All</option><option value="nolink">Not linked to an order</option><option value="nodesp">Not despatched</option><option value="noinv">No invoice yet</option></select></div>
+<div class="card"><div class="tw"><table><thead><tr><th>S/N</th><th>Customer</th><th>Type</th><th>Capacity</th><th>Cable</th><th class="num">Zero</th><th class="num">Sensitivity</th><th class="num">In R</th><th class="num">Out R</th><th>Tested</th><th>Order</th><th>Invoice</th><th>Warranty till</th></tr></thead><tbody id="allBody"></tbody></table></div></div>
+<div class="sub" id="allFoot"></div></div>
+
+<div class="view" id="v_up"><h2>Upload test report</h2><p class="sub">Choose the Excel file from the testing machine (like TILL_24_NOV.xlsx). Serial numbers already saved are updated, new ones are added — uploading the same file twice is safe. The UserSN column is not used.</p>
+<div class="drop" id="drop"><input type="file" id="xf" accept=".xlsx,.xls,.csv" style="display:none"><div style="font-size:30px">📊</div><b>Click to choose the test report Excel file, or drop it here</b></div>
+<div id="upMsg"></div>
+<div id="aliasBox"></div></div>
+
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const E=ST.esc;let CUR='',ALLOC={};
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+document.getElementById('tabs').onclick=e=>{const b=e.target.closest('.tab-btn');if(b)showV(b.dataset.v);};
+function showV(v){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v_'+v));render();}
+const fd=ST.fmtDate;const num=(v,d)=>v===''||v==null?'—':(typeof v==='number'?(d!=null?v.toFixed(d):String(v)):E(v));
+function sensTxt(c){return +c.sens?(+c.sens).toFixed(4):'Digital';}
+function render(){ALLOC=ST.allocate();renderCust();renderAll();renderAlias();}
+
+/* ---------- By customer ---------- */
+function custGroups(){const g={};ST.cells().forEach(c=>{const p=ST.partyFor(c.client);const k=p||('? '+String(c.client||'(no name)').toUpperCase());(g[k]=g[k]||{party:p,names:new Set(),cells:[]}).cells.push(c);g[k].names.add(String(c.client||''));});return g;}
+function renderCust(){const box=document.getElementById('custBox');const cells=ST.cells();
+  if(!cells.length){box.innerHTML='<div class="empty">No test report uploaded yet.<br><br><button class="btn pri" onclick="showV(\'up\')">⬆ Upload test report</button></div>';return;}
+  const g=custGroups();const keys=Object.keys(g).sort((a,b)=>g[b].cells.length-g[a].cells.length);if(!CUR||!g[CUR])CUR=keys[0];
+  const files=[...new Set(cells.map(c=>c.file).filter(Boolean))];const dates=cells.map(c=>c.testDate).filter(Boolean).sort();
+  let h='<div class="sub">'+cells.length+' load cells · '+keys.length+' customers · tested '+fd(dates[0])+' to '+fd(dates[dates.length-1])+(files.length?' · from '+E(files.slice(-2).join(', ')):'')+'</div>';
+  h+='<div class="chips">'+keys.map(k=>'<button class="chip'+(k===CUR?' on':'')+(g[k].party?'':' warn')+'" onclick="CUR=\''+E(k).replace(/'/g,"\\'")+'\';renderCust()" title="'+(g[k].party?'':'Name not matched to a customer — fix it in Upload')+'">'+E(g[k].party||[...g[k].names][0])+'<i>'+g[k].cells.length+'</i></button>').join('')+'</div>';
+  const G=g[CUR];
+  if(!G.party){box.innerHTML=h+'<div class="checks"><div class="ck warn"><div class="ic">!</div><div><b>"'+E([...G.names].join(', '))+'" is not matched to a customer in Command Center</b><p>Go to <a href="#" onclick="showV(\'up\');return false" style="color:#93c5fd">Upload</a> and pick the right customer once — it is remembered.</p></div></div></div>'+cellTable(G.cells,true);return;}
+  const P=G.party,orders=ST.orders().filter(o=>o.status!=='cancelled'&&String(o.partyName||'').toUpperCase()===String(P).toUpperCase()).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const lines=[];orders.forEach(o=>ST.items(o).forEach((it,i)=>{const t=G.cells.filter(c=>ALLOC[c.sn]&&ALLOC[c.sn].orderNo===o.orderNo&&ALLOC[c.sn].idx===i);const q=parseFloat(it.qty)||0;const desp=(o.dod||o.status==='completed')?q:0;
+    lines.push({o,it,i,q,tested:t.length,desp,capBad:t.some(c=>ALLOC[c.sn].capOk===false),inv:ST.invoiceFor(o)});}));
+  const ordered=lines.reduce((s,l)=>s+l.q,0),tested=G.cells.filter(c=>ALLOC[c.sn]).length,desp=lines.reduce((s,l)=>s+l.desp,0),unlinked=G.cells.length-tested;
+  const checks=[];
+  lines.forEach(l=>{const nm=l.o.orderNo+' · '+(l.it.type||'')+' '+(l.it.capacityActual||l.it.capacity||'');
+    if(l.desp&&l.tested<l.desp)checks.push(['bad','Despatched '+l.desp+' but only '+l.tested+' tested — '+nm,'The test report has fewer serial numbers than the quantity despatched.']);
+    else if(!l.desp&&l.tested<l.q)checks.push(['warn',l.q+' ordered, '+l.tested+' tested — '+nm,(l.q-l.tested)+' still to be tested before despatch.']);
+    else if(l.tested>=l.q)checks.push(['ok','All '+l.q+' tested — '+nm,l.desp?'Despatched'+(l.o.dod?' on '+fd(l.o.dod):'')+(l.inv?' · invoice '+l.inv.no:''):'Ready to despatch.']);
+    if(l.capBad)checks.push(['warn','Capacity differs — '+nm,'Tested capacity is not the same as the order’s actual capacity. Fill Actual Cap. on the order if this is intended.']);});
+  if(unlinked)checks.push(['bad',unlinked+' load cell(s) not linked to any order','No open order of '+P+' with the same type / capacity has room for them.']);
+  if(!orders.length)checks.push(['bad','No order found for '+P,'Make the order in the Order Sheet — the serial numbers link to it automatically.']);
+  const bad=checks.filter(c=>c[0]==='bad').length;
+  h+='<div class="head"><div><h2>'+E(P)+'</h2><p>'+orders.length+' order(s) · test names: '+E([...G.names].join(', '))+'</p></div><div class="verdict '+(bad?'bad">✗ '+bad+' problem(s)':'ok">✓ Matches')+'</div></div>';
+  h+='<div class="kpis"><div class="kpi"><div class="l">Ordered</div><div class="v">'+ordered+'</div><div class="s">'+orders.length+' order(s)</div></div><div class="kpi"><div class="l">Tested &amp; linked</div><div class="v" style="color:#93c5fd">'+tested+'</div><div class="s">'+G.cells.length+' in test report</div></div><div class="kpi"><div class="l">Despatched</div><div class="v" style="color:var(--orange)">'+desp+'</div><div class="s">by order despatch date</div></div><div class="kpi"><div class="l">Not tested yet</div><div class="v" style="color:'+(ordered-tested>0?'var(--red)':'var(--green)')+'">'+Math.max(0,ordered-tested)+'</div><div class="s">ordered − tested</div></div></div>';
+  h+='<div class="checks">'+checks.map(c=>'<div class="ck '+c[0]+'"><div class="ic">'+(c[0]==='ok'?'✓':c[0]==='bad'?'✗':'!')+'</div><div><b>'+E(c[1])+'</b><p>'+E(c[2])+'</p></div></div>').join('')+'</div>';
+  h+='<div class="card"><h3>Orders, despatch &amp; invoice<span class="r">from Command Center</span></h3><div class="tw"><table><tr><th>Order</th><th>Date</th><th>Item</th><th class="num">Ordered</th><th>Capacity (actual)</th><th>Wire</th><th class="num">Tested</th><th>Despatch</th><th>Invoice</th><th>Warranty</th></tr>'
+   +(lines.map(l=>'<tr><td class="sn" style="cursor:default">'+E(l.o.orderNo)+'</td><td>'+fd(l.o.date)+'</td><td>'+E(l.it.type||'')+'</td><td class="num">'+l.q+'</td><td>'+E(l.it.capacity||'')+(l.it.capacityActual?' → <b>'+E(l.it.capacityActual)+'</b>':'')+'</td><td>'+E(l.it.wire||'')+'</td><td class="num">'+l.tested+'</td><td>'+(l.desp?'<span class="st g">'+(l.o.dod?fd(l.o.dod):'Despatched')+'</span>':'<span class="st y">Not despatched</span>')+'</td><td>'+(l.inv?E(l.inv.no):'—')+'</td><td>'+(ST.noWarr(l.it)?'<span class="st r">None (SP)</span>':ST.warrYears(l.o,l.it)+' yr')+'</td></tr>').join('')||'<tr><td colspan="10" class="dim">No orders</td></tr>')+'</table></div></div>';
+  box.innerHTML=h+cellTable(G.cells,false);}
+function cellTable(cells,showCust){const rows=cells.slice().sort((a,b)=>String(a.testDate).localeCompare(String(b.testDate))||String(a.sn).localeCompare(String(b.sn)));
+  return '<div class="card"><h3>Tested load cells<span class="r">'+cells.length+' serial numbers</span></h3><div class="tw"><table><thead><tr><th>#</th><th>S/N</th>'+(showCust?'<th>Name in report</th>':'')+'<th>Type</th><th>Capacity</th><th>Cable</th><th class="num">Zero</th><th class="num">Sensitivity</th><th class="num">Input R</th><th class="num">Output R</th><th>Tested</th><th>Order</th></tr></thead><tbody>'
+  +rows.map((c,i)=>{const a=ALLOC[c.sn];return '<tr><td class="dim">'+(i+1)+'</td><td class="sn" onclick="openSN(\''+E(c.sn)+'\')">'+E(c.sn)+'</td>'+(showCust?'<td>'+E(c.client)+'</td>':'')+'<td>'+E(c.type)+'</td><td class="'+(a&&a.capOk===false?'amber':'')+'">'+E(c.capacity)+'</td><td>'+E(c.cable)+'</td><td class="num">'+num(c.zero)+'</td><td class="num">'+sensTxt(c)+'</td><td class="num">'+num(c.inR)+'</td><td class="num">'+num(c.outR)+'</td><td>'+fd(c.testDate)+'</td><td>'+(a?E(a.orderNo):'<span class="st r">not linked</span>')+'</td></tr>';}).join('')+'</tbody></table></div></div>';}
+
+/* ---------- All load cells ---------- */
+function renderAll(){const q=(document.getElementById('q').value||'').trim().toUpperCase(),f=document.getElementById('qf').value;
+  let L=ST.cells().map(c=>{const a=ALLOC[c.sn],o=a?ST.findOrder(a.orderNo):null,inv=ST.invoiceFor(o),it=o?ST.items(o)[a.idx]:null,from=(o&&o.dod)||(inv&&inv.date)||'',y=o?ST.warrYears(o,it):1;
+    return {c,a,o,inv,party:(o&&o.partyName)||ST.partyFor(c.client)||c.client,until:from&&y?ST.addDays(from.slice(0,10),Math.round(365.25*y)):'',y};});
+  if(q)L=L.filter(x=>[x.c.sn,x.party,x.c.client,x.o&&x.o.orderNo,x.inv&&x.inv.no].join(' ').toUpperCase().includes(q));
+  if(f==='nolink')L=L.filter(x=>!x.a);if(f==='nodesp')L=L.filter(x=>!(x.o&&(x.o.dod||x.o.status==='completed')));if(f==='noinv')L=L.filter(x=>!x.inv);
+  document.getElementById('allBody').innerHTML=L.slice(0,1500).map(x=>'<tr><td class="sn" onclick="openSN(\''+E(x.c.sn)+'\')">'+E(x.c.sn)+'</td><td>'+E(x.party)+'</td><td>'+E(x.c.type)+'</td><td>'+E(x.c.capacity)+'</td><td>'+E(x.c.cable)+'</td><td class="num">'+num(x.c.zero)+'</td><td class="num">'+sensTxt(x.c)+'</td><td class="num">'+num(x.c.inR)+'</td><td class="num">'+num(x.c.outR)+'</td><td>'+fd(x.c.testDate)+'</td><td>'+(x.o?E(x.o.orderNo):'<span class="st r">—</span>')+'</td><td>'+(x.inv?E(x.inv.no):'—')+'</td><td>'+(x.y===0?'<span class="st r">No warranty</span>':x.until?fd(x.until):'—')+'</td></tr>').join('')||'<tr><td colspan="13" class="dim" style="padding:24px">Nothing found</td></tr>';
+  document.getElementById('allFoot').textContent=L.length+' load cell(s)'+(L.length>1500?' — showing first 1500':'');}
+function openSN(sn){const d=document.createElement('div');d.className='md-bg';d.innerHTML='<div class="md">'+ST.cellCard(ST.cellInfo(sn,ALLOC))+'<div style="text-align:right;margin-top:10px"><button class="btn" onclick="this.closest(\'.md-bg\').remove()">Close</button></div></div>';d.onclick=e=>{if(e.target===d)d.remove();};document.body.appendChild(d);}
+
+/* ---------- Upload ---------- */
+const xf=document.getElementById('xf'),drop=document.getElementById('drop');
+drop.onclick=()=>xf.click();xf.onchange=()=>{if(xf.files[0])importFile(xf.files[0]);xf.value='';};
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.style.borderColor='var(--blue)';}));
+drop.addEventListener('dragleave',()=>drop.style.borderColor='');drop.addEventListener('drop',e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])importFile(e.dataTransfer.files[0]);});
+function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=res;s.onerror=()=>rej(new Error('Could not load the Excel reader — check the internet.'));document.head.appendChild(s);});}
+const COLS={sn:['sn','serial','serialno','s/n','loadcellno'],client:['clientname','client','customer','party'],type:['type','model'],capacity:['capacity','cap'],cable:['cable','wire'],zero:['zero'],sens:['testedsensitivity','sensitivity','sens'],inR:['inputr','input','inr'],outR:['outputr','output','outr'],testDate:['testdate','date'],tester:['tester']};
+function isoDate(v){if(v instanceof Date&&!isNaN(v))return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  const s=String(v||'').trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');}return s;}
+async function importFile(file){const msg=document.getElementById('upMsg');msg.innerHTML='<div class="sub">Reading '+E(file.name)+'…</div>';
+  try{await loadXlsx();const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});const ws=wb.Sheets[wb.SheetNames[0]];const A=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+    let hr=A.findIndex(r=>r.some(v=>/^\s*sn\s*$/i.test(String(v))));if(hr<0)throw new Error('Could not find the "SN" column in the first sheet.');
+    const H=A[hr].map(v=>String(v).toLowerCase().replace(/[^a-z\/]/g,''));const col={};Object.keys(COLS).forEach(k=>{col[k]=H.findIndex(h=>COLS[k].includes(h));});
+    const all=ST.cells(),by={};all.forEach((c,i)=>by[String(c.sn).toUpperCase()]=i);let add=0,upd=0;const now=new Date().toISOString();
+    A.slice(hr+1).forEach(r=>{const sn=String(r[col.sn]||'').trim();if(!sn)return;const g=k=>col[k]>=0?r[col[k]]:'';
+      const rec={sn,client:String(g('client')).trim(),type:String(g('type')).trim(),capacity:String(g('capacity')).trim(),cable:String(g('cable')).trim(),zero:g('zero'),sens:g('sens'),inR:g('inR'),outR:g('outR'),testDate:isoDate(g('testDate')),tester:String(g('tester')).trim(),file:file.name,uploadedAt:now};
+      const k=sn.toUpperCase();if(k in by){const old=all[by[k]];if(old.orderFix)rec.orderFix=old.orderFix;all[by[k]]=rec;upd++;}else{by[k]=all.length;all.push(rec);add++;}});
+    ST.set(ST.K.cells,all);msg.innerHTML='<div class="checks"><div class="ck ok"><div class="ic">✓</div><div><b>'+E(file.name)+': '+add+' new, '+upd+' updated</b><p>'+all.length+' load cells saved in total. Check the customer names below, then open “By customer”.</p></div></div></div>';
+    toast('✓ Test report saved');render();}catch(e){msg.innerHTML='<div class="checks"><div class="ck bad"><div class="ic">✗</div><div><b>Could not read the file</b><p>'+E(e.message)+'</p></div></div></div>';}}
+function renderAlias(){const box=document.getElementById('aliasBox');const names=[...new Set(ST.cells().map(c=>String(c.client||'').trim().toUpperCase()).filter(Boolean))].sort();if(!names.length){box.innerHTML='';return;}
+  const al=ST.get(ST.K.alias,{}),parties=ST.parties().slice().sort();const cnt={};ST.cells().forEach(c=>{const k=String(c.client||'').trim().toUpperCase();cnt[k]=(cnt[k]||0)+1;});
+  const opt=(n)=>{const cur=ST.partyFor(n);return '<option value="">— not matched —</option>'+parties.map(p=>'<option'+(p===cur?' selected':'')+'>'+E(p)+'</option>').join('')+'<option value="__none"'+(al[n]===''?' selected':'')+'>Not a customer (testing / ignore)</option>';};
+  const miss=names.filter(n=>!ST.partyFor(n)).length;
+  box.innerHTML='<div class="card"><h3>Customer names in the test reports<span class="r">'+(miss?miss+' not matched':'all matched ✓')+'</span></h3><div class="tw"><table><tr><th>Name from testing machine</th><th class="num">Load cells</th><th>Customer in Command Center</th></tr>'
+   +names.map(n=>'<tr><td><b>'+E(n)+'</b></td><td class="num">'+cnt[n]+'</td><td><select data-n="'+E(n)+'" onchange="setAlias(this)" style="min-width:280px'+(ST.partyFor(n)?'':';border-color:var(--orange)')+'">'+opt(n)+'</select></td></tr>').join('')+'</table></div></div>';}
+function setAlias(sel){const al=ST.get(ST.K.alias,{});const n=sel.dataset.n;if(sel.value==='__none')al[n]='';else if(sel.value)al[n]=sel.value;else delete al[n];ST.set(ST.K.alias,al);toast('✓ Saved — '+n);render();}
+
+const q0=new URLSearchParams(location.search);if(q0.get('sn')){showV('all');document.getElementById('q').value=q0.get('sn');renderAll();}else render();
+window.addEventListener('storage',e=>{if(e.key&&/testcells|alias|ordersheet_master_db|fin_entries/.test(e.key))render();});
+</script>
+<script src="voice_engine.js"></script>
+</body>
+</html>

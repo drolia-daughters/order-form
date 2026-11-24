@@ -177,6 +177,7 @@ const APPS=[
   {key:'calculator', file:'loadcell_calculator.html',  name:'Loadcell Calculator', short:'Calc',       ic:'LC',c:'#84cc16',desc:'Sensitivity trim: series resistor per leg, 750 Ω shunt, fitting sheet, matched sets'},
   {key:'inventory',  file:'inventory_management.html', name:'Inventory',           short:'Stock',      ic:'IM',c:'#f59e0b',desc:'Stock, BOM, reorder alerts and China import tracking'},
   {key:'purchase',   file:'purchase.html',              name:'Purchase & GRN',      short:'Purchase',   ic:'📦',c:'#0ea5e9',desc:'Purchase orders emailed to suppliers, GRN for every inward, store location, bills filed by GRN No.'},
+  {key:'tests',      file:'test_reports.html',          name:'Test Reports',        short:'Tests',      ic:'🧪',c:'#14b8a6',desc:'Load cell serial numbers from the testing machine — linked to customer, order, invoice and warranty'},
   {key:'accounts',   file:'accounts_reports.html',     name:'Accounts & Reports',  short:'Accounts',   ic:'AR',c:'#06b6d4',desc:'Income, expenses, P&L, receivables, bank statement import'},
   {key:'repairs',    file:'repairs.html',               name:'Repairs & Warranty',  short:'Repairs',    ic:'🔧',c:'#f97316',desc:'Warranty returns & rejections — intake, warranty check, fault & fix log, repeat-fault knowledge base, job card'},
   {key:'reminders',  file:'reminders.html',            name:'Reminders',           short:'Remind',     ic:'⏰',c:'#f43f5e',desc:'ODS (monthly), Annual and Business reminders — voice agent, Gmail & WhatsApp, phone alerts'},
@@ -186,7 +187,7 @@ const APPS=[
 if(window.SentireAuth&&SentireAuth.filterApps)SentireAuth.filterApps(APPS); // rights: hide apps this person may not open
 // The Admin section is for the Admin and Sub Admin only: everyone else does not get the Loadcell Calculator or Cohort at all.
 const ADMIN_KEYS=['calculator','cohort'];
-const ACC_KEYS=['accounts','purchase'];   // the Accounts section: Accounts & Reports, Purchase & GRN
+const ACC_KEYS=['accounts','purchase','tests'];   // the Accounts section: Accounts & Reports, Purchase & GRN
 const IS_ADMIN=!window.SentireAuth||!SentireAuth.enabled||SentireAuth.isSecurityAdmin();
 if(!IS_ADMIN)ADMIN_KEYS.forEach(k=>{const _i=APPS.findIndex(a=>a.key===k);if(_i>=0)APPS.splice(_i,1);});
 const HOME={key:'home',name:'Main Page',short:'Main',ic:'⌂',c:'#3b82f6'};
