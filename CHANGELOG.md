@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.7.1 | 24 Nov 2026 | A migrated bill is also posted on the party's order that was already despatched without a bill (despatch date within 10 days of the bill date). Live: CONTACT INSTRUMENTS job JOB-0003 now shows bill GST0513/26-27 + e-way bill |
 | 1.7.0 | 24 Nov 2026 | Sales bill migration (Accounts and Masters) uses one engine: party NAME in CAPS kept separate from the ADDRESS; customer phone read from Tally 'Other References' into the client master; a migrated bill is posted on the same party's order that is READY in Factory Production (bill no., totals, e-way bill) and the job moves Ready → Dispatched; purchase/vendor names in CAPS. Live data fixed: RAM ENGINEERS, J K ENGG EQUIPMENTS, SUNRISE TECHNOLOGY, RKD bills (name/address/totals), RAM job JOB-0004 despatched with bill GST0518 + e-way bill 602222382827 |
 | 1.6.0 | 24 Nov 2026 | Load cells with no matching order are linked to the party's sales bill by date (first bill on/after the test date, within 45 days). Bill test report, Detail Test Report, S/N search and Repairs show these bill links |
 | 1.5.7 | 24 Nov 2026 | Fix: a party's test report never falls back to another party (RAM showed Southern Scale). Opened for one party it shows that party only, no customer buttons. Apps inside the Main Page now load with ?v=<version>, so a new version is never hidden by an old cached copy |

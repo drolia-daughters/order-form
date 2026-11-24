@@ -176,8 +176,11 @@
   E.sameParty = sameP;
   E.readyOrder = function (p) {
     var jobs = ST.get('prod_jobs', []);
-    return orders().filter(function (o) { if (o.status === 'cancelled' || o.billNo || !sameP(o.partyName, p.party)) return false; var j = jobs.filter(function (x) { return x.orderRef === o.orderNo; })[0]; return j && j.stage === 'Ready'; })
-      .sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); })[0] || null;
+    var mine = orders().filter(function (o) { return o.status !== 'cancelled' && !o.billNo && sameP(o.partyName, p.party); }).sort(function (a, b) { return String(a.date || '').localeCompare(String(b.date || '')); });
+    var stageOf = function (o) { var j = jobs.filter(function (x) { return x.orderRef === o.orderNo; })[0]; return j ? j.stage : ''; };
+    // 1st choice: job READY to despatch. 2nd (1.7.1): already despatched without a bill, despatched within 10 days of the bill date
+    return mine.filter(function (o) { return stageOf(o) === 'Ready'; })[0]
+      || mine.filter(function (o) { var d = o.dod || ''; return (stageOf(o) === 'Dispatched' || o.status === 'completed') && d && p.date && Math.abs((new Date(d) - new Date(p.date)) / 864e5) <= 10; })[0] || null;
   };
   // Post the bill + e-way bill on the order and its production job, and move the job from Ready to Dispatched
   E.despatchFromBill = function (orderNo, p) {
