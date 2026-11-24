@@ -11,3 +11,6 @@ Every change that goes live gets a NEW version number:
 3. Tell the owner the new version number so he can check the corner badge after Ctrl+F5.
 
 See PROJECT_CONTEXT.md for how the apps work.
+
+## Load cell serial-number rule (owner, 24 Nov 2026)
+MANUAL beats AUTO: a client or sales bill set by hand in Masters → Load cell S/N (clientMoved / invoiceFix / orderFix on prod_testcells) always overrides the automatic linking, and re-uploading a test report must keep it.

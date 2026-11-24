@@ -76,7 +76,7 @@ function sensTxt(c){return +c.sens?(+c.sens).toFixed(4):'Digital';}
 function render(){ALLOC=ST.allocate();renderCust();renderAll();renderAlias();}
 
 /* ---------- By customer ---------- */
-function custGroups(){const g={};ST.cells().forEach(c=>{const p=ST.partyFor(c.client);const k=p||('? '+String(c.client||'(no name)').toUpperCase());(g[k]=g[k]||{party:p,names:new Set(),cells:[]}).cells.push(c);g[k].names.add(String(c.client||''));});return g;}
+function custGroups(){const g={};ST.cells().forEach(c=>{const p=ST.cellParty(c);const k=p||('? '+String(c.client||'(no name)').toUpperCase());(g[k]=g[k]||{party:p,names:new Set(),cells:[]}).cells.push(c);g[k].names.add(String(c.client||''));});return g;}
 function renderCust(){const box=document.getElementById('custBox');const cells=ST.cells();
   if(!cells.length){box.innerHTML='<div class="empty">No test report uploaded yet.<br><br><button class="btn pri" onclick="showV(\'up\')">⬆ Upload test report</button></div>';return;}
   const g=custGroups();const keys=Object.keys(g).sort((a,b)=>g[b].cells.length-g[a].cells.length);if(LOCK){CUR=LOCK;if(!g[CUR]){box.innerHTML='';return;}}else if(!CUR||!g[CUR])CUR=keys[0];
@@ -115,7 +115,7 @@ function cellTable(cells,showCust){const rows=cells.slice().sort((a,b)=>String(a
 /* ---------- All load cells ---------- */
 function renderAll(){const q=(document.getElementById('q').value||'').trim().toUpperCase(),f=document.getElementById('qf').value;
   let L=ST.cells().map(c=>{const a=ALLOC[c.sn],o=a&&a.orderNo?ST.findOrder(a.orderNo):null,inv=ST.invoiceFor(o)||(a&&a.invoiceNo?{no:a.invoiceNo,date:a.invDate}:null),it=o?ST.items(o)[a.idx]:null,from=(o&&o.dod)||(inv&&inv.date)||'',y=o?ST.warrYears(o,it):1;
-    return {c,a,o,inv,party:(o&&o.partyName)||ST.partyFor(c.client)||c.client,until:from&&y?ST.addDays(from.slice(0,10),Math.round(365.25*y)):'',y};});
+    return {c,a,o,inv,party:(o&&o.partyName)||ST.cellParty(c)||c.client,until:from&&y?ST.addDays(from.slice(0,10),Math.round(365.25*y)):'',y};});
   if(q)L=L.filter(x=>[x.c.sn,x.party,x.c.client,x.o&&x.o.orderNo,x.inv&&x.inv.no].join(' ').toUpperCase().includes(q));
   if(f==='nolink')L=L.filter(x=>!x.a);if(f==='nodesp')L=L.filter(x=>!(x.o&&(x.o.dod||x.o.status==='completed'))&&!x.inv);if(f==='noinv')L=L.filter(x=>!x.inv);
   document.getElementById('allBody').innerHTML=L.slice(0,1500).map(x=>'<tr><td class="sn" onclick="openSN(\''+E(x.c.sn)+'\')">'+E(x.c.sn)+'</td><td>'+E(x.party)+'</td><td>'+E(x.c.type)+'</td><td>'+E(x.c.capacity)+'</td><td>'+E(x.c.cable)+'</td><td class="num">'+num(x.c.zero)+'</td><td class="num">'+sensTxt(x.c)+'</td><td class="num">'+num(x.c.inR)+'</td><td class="num">'+num(x.c.outR)+'</td><td>'+fd(x.c.testDate)+'</td><td>'+(x.o?E(x.o.orderNo):'<span class="st r">—</span>')+'</td><td>'+(x.inv?E(x.inv.no):'—')+'</td><td>'+(x.y===0?'<span class="st r">No warranty</span>':x.until?fd(x.until):'—')+'</td></tr>').join('')||'<tr><td colspan="13" class="dim" style="padding:24px">Nothing found</td></tr>';

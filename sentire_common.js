@@ -351,6 +351,8 @@ ST.capNum=s=>{const m=String(s||'').match(/(\d+(?:\.\d+)?)/);return m?+m[1]:null
 ST.typeKey=t=>String(t||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
 const pk=n=>String(n||'').toUpperCase().replace(/^M\/S\.?\s*/,'').replace(/[^A-Z0-9]/g,'');
 ST.cells=()=>ST.get(ST.K.cells,[]);
+// 1.12.1: MANUAL beats AUTO — a client changed by hand is used as it is (no name matching / alias)
+ST.cellParty=c=>c&&c.clientMoved&&c.client?String(c.client).toUpperCase():ST.partyFor(c&&c.client);
 ST.parties=()=>{const s=new Set(ST.get(ST.K.parties,[]));ST.orders().forEach(o=>{if(o.partyName)s.add(o.partyName);});return [...s].filter(Boolean);};
 // Test-report customer name → Command Center party ('' when not sure — the Test Reports page asks once)
 ST.partyFor=function(name){if(!name)return '';const al=ST.get(ST.K.alias,{});const up=String(name).trim().toUpperCase();if(al[up]!==undefined)return al[up];
@@ -370,7 +372,7 @@ ST.allocate=function(){const out={},cells=ST.cells(),orders=ST.orders().filter(o
     const o=ono?orders.find(x=>x.orderNo===ono):null;let i=o?ST.items(o).findIndex(it=>ST.typeKey(it.type)===ST.typeKey(c.type)):-1;if(o&&i<0)i=0;
     out[c.sn]={orderNo:o?o.orderNo:'',idx:i,invoiceNo:e.invoiceNo,invDate:e.date,capOk:true,manual:true,manualInv:true,byInvoice:!o};if(o)left[o.orderNo+'#'+i]--;});
   const fixed=cells.filter(c=>c.orderFix&&!c.invoiceFix);fixed.forEach(c=>{const o=orders.find(x=>x.orderNo===c.orderFix);let i=o?ST.items(o).findIndex(it=>ST.typeKey(it.type)===ST.typeKey(c.type)):-1;if(i<0)i=0;out[c.sn]={orderNo:c.orderFix,idx:i,capOk:true,manual:true};if(o)left[o.orderNo+'#'+i]--;});
-  const byP={};cells.filter(c=>!c.orderFix&&!c.invoiceFix).forEach(c=>{const p=ST.partyFor(c.client);if(!p)return;(byP[p]=byP[p]||[]).push(c);});
+  const byP={};cells.filter(c=>!c.orderFix&&!c.invoiceFix).forEach(c=>{const p=ST.cellParty(c);if(!p)return;(byP[p]=byP[p]||[]).push(c);});
   Object.keys(byP).forEach(p=>{const os=orders.filter(o=>pk(o.partyName)===pk(p));
     byP[p].sort((a,b)=>String(a.testDate||'').localeCompare(String(b.testDate||''))||String(a.sn).localeCompare(String(b.sn))).forEach(c=>{
       const tk=ST.typeKey(c.type),cn=ST.capNum(c.capacity);let best=null;
@@ -381,7 +383,7 @@ ST.allocate=function(){const out={},cells=ST.cells(),orders=ST.orders().filter(o
       if(best){left[best.orderNo+'#'+best.idx]--;out[c.sn]=best;}});});
   // 1.6.0: no order? link to the party's sales invoice by date — the first bill on/after the test date (within 45 days)
   const sales=ST.get(ST.K.fin,[]).filter(e=>e.kind==='sale'&&e.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
-  cells.forEach(c=>{if(out[c.sn]||c.orderFix||c.invoiceFix)return;const p=ST.partyFor(c.client);if(!p)return;const td=String(c.testDate||'').slice(0,10);if(!td)return;
+  cells.forEach(c=>{if(out[c.sn]||c.orderFix||c.invoiceFix)return;const p=ST.cellParty(c);if(!p)return;const td=String(c.testDate||'').slice(0,10);if(!td)return;
     const e=sales.find(x=>ST.sameParty(x.party,p)&&x.date>=td&&ST.daysBetween(td,x.date)<=45);if(e)out[c.sn]={invoiceNo:e.invoiceNo,invDate:e.date,byInvoice:true};});
   return out;};
 ST.sameParty=(a,b)=>{const x=pk(a),y=pk(b);if(!x||!y)return false;return x===y||x.startsWith(y)||y.startsWith(x)||(x.length>=8&&y.length>=8&&x.slice(0,8)===y.slice(0,8));};
@@ -391,7 +393,7 @@ ST.cellInfo=function(sn,alloc){sn=String(sn||'').trim();if(!sn)return null;const
   if(!c)return {sn,found:false,repairs};alloc=alloc||ST.allocate();const a=alloc[c.sn]||null;const o=a?ST.findOrder(a.orderNo):null;const it=o?ST.items(o)[a.idx]:null;
   const inv=(a&&a.manualInv?{no:a.invoiceNo,date:a.invDate}:null)||ST.invoiceFor(o)||(a&&a.invoiceNo?{no:a.invoiceNo,date:a.invDate}:null);const sold=(o&&o.dod)||(inv&&inv.date)||'';const yrs=o?ST.warrYears(o,it):1;const from=sold||c.testDate||'';
   const until=from&&yrs?ST.addDays(from.slice(0,10),Math.round(365.25*yrs)):'';
-  return {sn:c.sn,found:true,cell:c,party:(o&&o.partyName)||ST.partyFor(c.client)||'',order:o,item:it,capOk:a?a.capOk:null,invoice:inv,sold,despatched:!!((o&&(o.dod||o.status==='completed'))||(a&&a.invoiceNo)),years:yrs,from,until,inWarranty:until?ST.daysBetween(ST.today(),until)>=0:null,repairs};};
+  return {sn:c.sn,found:true,cell:c,party:(o&&o.partyName)||ST.cellParty(c)||'',order:o,item:it,capOk:a?a.capOk:null,invoice:inv,sold,despatched:!!((o&&(o.dod||o.status==='completed'))||(a&&a.invoiceNo)),years:yrs,from,until,inWarranty:until?ST.daysBetween(ST.today(),until)>=0:null,repairs};};
 // The card shown in Masters → S/N search, Repairs and Test Reports
 ST.cellCard=function(x){const E=ST.esc;if(!x)return '';
   if(!x.found)return '<div style="padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:rgba(245,158,11,.07)"><b>S/N '+E(x.sn)+'</b> — not found in any test report.'+(x.repairs.length?' Seen in '+x.repairs.length+' repair(s).':'')+'</div>';

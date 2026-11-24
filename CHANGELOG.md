@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.12.1 | 24 Nov 2026 | Rule: MANUAL beats AUTO. A client changed by hand is used as it is everywhere (no name matching / alias can override it); a bill picked by hand beats the automatic order / date link; re-uploading the test file keeps both |
 | 1.12.0 | 24 Nov 2026 | 💬 WhatsApp on the bill View and on the bill Test report (Accounts → Sales): the final PDF (bill with serial numbers / test report PDF) is kept privately and the customer's WhatsApp opens with a message and a secure link (valid 30 days). Repairs & Warranty: new 🔎 S/N finder tab — warranty, customer, order, bill, test data, earlier repairs, and '🔧 Log a repair' fills the repair form |
 | 1.11.0 | 24 Nov 2026 | Masters → Load cell S/N: '🔁 Change client / invoice' — besides the client, pick the client's sales bill by hand when the app linked the load cells to the wrong bill ('Automatic' = let the app decide). Hand-set bill wins everywhere (bill View/Print serials, test report, S/N card shows 'set by hand'); history kept |
 | 1.10.0 | 24 Nov 2026 | Masters → Load cell S/N: 🔁 Change client (one load cell, or all shown) — pick the new client from the list, optional reason, OK; the load cell moves to the new client (links to that client's order / bill) and leaves the old one. History kept ('Tested for' + moved from → to, date, who); re-uploading the test file keeps the new client |

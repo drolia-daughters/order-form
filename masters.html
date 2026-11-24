@@ -225,7 +225,7 @@ let SN_LAST=[];
 function billsOf(party){const k=x=>String(x||'').toUpperCase().replace(/^M\/S\.?\s*/,'').replace(/[^A-Z0-9]/g,'');const p=k(party);
   return ST.get(K.fin,[]).filter(e=>e.kind==='sale'&&(ST.sameParty?ST.sameParty(e.party,party):k(e.party).startsWith(p))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));}
 async function changeClient(sns){sns=(sns||[]).filter(Boolean);if(!sns.length)return;const cells=ST.cells();const sel=cells.filter(c=>sns.includes(c.sn));if(!sel.length)return;
-  const parties=ST.parties().map(p=>String(p).toUpperCase()).filter((p,i,a)=>a.indexOf(p)===i).sort();const cur=[...new Set(sel.map(c=>String(ST.partyFor(c.client)||c.client).toUpperCase()))];
+  const parties=ST.parties().map(p=>String(p).toUpperCase()).filter((p,i,a)=>a.indexOf(p)===i).sort();const cur=[...new Set(sel.map(c=>String(ST.cellParty(c)||c.client).toUpperCase()))];
   const curInv=[...new Set(sel.map(c=>c.invoiceFix||''))];const one=cur.length===1?cur[0]:'';
   const invOpts=(party,keep)=>'<option value="">Automatic (app links it by order / date)</option>'+billsOf(party).map(e=>'<option value="'+E(e.invoiceNo)+'"'+(keep===e.invoiceNo?' selected':'')+'>'+E(e.invoiceNo)+' · '+ST.fmtDate(e.date)+' · '+ST.inr(e.total||e.amount||0)+(e.orderNo?' · '+E(e.orderNo):'')+'</option>').join('');
   const r=await ST.modal({title:'🔁 Change client / invoice — '+sel.length+' load cell'+(sel.length>1?'s':''),sub:'Now with: '+cur.map(E).join(', '),
@@ -236,7 +236,7 @@ async function changeClient(sns){sns=(sns||[]).filter(Boolean);if(!sns.length)re
      +'<label>Reason (optional)</label><input id="cc_why" placeholder="e.g. first party did not pay / wrong bill">',
     buttons:[{label:'Cancel',value:null},{label:'✓ OK — save',cls:'ok',onClick:(ov,err)=>{const to=ov.querySelector('#cc_to').value;if(!to){err.textContent='Select the client.';return false;}return {to,inv:ov.querySelector('#cc_inv').value,why:ov.querySelector('#cc_why').value.trim()};}}]});
   if(!r)return;const by=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'';const now=new Date().toISOString();let moved=0,inv=0;
-  cells.forEach(c=>{if(!sns.includes(c.sn))return;const from=String(ST.partyFor(c.client)||c.client).toUpperCase();
+  cells.forEach(c=>{if(!sns.includes(c.sn))return;const from=String(ST.cellParty(c)||c.client).toUpperCase();
     if(from!==r.to){(c.clientHistory=c.clientHistory||[]).push({from,to:r.to,at:now,by,why:r.why});c.client=r.to;c.clientMoved=true;delete c.orderFix;moved++;}
     if((c.invoiceFix||'')!==r.inv){(c.invoiceHistory=c.invoiceHistory||[]).push({from:c.invoiceFix||'auto',to:r.inv||'auto',at:now,by,why:r.why});if(r.inv)c.invoiceFix=r.inv;else delete c.invoiceFix;inv++;}});
   ST.set(ST.K.cells,cells);toast('✓ Saved'+(moved?' · '+moved+' moved to '+r.to:'')+(inv?' · invoice '+(r.inv||'automatic')+' for '+inv:''));snSearch();}
