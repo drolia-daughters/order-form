@@ -145,7 +145,13 @@ function renderAlias(){const box=document.getElementById('aliasBox');const names
    +names.map(n=>'<tr><td><b>'+E(n)+'</b></td><td class="num">'+cnt[n]+'</td><td><select data-n="'+E(n)+'" onchange="setAlias(this)" style="min-width:280px'+(ST.partyFor(n)?'':';border-color:var(--orange)')+'">'+opt(n)+'</select></td></tr>').join('')+'</table></div></div>';}
 function setAlias(sel){const al=ST.get(ST.K.alias,{});const n=sel.dataset.n;if(sel.value==='__none')al[n]='';else if(sel.value)al[n]=sel.value;else delete al[n];ST.set(ST.K.alias,al);toast('✓ Saved — '+n);render();}
 
-const q0=new URLSearchParams(location.search);if(q0.get('sn')){showV('all');document.getElementById('q').value=q0.get('sn');renderAll();}else render();
+const q0=new URLSearchParams(location.search);
+if(q0.get('sn')){showV('all');document.getElementById('q').value=q0.get('sn');renderAll();}
+else if(q0.get('order')||q0.get('party')){const o=q0.get('order')?ST.findOrder(q0.get('order')):null;const want=String((o&&o.partyName)||q0.get('party')||'').toUpperCase().replace(/^M\/S\.?\s*/,'');
+  render();const g=custGroups();const pk=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const k=Object.keys(g).find(k=>g[k].party&&pk(g[k].party)===pk(want))||Object.keys(g).find(k=>g[k].party&&(pk(want).startsWith(pk(g[k].party))||pk(g[k].party).startsWith(pk(want).slice(0,8))));
+  if(k){CUR=k;renderCust();}else{document.getElementById('custBox').insertAdjacentHTML('afterbegin','<div class="checks"><div class="ck warn"><div class="ic">!</div><div><b>No test report yet for '+E(want||'this customer')+'</b><p>Upload the testing machine file in ⬆ Upload test report, or match the name there.</p></div></div></div>');}}
+else render();
 window.addEventListener('storage',e=>{if(e.key&&/testcells|alias|ordersheet_master_db|fin_entries/.test(e.key))render();});
 </script>
 <script src="voice_engine.js"></script>

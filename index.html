@@ -255,7 +255,8 @@ window.addEventListener('hashchange',()=>show(location.hash.slice(1)||'home'));
 window.addEventListener('message',e=>{
   const fromOurApp=[...document.querySelectorAll('iframe')].some(f=>f.contentWindow===e.source);
   if(!fromOurApp||!e.data||!e.data.sentireNav)return;
-  const a=byFile(e.data.sentireNav);if(a)go(a.key);
+  const a=byFile(e.data.sentireNav);if(!a)return;go(a.key);
+  if(e.data.q){setTimeout(()=>{const f=document.querySelector('#v-'+a.key+' iframe');if(f)f.src=a.file+'?'+e.data.q;},50);}
 });
 
 // ═══ Today at a glance — read straight from each app's saved data ═══
