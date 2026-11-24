@@ -139,6 +139,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div id="billModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:18px;" onclick="if(event.target===this)closeBill()">
   <div style="background:#fff;border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow:auto;">
     <div style="position:sticky;top:0;background:#fff;display:flex;justify-content:flex-end;gap:8px;padding:10px;border-bottom:1px solid #eee;">
+      <button class="btn" style="background:#25d366;border-color:#25d366;color:#fff;" onclick="waBill(document.getElementById('billModal').dataset.id)">💬 WhatsApp</button>
       <button class="btn btn-primary" onclick="printBill(document.getElementById('billModal').dataset.id)">🖨 Print</button>
       <button class="btn" style="color:#111;" onclick="closeBill()">Close</button>
     </div>
@@ -576,8 +577,34 @@ function billTestHtml(e){let ono=billOrderNo(e);let o=ono&&ST.findOrder(ono);if(
     +cs.map((c,i)=>'<tr><td '+td+'>'+(i+1)+'</td><td '+td+'><b>'+aEsc(c.sn)+'</b></td><td '+td+'>'+aEsc(c.type)+'</td><td '+td+'>'+aEsc(c.capacity)+'</td><td '+td+'>'+aEsc(c.cable)+'</td><td '+td+'>'+aEsc(c.zero)+'</td><td '+td+'>'+(+c.sens?(+c.sens).toFixed(4):'Digital')+'</td><td '+td+'>'+aEsc(c.inR)+'</td><td '+td+'>'+aEsc(c.outR)+'</td><td '+td+'>'+ST.fmtDate(c.testDate)+'</td></tr>').join('')+'</table>'
     +'<div style="font-size:12px;margin-top:8px;color:#555;">'+cs.length+' load cell(s) in this bill'+(q&&q!==cs.length?' · order quantity '+q+' — <b style="color:#b45309">'+(q>cs.length?(q-cs.length)+' not in the test report':'check')+'</b>':'')+'</div>';}
 function billTest(id){const e=billEntry(id);if(!e||!window.ST)return;const w=document.createElement('div');w.className='bt-modal';w.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px;';
-  w.innerHTML='<div style="background:#fff;color:#111;border-radius:12px;max-width:900px;width:100%;max-height:90vh;overflow:auto;padding:22px;font-family:system-ui,Arial,sans-serif;">'+billTestHtml(e)+'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button class="btn" data-p style="color:#111;border-color:#ccc;">🖨 Print</button><button class="btn" data-x style="color:#111;border-color:#ccc;">Close</button></div></div>';
+  w.innerHTML='<div style="background:#fff;color:#111;border-radius:12px;max-width:900px;width:100%;max-height:90vh;overflow:auto;padding:22px;font-family:system-ui,Arial,sans-serif;">'+billTestHtml(e)+'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button class="btn" style="background:#25d366;border-color:#25d366;color:#fff;" onclick="waTest(\''+e.id+'\')">💬 WhatsApp</button><button class="btn" data-p style="color:#111;border-color:#ccc;">🖨 Print</button><button class="btn" data-x style="color:#111;border-color:#ccc;">Close</button></div></div>';
   document.body.appendChild(w);w.onclick=ev=>{if(ev.target===w||ev.target.closest('[data-x]'))w.remove();if(ev.target.closest('[data-p]')){const pw=window.open('','_blank');if(!pw){alert('Please allow pop-ups to print.');return;}pw.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Test report '+aEsc(e.invoiceNo||'')+'</title></head><body style="font-family:system-ui,Arial;padding:20px;" onload="window.print()">'+billTestHtml(e)+'</body></html>');pw.document.close();}};}
+/* 1.12.0: send the bill / test report on WhatsApp — the final PDF is kept in the private store and the customer gets a secure link (valid 30 days) */
+function clientPhone(e){try{const c=ST.client(String(e.party||'').toUpperCase())||{};if(c.phone)return c.phone;const k=Object.keys(ST.clients()).find(n=>sameParty(n,e.party));return k?(ST.clients()[k].phone||''):'';}catch(_){return '';}}
+async function shareLink(bytes,path){const c=window.SentireAuth&&SentireAuth.client;if(!c)throw new Error('Log in first');const up=await c.storage.from('invoices').upload(path,new Blob([bytes],{type:'application/pdf'}),{upsert:true,contentType:'application/pdf'});if(up.error)throw up.error;
+  const r=await c.storage.from('invoices').createSignedUrl(path,60*60*24*30);if(r.error)throw r.error;return r.data.signedUrl;}
+async function sendWA(e,bytes,kind,text){const phone=clientPhone(e);const inv=String(e.invoiceNo||'bill').replace(/[^A-Z0-9]+/gi,'_');
+  toast('Preparing WhatsApp…');let link='';try{link=await shareLink(bytes,'shared/'+inv+'_'+kind+'.pdf');}catch(err){alert('Could not prepare the PDF link: '+(err.message||err));return;}
+  const msg=text+'\n\n📄 '+link+'\n\n— Sentire Technologies';
+  if(!phone&&!confirm('No WhatsApp number saved for '+e.party+' (Masters → Clients).\nOpen WhatsApp anyway and choose the chat yourself?'))return;
+  ST.openWA(phone,msg);}
+async function finalBillBytes(e){if(!e.pdfPath)return null;const url=await InvoiceEngine.pdfUrl(e.pdfPath);if(!url)return null;const raw=new Uint8Array(await (await fetch(url)).arrayBuffer());
+  try{const info=billSerials(e);if(info.cells.length){const out=await stampSerials(raw,info);if(out)return out;}}catch(_){}return raw;}
+async function waBill(id){const e=billEntry(id);if(!e)return;const b=await finalBillBytes(e);if(!b){alert('The original bill PDF is not saved yet — drop it in 📥 Invoices once and press Data Migration.');return;}
+  const n=billSerials(e).cells.length;await sendWA(e,b,'invoice','Dear '+e.party+',\nPlease find our invoice '+(e.invoiceNo||'')+' dated '+ST.fmtDate(e.date)+' for '+INR(e.total||e.amount||0)+'.'+(n?'\nLoad cell serial numbers ('+n+' pcs) are printed on the invoice.':''));}
+async function testReportPdf(e){const info=billSerials(e);if(!info.cells.length)return null;await loadLib('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',()=>window.PDFLib);
+  const L=PDFLib,pdf=await L.PDFDocument.create(),fH=await pdf.embedFont(L.StandardFonts.Helvetica),fB=await pdf.embedFont(L.StandardFonts.HelveticaBold),fC=await pdf.embedFont(L.StandardFonts.Courier);
+  const cols=[['#',22],['Serial No.',78],['Type',38],['Capacity',46],['Cable',72],['Zero',44],['Sens. (mV/V)',58],['In R',36],['Out R',36],['Tested',58]];let page,y;
+  const ono=billOrderNo(e),o=ono&&ST.findOrder(ono);
+  const head=()=>{page=pdf.addPage([595,842]);y=800;page.drawText('Sentire Technologies',{x:40,y,size:16,font:fB});page.drawText('LOAD CELL TEST REPORT',{x:40,y:y-16,size:9,font:fH});
+    page.drawText('Invoice '+(e.invoiceNo||'')+'   Date '+ST.fmtDate(e.date)+(ono?'   Order '+ono:''),{x:300,y,size:9,font:fH});page.drawText('Customer: '+(e.party||''),{x:300,y:y-14,size:9,font:fB});
+    y-=34;page.drawLine({start:{x:40,y},end:{x:555,y},thickness:1});y-=16;let x=40;cols.forEach(c=>{page.drawText(c[0],{x,y,size:8,font:fB});x+=c[1];});y-=4;page.drawLine({start:{x:40,y},end:{x:555,y},thickness:.5});y-=12;};
+  head();info.cells.forEach((c,i)=>{if(y<70)head();const v=[String(i+1),String(c.sn),String(c.type||''),String(c.capacity||''),String(c.cable||''),String(c.zero??''),+c.sens?(+c.sens).toFixed(4):'Digital',String(c.inR??''),String(c.outR??''),ST.fmtDate(c.testDate)];
+    let x=40;v.forEach((t,k)=>{page.drawText(t.slice(0,18),{x,y,size:8,font:k===1?fC:fH});x+=cols[k][1];});y-=13;});
+  y-=8;page.drawText(info.cells.length+' load cell(s).  '+(info.noWarr?'No warranty (special price items).':'Warranty: '+info.years+' year'+(info.years>1?'s':'')+' from despatch'+(o&&o.dod?' ('+ST.fmtDate(o.dod)+')':'')+'.'),{x:40,y,size:8.5,font:fH});
+  return await pdf.save();}
+async function waTest(id){const e=billEntry(id);if(!e)return;const b=await testReportPdf(e);if(!b){alert('No tested load cells are linked to this bill yet.');return;}
+  await sendWA(e,b,'test_report','Dear '+e.party+',\nPlease find the load cell test report for our invoice '+(e.invoiceNo||'')+' ('+billSerials(e).cells.length+' pcs).');}
 function billCells(e){if(!window.ST||!ST.allocate||e.kind!=='sale')return '';const al=ST.allocate();let ono=e.orderNo;
   if(!ono){const o=ST.orders().find(x=>x.billNo&&String(x.billNo).toUpperCase()===String(e.invoiceNo||'').toUpperCase());if(o)ono=o.orderNo;}
   if(ono){const oo=ST.findOrder(ono);if(!oo||!sameParty(oo.partyName,e.party))ono='';}

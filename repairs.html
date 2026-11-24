@@ -37,6 +37,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="topbar"><div class="topbar-brand"><div class="icon">🔧</div><h1>Repairs &amp; Warranty</h1><span>RETURNS</span></div>
 <div class="tab-bar">
   <button class="tab-btn active" data-v="dash" onclick="showV('dash')">Dashboard</button>
+  <button class="tab-btn" data-v="sn" onclick="showV('sn')">🔎 S/N finder</button>
   <button class="tab-btn" data-v="new" onclick="showV('new')">+ New Repair</button>
   <button class="tab-btn" data-v="open" onclick="showV('open')">🔧 Open Repairs</button>
   <button class="tab-btn" data-v="history" onclick="showV('history')">History</button>
@@ -52,6 +53,12 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 </div>
 
 <!-- NEW REPAIR -->
+<div class="view" id="v_sn">
+  <h2 style="font-size:18px;margin-bottom:4px;">🔎 Load cell serial number finder</h2>
+  <p class="hint">Type the serial number written on the returned load cell. You see the customer, order, sales invoice, despatch date, test results, <b>warranty (in / over / none for SP)</b> and earlier repairs. Several numbers can be typed together, separated by commas.</p>
+  <div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;"><input id="snFind" placeholder="e.g. 2602492221" style="max-width:420px;font-family:var(--mono);font-size:15px;" onkeydown="if(event.key==='Enter')snFind()"><button class="btn btn-primary" onclick="snFind()">Search</button></div>
+  <div id="snFindOut" style="display:grid;gap:12px;"></div>
+</div>
 <div class="view" id="v_new">
   <h2 style="margin-bottom:4px;" id="newTitle">Log an incoming repair</h2>
   <p class="hint">Record goods that have come back. Pick the customer to pull up when it was sold and whether it is in warranty.</p>
@@ -202,6 +209,12 @@ function liveSimilar(){
 // count comma-separated loadcell numbers -> set quantity automatically
 function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
 function onLcno(){const arr=lcList($('f_lcno').value);const rows=document.querySelectorAll('#prodRows .prow');if(arr.length&&rows.length===1){rows[0].querySelector('.p-qty').value=arr.length;updProdTotal();}$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');snLookup(arr);}
+/* 1.12.0: S/N finder tab — check warranty and start a repair from the serial number */
+function snFind(){const list=$('snFind').value.split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);const out=$('snFindOut');if(!list.length){out.innerHTML='';return;}
+  const al=ST.allocate();const infos=list.slice(0,50).map(sn=>ST.cellInfo(sn,al));const found=infos.filter(x=>x.found).map(x=>x.sn);
+  out.innerHTML=infos.map(x=>ST.cellCard(x)).join('')+(found.length?'<div><button class="btn btn-primary" onclick="repairFromSN()">🔧 Log a repair for '+(found.length>1?'these '+found.length+' load cells':'this load cell')+'</button></div>':'');SN_FOUND=found;}
+let SN_FOUND=[];
+function repairFromSN(){if(!SN_FOUND.length)return;showV('new');resetForm();$('f_lcno').value=SN_FOUND.join(', ');onLcno();}
 /* 1.4.0: look up the serial numbers in the test reports → customer, order, invoice, warranty */
 let _snT=null;function snLookup(arr){clearTimeout(_snT);_snT=setTimeout(()=>{const box=$('snBox');if(!box)return;if(!arr.length){box.innerHTML='';return;}
   const al=ST.allocate();const infos=arr.slice(0,20).map(sn=>ST.cellInfo(sn,al));box.innerHTML=infos.map(ST.cellCard).join('');
