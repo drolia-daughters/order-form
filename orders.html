@@ -135,9 +135,9 @@ tbody td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text
     <div class="form-group"><label><span class="sl">6</span> Client Phone</label><input type="tel" id="clientPhone" placeholder="+91 98765 43210"><div class="auto-hint" id="cPhoneHint">↑ Auto-filled</div></div>
 
     <!-- ITEMS: several loadcell lines in one order -->
-    <div class="form-group full-width"><label><span class="sl">7</span> Items — Type of Loadcell · Qty · Capacity · Wire</label>
+    <div class="form-group full-width"><label><span class="sl">7</span> Items — Item / Loadcell · Qty · Capacity · Wire</label>
       <div class="items-wrap">
-        <table class="items-tbl" id="itemsTbl"><thead><tr><th>#</th><th>Type of Loadcell</th><th>Qty (pcs.)</th><th>Ordered Cap. <span style="color:var(--red)">*</span></th><th class="actual-col" title="Internal only — never sent to any client">Actual Cap. 🔒</th><th>Wire (type/mtr.)</th><th class="rate-col" title="Only you and the Admins can see this">Price / pc (₹) 🔒</th><th class="rate-col" title="Special price — this item is sold WITHOUT warranty. Leave empty for normal items with 1-year warranty.">SP / pc (₹) 🔒<div style="font-size:9px;font-weight:600;color:var(--red,#ef4444);">no warranty</div></th><th></th></tr></thead><tbody id="itemsBody"></tbody></table>
+        <table class="items-tbl" id="itemsTbl"><thead><tr><th>#</th><th>Item / Loadcell</th><th>Qty (pcs.)</th><th>Ordered Cap. <span style="color:var(--red)">*</span></th><th class="actual-col" title="Internal only — never sent to any client">Actual Cap. 🔒</th><th>Wire (type/mtr.)</th><th class="rate-col" title="Only you and the Admins can see this">Price / pc (₹) 🔒</th><th class="rate-col" title="Special price — this item is sold WITHOUT warranty. Leave empty for normal items with 1-year warranty.">SP / pc (₹) 🔒<div style="font-size:9px;font-weight:600;color:var(--red,#ef4444);">no warranty</div></th><th></th></tr></thead><tbody id="itemsBody"></tbody></table>
         <div class="items-foot"><button type="button" class="btn-add-item" onclick="addItemRow()" data-tip="Customer wants another type? Add it here (e.g. DLC 12 pcs + AS 10 pcs)">+ Add another item</button> <button type="button" class="btn-add-item" onclick="addNewStockItem()" data-tip="Item not in the list? Add it here with its inventory details" style="border-color:var(--green,#22c55e);color:var(--green,#22c55e);background:rgba(34,197,94,.08);">+ New item (not in list)</button><span id="itemsTotal"></span></div>
       </div>
       <datalist id="lcTypes"><option value="ALC"><option value="DLC"><option value="AS"><option value="DS"><option value="REG"><option value="CUT"><option value="JUMBO"><option value="S.E"><option value="S TYPE"></datalist>
@@ -511,9 +511,9 @@ function approveOrder(ri){const db=gdb(),o=db[ri];if(!o||o.status!=='awaiting')r
 
 async function submitOrder(e){e.preventDefault();
   const items=getItems();
-  if(!items.length){alert('Add at least one item: Type of Loadcell and Quantity.');return false;}
+  if(!items.length){alert('Add at least one item: Item / Loadcell and Quantity.');return false;}
   const bad=items.find(x=>!x.type||!(parseFloat(x.qty)>0));
-  if(bad){alert('Every item needs a Type of Loadcell and a Quantity.\n\nPlease check item: '+(bad.type||'(no type)')+' — '+(bad.qty||'(no qty)'));return false;}
+  if(bad){alert('Every item needs an Item / Loadcell and a Quantity.\n\nPlease check item: '+(bad.type||'(no type)')+' — '+(bad.qty||'(no qty)'));return false;}
   const noCap=items.find(x=>!x.capacity);
   if(noCap){alert('Ordered Capacity is required for every item.\n\nPlease fill the Ordered Cap. for: '+(noCap.type||'(item)'));return false;}
   const btn=document.getElementById('submitBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>'+(editingIndex>=0?'Updating...':'Saving...');

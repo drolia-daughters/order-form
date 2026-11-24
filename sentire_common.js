@@ -210,10 +210,10 @@ ST.drawOrderSheet=function(doc,o,top,opt){opt=opt||{};
   const desp=o.dod||o.deliveryDate||'';const despLabel=o.dod?'Despatch Date':'Delivery Date';
   row([['Name of Party',o.partyName,0.62,25,{bold:true,big:true}],['Location',o.location,0.38,20]],10);
   if(!multi){const it=items[0];
-    row([['Type of Loadcell',it.type,0.42,25],['Qty (pcs.)',it.qty,0.2,17,{bold:true,big:true}],['Wire',it.wire,0.38,13]],9);
+    row([['Item / Loadcell',it.type,0.42,25],['Qty (pcs.)',it.qty,0.2,17,{bold:true,big:true}],['Wire',it.wire,0.38,13]],9);
     row([['Capacity',it.capacity,0.5,25],[despLabel,ST.fmtDate(desp),0.5,25,{bold:true}]],9);
   }else{
-    const cols=[['Type of Loadcell',0.3],['Qty (pcs.)',0.16],['Capacity',0.24],['Wire',0.3]];
+    const cols=[['Item / Loadcell',0.3],['Qty (pcs.)',0.16],['Capacity',0.24],['Wire',0.3]];
     let x=M;doc.setFillColor(226,232,240);doc.rect(M,y,CW,7,'FD');cols.forEach(c=>{const w=CW*c[1];doc.rect(x,y,w,7);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(60);doc.text(c[0],x+2,y+4.8);x+=w;});y+=7;
     items.forEach(it=>{let x2=M;[[it.type,0.3],[it.qty,0.16,true],[it.capacity,0.24],[it.wire,0.3]].forEach(c=>{const w=CW*c[1];doc.rect(x2,y,w,rowH);doc.setFont('helvetica',c[2]?'bold':'normal');doc.setFontSize(rowH<7?9:10);doc.setTextColor(20);
       doc.text(doc.splitTextToSize(String(c[0]||'—'),w-4)[0],x2+2,y+rowH/2+1.6);x2+=w;});y+=rowH;});
