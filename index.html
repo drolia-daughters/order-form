@@ -101,6 +101,21 @@ button{font-family:inherit;}
   .home{padding:20px 16px 40px;}
   .kpis{grid-template-columns:1fr 1fr;}
 }
+/* dashboard drill-down: click a number to see the items behind it */
+.dd-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;display:flex;align-items:center;justify-content:center;padding:18px;}
+.dd{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(920px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;}
+.dd-h{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);}
+.dd-h h3{font-size:16px;margin:0;flex:1;}.dd-h .n{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--c,var(--accent));}
+.dd-b{overflow:auto;padding:6px 10px 12px;}
+.dd table{width:100%;border-collapse:collapse;font-size:13px;}
+.dd th{text-align:left;font-size:11px;color:var(--text-dim);font-weight:600;padding:8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);}
+.dd td{padding:9px 8px;border-bottom:1px solid var(--border);}
+.dd tr.r{cursor:pointer;}.dd tr.r:hover td{background:rgba(59,130,246,.08);}
+.dd .go{font-size:12px;color:var(--c,var(--accent));white-space:nowrap;font-weight:600;}
+.dd-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border);}
+.dd-f button{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-weight:600;}
+.dd-f button.pri{background:var(--c,var(--accent));border-color:transparent;color:#fff;}
+.dd-empty{padding:26px;text-align:center;color:var(--text-dim);}
 </style>
 </head>
 <body>
@@ -244,6 +259,27 @@ window.addEventListener('message',e=>{
 
 // ═══ Today at a glance — read straight from each app's saved data ═══
 function load(k){try{return JSON.parse(localStorage.getItem(k))||[];}catch(e){return [];}}
+let KPI_CARDS=[];
+const fd=d=>{if(!d)return '';const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'-'+m[2]+'-'+m[1]:String(d);};
+const itemsTxt=o=>window.ST?ST.itemsShort(ST.items(o)):(o.loadcellType||'')+' '+(o.quantity||'');
+const JOBCOLS=['Job','Party','Items','Stage','Target'];
+const jobRow=(j,edit)=>({c:[j.jobNo,j.party||'',(j.items&&j.items.length&&window.ST?ST.itemsShort(j.items):(j.type||'')+' '+(j.qty||'')),j.stage||'',j.target?fd(j.target):''],fn:edit?(w=>w.editJob(j.jobNo)):(w=>w.showV('board'))});
+const H=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Open an app and then run something inside it (open a tab or one record) once it has loaded
+function goDo(key,fn,tab){go(key);if(!fn&&!tab)return;let tries=0;
+  const run=()=>{const f=document.querySelector('#v-'+key+' iframe'),w=f&&f.contentWindow;try{if(!w||w.location.href==='about:blank'||w.document.readyState!=='complete')throw 0;if(tab){if(w.showView)w.showView(tab);else if(w.showV)w.showV(tab);}if(fn)fn(w);}catch(e){if(++tries<40)setTimeout(run,250);}};
+  setTimeout(run,150);}
+function drill(i){const x=KPI_CARDS[i];if(!x)return;const a=byKey(x.k);let rows=[];try{rows=x.list?x.list():[];}catch(e){rows=[];}
+  const d=document.createElement('div');d.className='dd-bg';d.style.setProperty('--c',x.c);
+  d.innerHTML='<div class="dd" style="--c:'+x.c+'"><div class="dd-h"><h3>'+H(x.label)+'</h3><span class="n">'+H(x.val)+'</span></div><div class="dd-b">'
+   +(rows.length?'<table><thead><tr>'+x.cols.map(c=>'<th>'+H(c)+'</th>').join('')+'<th></th></tr></thead><tbody>'+rows.map((r,k)=>'<tr class="r" data-r="'+k+'">'+r.c.map(v=>'<td>'+H(v)+'</td>').join('')+'<td class="go">Open ›</td></tr>').join('')+'</tbody></table>'
+     :'<div class="dd-empty">Nothing here right now ✓</div>')
+   +'</div><div class="dd-f"><button data-x>Close</button><button class="pri" data-all>Open '+H(a?a.name:'')+' ›</button></div></div>';
+  document.body.appendChild(d);const close=()=>d.remove();
+  d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-x]')){close();return;}
+    if(e.target.closest('[data-all]')){close();goDo(x.k,null,x.tab);return;}
+    const tr=e.target.closest('tr.r');if(tr){const r=rows[+tr.dataset.r];close();goDo(x.k,r.fn||null,r.fn?null:x.tab);}});
+  document.addEventListener('keydown',function k(e){if(e.key==='Escape'){close();document.removeEventListener('keydown',k);}});}
 function refreshStats(){
   const orders=load('ordersheet_master_db');
   const canApv=!window.SentireAuth||!SentireAuth.canApprove||SentireAuth.canApprove();
@@ -275,18 +311,20 @@ function refreshStats(){
   let rs={};try{rs=JSON.parse(localStorage.getItem('rem_summary'))||{};}catch(e){}
   const chase=window.ST?orders.map(o=>ST.payInfo(o)).filter(x=>x.action==='remind'||x.action==='escalate').length:0;
   const cards=[
-    {k:'orders',label:'Orders to approve',val:awaiting,sub:'waiting before production',c:'#a855f7',alert:awaiting>0},
-    {k:'orders',label:'Overdue payments',val:overdue,sub:chase?chase+' reminder/escalation due today':'credit days crossed',c:'#ef4444',alert:overdue>0||chase>0},
-    {k:'production',label:'Production approvals',val:apv,sub:'laser · packing · bill',c:'#a855f7',alert:apv>0},
-    {k:'production',label:'Pickup WhatsApps',val:pickups,sub:'send before '+cut,c:'#25d366',alert:pickups>0},
-    {k:'reminders',label:'Reminders this week',val:rs.week||0,sub:(rs.today?rs.today+' today':'none today')+(rs.overdue?' · '+rs.overdue+' overdue':'')+(rs.review?' · '+rs.review+' to review':''),c:'#f43f5e',alert:(rs.today||0)+(rs.overdue||0)>0},
-    {k:'crm',label:'Active leads',val:leads,sub:'not converted or lost',c:'#a855f7'},
-    {k:'production',label:'Jobs in production',val:jobs,sub:'not yet dispatched',c:'#22c55e'},
-    {k:'jobwork',label:'Goods at job workers',val:jwParties,sub:jwLines.length+' item lines outside'+(jwOverdue?' · '+jwOverdue+' overdue':''),c:'#ec4899',alert:jwOverdue>0},
-    {k:'inventory',label:'Low-stock items',val:low,sub:'at or below reorder level',c:'#f59e0b',alert:low>0},
-    {k:'accounts',label:'This month',val:inr(inc-exp),sub:'in '+inr(inc)+' · out '+inr(exp),c:'#06b6d4'}
+    {k:'orders',tab:'db',label:'Orders to approve',val:awaiting,list:()=>!canApv?[]:orders.map((o,i)=>[o,i]).filter(([o])=>o.status==='awaiting').map(([o,i])=>({c:[o.orderNo,o.partyName,fd(o.date),itemsTxt(o)],fn:w=>{w.showView('db');w.viewOrder(i);}})),cols:['Order','Party','Date','Items'],sub:'waiting before production',c:'#a855f7',alert:awaiting>0},
+    {k:'orders',tab:'pay',label:'Overdue payments',val:overdue,list:()=>!window.ST?[]:orders.map((o,i)=>[o,i,ST.payInfo(o)]).filter(([o,i,x])=>(x.due&&x.over>0&&x.action!=='paid')||x.action==='remind'||x.action==='escalate').map(([o,i,x])=>({c:[o.orderNo,o.partyName,x.due?fd(x.due):'—',x.over>0?x.over+' days':'—',x.label||''],fn:w=>{w.showView('pay');w.viewOrder(i);}})),cols:['Order','Party','Due date','Overdue by','Status'],sub:chase?chase+' reminder/escalation due today':'credit days crossed',c:'#ef4444',alert:overdue>0||chase>0},
+    {k:'production',tab:'board',label:'Production approvals',val:apv,list:()=>pj.filter(j=>j.stage==='Testing').map(j=>jobRow(j)),cols:JOBCOLS,sub:'laser · packing · bill',c:'#a855f7',alert:apv>0},
+    {k:'production',tab:'board',label:'Pickup WhatsApps',val:pickups,list:()=>pj.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt).map(j=>jobRow(j)),cols:JOBCOLS,sub:'send before '+cut,c:'#25d366',alert:pickups>0},
+    {k:'reminders',label:'Reminders this week',list:()=>{const t=today,in7=new Date(Date.now()+7*864e5).toISOString().slice(0,10);let R=load('rem_cache');if(!R.length)R=load('rem_local');
+      return R.filter(r=>r.status==='active'&&r.date&&r.date<=in7&&(r.date>=t||r.repeat==='none')).sort((a,b)=>String(a.date).localeCompare(b.date)).map(r=>({c:[fd(r.date)+(r.date<t?' ⚠ overdue':''),r.time||'',r.title||'',r.type||'']}));},cols:['Date','Time','Reminder','Type'],val:rs.week||0,sub:(rs.today?rs.today+' today':'none today')+(rs.overdue?' · '+rs.overdue+' overdue':'')+(rs.review?' · '+rs.review+' to review':''),c:'#f43f5e',alert:(rs.today||0)+(rs.overdue||0)>0},
+    {k:'crm',tab:'leads',label:'Active leads',val:leads,list:()=>load('crm_leads').filter(l=>l.status!=='Converted'&&l.status!=='Lost').sort((a,b)=>String(a.followup||'9').localeCompare(String(b.followup||'9'))).map(l=>({c:[l.company||l.contact||'—',l.contact&&l.company?l.contact:'',l.phone||'',l.status||'',l.followup?fd(l.followup):'—',l.caller||'']})),cols:['Company','Contact','Phone','Status','Follow-up','Caller'],sub:'not converted or lost',c:'#a855f7'},
+    {k:'production',tab:'jobs',label:'Jobs in production',val:jobs,list:()=>pj.filter(j=>j.stage!=='Dispatched').map(j=>jobRow(j,1)),cols:JOBCOLS,sub:'not yet dispatched',c:'#22c55e'},
+    {k:'jobwork',tab:'where',label:'Goods at job workers',val:jwParties,list:()=>jwLines.map(([k,v])=>{const [pt,it]=k.split('|');return {c:[pt,it,Math.round(v*1000)/1000],fn:w=>w.openRegister(pt)};}),cols:['Job worker','Item','Qty with them'],sub:jwLines.length+' item lines outside'+(jwOverdue?' · '+jwOverdue+' overdue':''),c:'#ec4899',alert:jwOverdue>0},
+    {k:'inventory',tab:'items',label:'Low-stock items',val:low,list:()=>load('inv_items').filter(i=>(i.reorder||0)>0&&(i.stock||0)<=i.reorder).map(i=>({c:[i.code,i.name&&i.name!==i.code?i.name:'',(i.stock||0)+' '+(i.unit||''),i.reorder,i.supplier||'']})),cols:['Code','Name','In stock','Reorder at','Supplier'],sub:'at or below reorder level',c:'#f59e0b',alert:low>0},
+    {k:'accounts',label:'This month',val:inr(inc-exp),list:()=>fin.slice().sort((a,b)=>String(b.date).localeCompare(a.date)).map(e=>({c:[fd(e.date),e.type==='income'?'In':'Out',e.party||e.desc||e.category||'',e.invoiceNo||e.ref||'',(e.type==='income'?'+':'−')+inr(+e.amount||0)]})),cols:['Date','In / Out','Party / details','Ref','Amount'],sub:'in '+inr(inc)+' · out '+inr(exp),c:'#06b6d4'}
   ];
-  document.getElementById('kpis').innerHTML=cards.filter(x=>byKey(x.k)).map(x=>`<button class="kpi${x.alert?' alert':''}" style="--c:${x.c}" onclick="go('${x.k}')"><div class="k-label">${x.label}</div><div class="k-val">${x.val}</div><div class="k-sub">${x.sub}</div></button>`).join('');
+  KPI_CARDS=cards;
+  document.getElementById('kpis').innerHTML=cards.filter(x=>byKey(x.k)).map(x=>`<button class="kpi${x.alert?' alert':''}" style="--c:${x.c}" onclick="drill(${KPI_CARDS.indexOf(x)})" title="Click to see the list"><div class="k-label">${x.label}</div><div class="k-val">${x.val}</div><div class="k-sub">${x.sub}</div></button>`).join('');
   const setBadge=(k,n)=>{const b=document.getElementById('b-'+k);if(b){b.textContent=n;b.classList.toggle('show',n>0);}};
   setBadge('orders',awaiting+chase);setBadge('production',apv+pickups);setBadge('reminders',(rs.today||0)+(rs.overdue||0));setBadge('inventory',low);setBadge('jobwork',jwOverdue);
 }
