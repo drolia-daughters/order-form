@@ -8,8 +8,41 @@
   "background_color": "#0c0f14",
   "theme_color": "#2563eb",
   "icons": [
-    { "src": "sentire-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "sentire-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "sentire-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "sentire-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "sentire-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "sentire-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "share_target": {
+    "action": "share-invoice",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "files",
+          "accept": [
+            "application/pdf",
+            ".pdf"
+          ]
+        }
+      ]
+    }
+  }
 }

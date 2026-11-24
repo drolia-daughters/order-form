@@ -330,6 +330,9 @@ function refreshStats(){
   setBadge('orders',awaiting+chase);setBadge('production',apv+pickups);setBadge('reminders',(rs.today||0)+(rs.overdue||0));setBadge('inventory',low);setBadge('jobwork',jwOverdue);
 }
 window.addEventListener('storage',()=>{if(current==='home')refreshStats();});
+// 1.5.0: invoices shared from WhatsApp are waiting → open Accounts (it migrates them)
+(function(){if(!('indexedDB' in window))return;const r=indexedDB.open('sentire-share',1);r.onupgradeneeded=()=>r.result.createObjectStore('files',{keyPath:'id'});
+  r.onsuccess=()=>{try{const q=r.result.transaction('files').objectStore('files').count();q.onsuccess=()=>{if(q.result>0&&current!=='accounts')go('accounts');};}catch(e){}};})();
 
 // Greeting
 const h=new Date().getHours();

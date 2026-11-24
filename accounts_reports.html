@@ -531,5 +531,14 @@ function closeBill(){document.getElementById('billModal').style.display='none';}
 function printBill(id){const e=billEntry(id);if(!e)return;const w=window.open('','_blank');if(!w){alert('Please allow pop-ups to print.');return;}w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+aEsc(e.invoiceNo||'Invoice')+'</title></head><body onload="window.focus();window.print();">'+billHtml(e)+'</body></html>');w.document.close();}
 
 setType('income');renderDash();initInbox();
+/* 1.5.0: invoices shared from WhatsApp (Share → Sentire Command Center) land here and are migrated at once */
+let _pkBusy=false;async function pickShared(){if(_pkBusy||!('indexedDB' in window))return;_pkBusy=true;try{await _pickShared();}finally{_pkBusy=false;}}
+async function _pickShared(){let db;try{db=await new Promise((res,rej)=>{const r=indexedDB.open('sentire-share',1);r.onupgradeneeded=()=>r.result.createObjectStore('files',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}catch(e){return;}
+  const recs=await new Promise(res=>{const q=db.transaction('files').objectStore('files').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});if(!recs.length)return;
+  const files=recs.map(r=>new File([r.blob],r.name,{type:r.type||'application/pdf'}));
+  await new Promise(res=>{const tx=db.transaction('files','readwrite');recs.forEach(r=>tx.objectStore('files').delete(r.id));tx.oncomplete=res;tx.onerror=res;});
+  showV('invoices');addFiles(files);const m=document.getElementById('inboxMsg');if(m)m.textContent='📲 '+files.length+' invoice(s) received from WhatsApp — migrating…';
+  await runMigration();toast('📲 '+files.length+' invoice(s) from WhatsApp processed — see the results');}
+pickShared();window.addEventListener('focus',pickShared);
 </script>
 <script src="voice_engine.js"></script></body></html>

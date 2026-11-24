@@ -1,5 +1,6 @@
 // Sentire Reminders — lets the page work as a phone app (home screen + Share from WhatsApp)
 // and open even with a weak signal. Google data always comes fresh from the network.
+importScripts('share_handler.js');   // 1.5.0: invoices shared from WhatsApp
 const CACHE='sentire-reminders-v1';
 const FILES=['reminders.html','reminders_agent.js','reminders.webmanifest','reminders-192.png','reminders-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).catch(()=>{}));self.skipWaiting();});
