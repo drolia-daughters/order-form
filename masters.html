@@ -215,7 +215,21 @@ async function editVendor(name){const isNew=!name;const vv=ST.get(K.vendors,{});
 /* ═════ LOAD CELL S/N SEARCH · WIRES (1.4.0) ═════ */
 function openDetailTR(){if(window.parent!==window)window.parent.postMessage({sentireNav:'test_reports.html'},'*');else location.href='test_reports.html';}
 function snSearch(){const q=document.getElementById('snQ').value;const list=q.split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);const out=document.getElementById('snOut');if(!list.length){out.innerHTML='';return;}
-  const al=ST.allocate();out.innerHTML=list.slice(0,50).map(sn=>ST.cellCard(ST.cellInfo(sn,al))).join('');}
+  const al=ST.allocate();const infos=list.slice(0,50).map(sn=>ST.cellInfo(sn,al));const found=infos.filter(x=>x.found);
+  out.innerHTML=(found.length>1?'<div class="toolbar" style="margin:0"><button class="btn pri" onclick="changeClient(SN_LAST)">🔁 Change client for all '+found.length+' load cells shown</button></div>':'')
+    +infos.map(x=>ST.cellCard(x)+(x.found?'<div style="display:flex;gap:8px;margin:-4px 0 4px;flex-wrap:wrap"><button class="btn sm" onclick="changeClient([\''+E(x.sn)+'\'])">🔁 Change client</button>'+((x.cell.clientHistory||[]).length?'<span class="hint" style="margin:0;align-self:center">Moved: '+x.cell.clientHistory.map(h=>E(h.from)+' → '+E(h.to)+' ('+ST.fmtDate(String(h.at).slice(0,10))+(h.by?', '+E(h.by):'')+')').join(' · ')+'</span>':'')+'</div>':'')).join('');
+  SN_LAST=found.map(x=>x.sn);}
+/* 1.10.0: load cells tested for one party but sold to another (e.g. first party did not pay) — move them to the new client */
+let SN_LAST=[];
+async function changeClient(sns){sns=(sns||[]).filter(Boolean);if(!sns.length)return;const cells=ST.cells();const sel=cells.filter(c=>sns.includes(c.sn));if(!sel.length)return;
+  const parties=ST.parties().map(p=>String(p).toUpperCase()).filter((p,i,a)=>a.indexOf(p)===i).sort();const cur=[...new Set(sel.map(c=>ST.partyFor(c.client)||c.client))];
+  const r=await ST.modal({title:'🔁 Change client — '+sel.length+' load cell'+(sel.length>1?'s':''),sub:'Now with: '+cur.map(E).join(', '),
+    html:'<div style="font-family:var(--mono);font-size:12px;max-height:90px;overflow:auto;margin-bottom:10px">'+sel.map(c=>E(c.sn)).join(' · ')+'</div><label>New client</label><select id="cc_to"><option value="">— select the client —</option>'+parties.map(p=>'<option>'+E(p)+'</option>').join('')+'</select><label>Reason (optional)</label><input id="cc_why" placeholder="e.g. first party did not pay">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ OK — move to new client',cls:'ok',onClick:(ov,err)=>{const to=ov.querySelector('#cc_to').value;if(!to){err.textContent='Select the new client.';return false;}return {to,why:ov.querySelector('#cc_why').value.trim()};}}]});
+  if(!r)return;const by=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'';const now=new Date().toISOString();
+  cells.forEach(c=>{if(!sns.includes(c.sn))return;const from=ST.partyFor(c.client)||c.client;if(String(from).toUpperCase()===r.to)return;
+    (c.clientHistory=c.clientHistory||[]).push({from,to:r.to,at:now,by,why:r.why});c.client=r.to;c.clientMoved=true;delete c.orderFix;});
+  ST.set(ST.K.cells,cells);toast('✓ '+sel.length+' load cell(s) moved to '+r.to);snSearch();}
 function wireUse(){const u={};ST.orders().forEach(o=>ST.items(o).forEach(it=>{const w=ST.wireStd(it.wire);if(w)u[w]=(u[w]||0)+1;}));return u;}
 function renderWires(){const u=wireUse();document.getElementById('wBody').innerHTML=ST.wires().map((w,i)=>`<tr><td><strong>${E(w)}</strong></td><td class="num" style="font-family:var(--mono)">${u[w]||0}</td><td><button class="btn sm del" onclick="delWire(${i})">Remove</button></td></tr>`).join('');}
 function addWireM(){const v=document.getElementById('wNew').value;const w=ST.addWire(v);if(!w)return;document.getElementById('wNew').value='';toast('✓ '+w+' added');renderWires();}

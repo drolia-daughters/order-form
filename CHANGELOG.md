@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.10.0 | 24 Nov 2026 | Masters → Load cell S/N: 🔁 Change client (one load cell, or all shown) — pick the new client from the list, optional reason, OK; the load cell moves to the new client (links to that client's order / bill) and leaves the old one. History kept ('Tested for' + moved from → to, date, who); re-uploading the test file keeps the new client |
 | 1.9.1 | 24 Nov 2026 | Fix (Sanatan): a load cell tested AFTER an order's despatch date is never linked to that order; linking prefers same capacity + same wire. Detail Test Report flags 'tested after the order was despatched' |
 | 1.9.0 | 24 Nov 2026 | Accounts → Sales → View / Print: the bill's load cell serial numbers (same rule as its test report) are printed into the empty space under 'Description of Goods' of the original Tally PDF, with the warranty line. Space found automatically; smaller text or '… and N more' when very many. The saved original PDF is not changed |
 | 1.8.0 | 24 Nov 2026 | Original bill PDFs are kept (private Supabase storage bucket 'invoices', members only) when bills are migrated — also for bills posted earlier (re-migrating attaches the PDF, nothing posted twice). Accounts → View / Print shows the original Tally PDF exactly as printed; summary only if no PDF saved yet |

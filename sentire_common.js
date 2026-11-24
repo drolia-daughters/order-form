@@ -397,6 +397,6 @@ ST.cellCard=function(x){const E=ST.esc;if(!x)return '';
    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;font-size:13px">'
    +row('Customer',E(x.party||c.client||'—'))+row('Order',o?E(o.orderNo):(x.invoice?'<span style="color:var(--text-dim)">no order (linked by bill date)</span>':'<span style="color:#f59e0b">not linked</span>'))+row('Sales invoice',x.invoice?E(x.invoice.no)+(x.invoice.date?' · '+ST.fmtDate(x.invoice.date):''):'—')
    +row('Despatched',o&&o.dod?ST.fmtDate(o.dod):(x.despatched?'yes':'not yet'))+row('Type',E(c.type))+row('Capacity',E(c.capacity)+(x.capOk===false?' <span style="color:#f59e0b">≠ order</span>':''))+row('Cable',E(c.cable))
-   +row('Zero',E(c.zero))+row('Sensitivity',dig?'Digital':E(c.sens)+' mV/V')+row('Input R',E(c.inR)+' Ω')+row('Output R',E(c.outR)+' Ω')+row('Tested on',ST.fmtDate(c.testDate))+'</div>'
+   +row('Zero',E(c.zero))+row('Sensitivity',dig?'Digital':E(c.sens)+' mV/V')+row('Input R',E(c.inR)+' Ω')+row('Output R',E(c.outR)+' Ω')+row('Tested on',ST.fmtDate(c.testDate))+(c.clientMoved&&(c.clientHistory||[]).length?row('Tested for',E(c.clientHistory[0].from)):'')+'</div>'
    +(x.repairs.length?'<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">Repairs: '+x.repairs.map(r=>E(r.rma||'')+' ('+ST.fmtDate(r.received)+', '+E(r.status||'')+')').join(' · ')+'</div>':'')+'</div>';};
 })();
