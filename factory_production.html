@@ -400,7 +400,7 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
   if(j.stage==='Laser')h+=a.laser?B('','laserDone','→ Next','Laser done – move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
   if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
-  if(j.stage==='Packing')h+=j.packedAt?B('','packingToReady','➡ Move to Ready','Packing already saved — move on to the pickup WhatsApp')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
+  if(j.stage==='Packing')h+=j.packedAt?B('','packingToReady','→ Next','Packing saved — move to Ready (pickup WhatsApp)')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
   if(j.stage==='Ready'){h+=B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight');
     h+=B('bill','openBill','🧾 Bill / E-way','Make the bill and e-way bill');
     h+=B('lr','enterLR','🚚 L.R. & Despatch','Enter L.R. — customer gets a WhatsApp');}
