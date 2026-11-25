@@ -63,7 +63,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 <div class="topbar"><div class="topbar-brand"><div class="icon">FP</div><h1>Factory Production</h1><span>PHASE 3</span></div>
 <div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Master Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
 <div class="main">
-<div class="flow">Flow: <b>Received → Bonding / Assembly → Wiring → Testing → Laser</b> (<i>🔐 Laser approval, then Laser done</i>) → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
+<div class="flow">Flow: <b>Received → Bonding / Assembly → Wiring → Testing → Laser</b> (<i>🔐 Laser approval, then Laser done</i>) → <b>Packing</b> → <b>Ready</b> (📦 boxes &amp; weight → 📲 pickup WhatsApp to transporter, before 2 PM) → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
 <div class="banner" id="pickupBanner"></div>
 <div class="apv-banner" id="apvBanner"></div>
 
@@ -226,15 +226,15 @@ function billDetails(no){const j=getJob(no);if(!j||!ST.canBill())return;const o=
       D('Payment status',pi.action==='paid'?'Paid'+(o.paidDate?' on '+ST.fmtDate(String(o.paidDate).slice(0,10)):''):(m==='Advance'?(ac.adv?'Part received':'Not received'):'Not paid yet'))+D('Bill no / total',o.billNo?(o.billNo+(o.billTotal?' · '+ST.inr(o.billTotal):'')):'');})()+'</div>',
     buttons:[{label:'Close',value:null}]}).catch(()=>{});}
 // Packing: enter boxes + weight, then approval
-async function packDetails(no){const j=getJob(no);if(!j||j.stage!=='Packing')return;
+async function packDetails(no){const j=getJob(no);if(!j||j.stage!=='Ready')return; /* 1.16.3: boxes & weight are entered in Ready (not in Packing) */
   const r=await ST.modal({title:'📦 Packing — '+no,sub:j.party+' · '+ST.itemsShort(itemsOf(j)),html:`<label>No. of boxes</label><input id="pk_b" type="number" min="1" value="${E(j.boxes||'')}"><label>Approx. weight (kg)</label><input id="pk_w" type="number" min="0" step="0.1" value="${E(j.weight||'')}"><label>Packed by</label><input id="pk_by" value="${E(j.packedBy||'')}" placeholder="name">`,
     buttons:[{label:'Cancel',value:null},{label:'Save',cls:'pri',onClick:(ov,err)=>{const b=ov.querySelector('#pk_b').value,w=ov.querySelector('#pk_w').value;if(!(parseFloat(b)>0)){err.textContent='Enter the number of boxes.';return false;}if(!(parseFloat(w)>0)){err.textContent='Enter the approximate weight.';return false;}return {b,w,by:ov.querySelector('#pk_by').value.trim()};}}]});
-  if(!r)return;mutate(no,x=>{x.boxes=r.b;x.weight=r.w;x.packedBy=r.by;x.packedAt=new Date().toISOString();x.stage='Ready';hist(x,'Ready','Packed: '+r.b+' boxes, '+r.w+' kg → Ready (no packing approval needed)');});
+  if(!r)return;mutate(no,x=>{x.boxes=r.b;x.weight=r.w;x.packedBy=r.by;x.packedAt=new Date().toISOString();hist(x,'Ready','Boxes & weight: '+r.b+' boxes, '+r.w+' kg');});
   if(j.orderRef)ST.updateOrder(j.orderRef,o=>{o.boxes=r.b;o.weight=r.w;if(r.by)o.packingBy=r.by;});
-  toast('📦 Packed — job is now Ready for pickup');refreshAll();
+  toast('📦 Boxes & weight saved — send the pickup WhatsApp');refreshAll();
   if(!(getJob(no)||{}).acsNotifiedAt)notifyAcs(no);   // ACS was not sent the WhatsApp after laser → send it now, with boxes & weight
 }
-function packingToReady(no){const j=getJob(no);if(!j||j.stage!=='Packing'||!j.packedAt)return;mutate(no,x=>{x.stage='Ready';hist(x,'Ready','Packing done → Ready (no packing approval needed)');});toast('→ Ready');refreshAll();}
+function packingToReady(no){const j=getJob(no);if(!j||j.stage!=='Packing')return;mutate(no,x=>{x.stage='Ready';hist(x,'Ready','Packing done → Ready');});toast('→ Ready');refreshAll();}
 async function approvePacking(no){const j=getJob(no);if(!j||j.stage!=='Packing'||!j.packedAt)return;
   const r=await ST.approve({title:'Approve PACKING — '+no,action:'Packing approval',ref:no,lines:lines(j,['Boxes: '+j.boxes+'   ·   Approx. weight: '+j.weight+' kg','Transporter: '+(trOf(j)||'— (choose on next screen)'),'After approval the pickup WhatsApp goes to the transporter.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.packing=r;x.stage='Ready';hist(x,'Ready','Packing approved by '+r.by+' ('+r.role+')');});
@@ -245,7 +245,7 @@ function pickupWhen(){const c=ST.company();const [h,m]=(c.cutoff||'14:00').split
   const before=now.getHours()*60+now.getMinutes()<h*60+(m||0);const todayOff=ST.holidayName(t);
   if(before&&!todayOff)return {date:t,text:'TODAY ('+ST.fmtDate(t)+')',late:false,cut:c.cutoff||'14:00'};
   const d=ST.nextWorkingDay(t);return {date:d,text:'on '+new Date(ST.parseISO(d)).toLocaleDateString('en-IN',{weekday:'long'})+' '+ST.fmtDate(d),late:true,cut:c.cutoff||'14:00',why:todayOff?'Today is a holiday ('+todayOff+')':'It is past '+(c.cutoff||'14:00')};}
-async function sendPickup(no){const j=getJob(no);if(!j)return;const o=orderOf(j);const w=pickupWhen();
+async function sendPickup(no){const j=getJob(no);if(!j)return;if(j.stage==='Ready'&&!j.packedAt){packDetails(no);return;}const o=orderOf(j);const w=pickupWhen();
   const trs=ST.get(ST.K.transporters,[]).slice().sort();let tr=trOf(j);
   const msgFor=name=>ST.pickupMessage(Object.assign({},j),Object.assign({},o||{},{transporterName:name}),w.text);
   const r=await ST.modal({title:'📲 Pickup request — '+no,wide:false,sub:w.late?'⚠ '+w.why+' — the message asks for pickup '+w.text+'.':'Send before '+w.cut+' so the transporter can plan the vehicle today.',
@@ -385,7 +385,7 @@ function flags(j){const a=j.approvals||{};const f=[];
   if(j.stage==='Laser'&&!a.laser)f.push('<span class="flag wait">🔐 needs laser approval</span>');
   if(a.laser&&STAGE_IDX[j.stage]>=4)f.push('<span class="flag ok" title="'+E(a.laser.by+' · '+new Date(a.laser.at).toLocaleString('en-IN'))+'">✓ laser: '+E(a.laser.by)+'</span>');
   if(ST.canBill()&&j.orderRef&&STAGE_IDX[j.stage]>=5&&j.stage!=='Dispatched'&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
-  if(j.stage==='Packing'&&!j.packedAt)f.push('<span class="flag warn">enter boxes & weight</span>');
+  if(j.stage==='Ready'&&!j.packedAt)f.push('<span class="flag warn">enter boxes & weight</span>');
   if(j.packedAt&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packed: '+E(j.boxes||'?')+' box</span>');
   if(j.stage==='Ready'&&!j.pickupMsgAt)f.push('<span class="flag bad">📲 pickup msg not sent</span>');
   if(j.pickupMsgAt&&j.stage==='Ready')f.push('<span class="flag ok">📲 pickup '+ST.fmtDate(j.pickupFor)+'</span>');
@@ -400,8 +400,8 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
   if(j.stage==='Laser')h+=a.laser?B('','laserDone','→ Next','Laser done – move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
   if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
-  if(j.stage==='Packing')h+=j.packedAt?B('','packingToReady','→ Next','Packing saved — move to Ready (pickup WhatsApp)')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
-  if(j.stage==='Ready'){h+=B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight');
+  if(j.stage==='Packing')h+=B('','packingToReady','→ Next','Packing done — move to Ready');
+  if(j.stage==='Ready'){h+=j.packedAt?B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight — then send the pickup WhatsApp');
     h+=B('bill','openBill','🧾 Bill / E-way','Make the bill and e-way bill');
     h+=B('lr','enterLR','🚚 L.R. & Despatch','Enter L.R. — customer gets a WhatsApp');}
   if(j.stage==='Dispatched'){h+=B('wa','resendDespatch','💬 Customer','Resend despatch WhatsApp');if(j.billNo)h+=B('bill','openBill','🧾','Bill / e-way bill');}
