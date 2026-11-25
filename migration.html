@@ -50,10 +50,10 @@ th{color:var(--text-dim);font-weight:600;font-size:12px;}
    Banking → Smart Finance bank statement reader (IndexedDB 'sentire-bank'). */
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
 var FOLDERS = [
-  { k: 'sales', ic: '🧾', name: 'Sales', hint: 'Your Tally sales bills (PDF)', accept: '.pdf', to: 'accounts' },
-  { k: 'purchases', ic: '📥', name: 'Purchases', hint: 'Supplier / purchase bills (PDF)', accept: '.pdf', to: 'accounts' },
-  { k: 'lr', ic: '🚚', name: 'L.R. copy', hint: 'Transporter L.R. copies (PDF or photo)', accept: '.pdf,image/*', to: '' },
-  { k: 'banking', ic: '🏦', name: 'Banking', hint: 'Bank statements (PDF, Excel, CSV)', accept: '.pdf,.xls,.xlsx,.csv,.txt', to: 'bank' },
+  { k: 'sales', ic: '🧾', name: 'Sales', hint: 'Sales bills — PDF or JPEG photo', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: 'accounts' },
+  { k: 'purchases', ic: '📥', name: 'Purchases', hint: 'Supplier / purchase bills — PDF or JPEG photo', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: 'accounts' },
+  { k: 'lr', ic: '🚚', name: 'L.R. copy', hint: 'Transporter L.R. copies — JPEG photo or PDF', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: '' },
+  { k: 'banking', ic: '🏦', name: 'Banking', hint: 'Bank statements (PDF, Excel, CSV) — JPEG photos are kept too', accept: '.pdf,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,image/*', to: 'bank' },
   { k: 'other', ic: '📁', name: 'Other documents', hint: 'Anything else to keep', accept: '', to: '' }
 ];
 var KEY = 'sfin_migration', cur = 'sales';
@@ -106,7 +106,7 @@ async function addFiles(files) {
   files = [].slice.call(files || []); if (!files.length) return;
   var c = client(); if (!c) { say('Log in first — the files are saved online.', 'bad'); return; }
   var f = fold(cur), l = list(), ok = 0, same = 0, bad = [];
-  if (f.k === 'sales' || f.k === 'purchases') { var n0 = files.length; files = files.filter(function (x) { return /\.pdf$/i.test(x.name) || x.type === 'application/pdf'; }); if (files.length < n0) bad.push((n0 - files.length) + ' file(s) are not PDF — bills must be PDF'); }
+  if (f.k === 'sales' || f.k === 'purchases') { var n0 = files.length; files = files.filter(function (x) { return /\.(pdf|jpe?g|png|webp)$/i.test(x.name) || /^(application\/pdf|image\/)/.test(x.type || ''); }); if (files.length < n0) bad.push((n0 - files.length) + ' file(s) are not PDF or JPEG — bills must be a PDF or a photo'); }
   for (var i = 0; i < files.length; i++) {
     var x = files[i];
     if (l.some(function (y) { return y.folder === f.k && y.name === x.name && y.size === x.size; })) { same++; continue; }
