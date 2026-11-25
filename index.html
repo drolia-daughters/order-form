@@ -204,7 +204,7 @@ document.getElementById('nav').innerHTML=navButton(HOME)+'<div class="nav-label"
 // One button in the left panel (keeps it short); it opens the Admin cards on the Main Page.
 if(IS_ADMIN){
   var _ab=document.createElement('button');_ab.className='nav-btn';_ab.style.setProperty('--c','#14b8a6');
-  _ab.innerHTML='<span class="ic">🔒</span>Admin';_ab.title='Smart Finance, Loadcell Calculator, Cohort, Security';
+  _ab.innerHTML='<span class="ic">🔒</span>Admin';_ab.title='Smart Finance, Loadcell Calculator, Cohort, Security, Migration';
   _ab.onclick=openAdmin;document.getElementById('nav').appendChild(_ab);
 }
 function openAdmin(){
@@ -226,7 +226,8 @@ if(IS_ADMIN){
   t.className='sec-title';t.id='adminCards';t.textContent='🔒 Admin — only the Admin and Sub Admin see this';d.className=g.className;
   d.innerHTML=card('🦅','#14b8a6','Smart Finance','Outstanding, bank, stock, expenses and what to do next',"location.href='smart_finance.html'")+
     ADMIN_KEYS.map(k=>byKey(k)).filter(Boolean).map(a=>card(a.ic,a.c,a.name,a.desc,"go('"+a.key+"')")).join('')+
-    card('🛡','#ef4444','Security','Who is logged in, from where — and log them out',"location.href='security.html'");
+    card('🛡','#ef4444','Security','Who is logged in, from where — and log them out',"location.href='security.html'")+
+    card('📂','#0ea5e9','Migration','Folders for Sales, Purchases, L.R. copy, Banking and Other documents — save files, then migrate',"location.href='migration.html'");
   (document.getElementById('accBlock')||g).after(t);t.after(d);
 }else document.querySelectorAll('button.q').forEach(b=>{if(ADMIN_KEYS.some(k=>(b.getAttribute('onclick')||'').includes("'"+k+"'")))b.remove();});
 
