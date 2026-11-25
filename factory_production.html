@@ -113,6 +113,12 @@ const getJob=no=>g(JK).find(j=>j.jobNo===no);
 function mutate(no,fn){const jobs=g(JK);const j=jobs.find(x=>x.jobNo===no);if(!j)return null;fn(j);s(JK,jobs);return j;}
 const hist=(j,stage,note)=>{(j.history=j.history||[]).push({stage,date:new Date().toISOString(),note});};
 const orderOf=j=>j.orderRef?ST.findOrder(j.orderRef):null;
+/* 1.16.1: a CANCELLED order's job is shown struck through (no work buttons) on the day it is cancelled, and is no longer shown from the next day */
+const dayOf=iso=>{if(!iso)return '';const d=new Date(iso);return isNaN(d)?String(iso).slice(0,10):d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+function cancelDay(j){if(!j||j.stage==='Dispatched')return null;if(j.cancelledAt)return dayOf(j.cancelledAt);const o=orderOf(j);if(o&&o.status==='cancelled')return dayOf(o.cancelledAt)||'0000-00-00';return null;}
+const isCanc=j=>cancelDay(j)!==null;
+/* VJ(): jobs to show — cancelled jobs only on the day they were cancelled (noCanc=true leaves out every cancelled job, for counts and alerts) */
+const VJ=noCanc=>g(JK).filter(j=>{const c=cancelDay(j);return c===null||(!noCanc&&c>=ST.today());});
 const itemsOf=j=>{const o=orderOf(j);return ST.items(o||{items:j.items,type:j.type,qty:j.qty,cap:j.cap,wire:j.wire});};
 const trOf=j=>{const o=orderOf(j);return (o&&o.transporterName)||j.transporter||'';};
 const refreshAll=()=>{renderDash();renderBoard();renderJobs();renderBanners();advanceAlert();};
@@ -381,6 +387,7 @@ function flags(j){const a=j.approvals||{};const f=[];
   return f.join('');}
 function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h='';
   const B=(cls,fn,label,tip)=>`<button class="stg-btn ${cls}" title="${E(tip||'')}" onclick="event.stopPropagation();${fn}('${no}')">${label}</button>`;
+  if(isCanc(j))return '<span class="flag bad" style="text-decoration:none;">✕ ORDER CANCELLED — STOP WORK</span>';
   if(j.stage==='Bonding')h+=B('bond','bondingDone','✅ Bonding done','Enter the load cells bonded and the strain gauges used, then move to Wiring')+B('','advance','→ Next','Bonding / Assembly done somewhere else – move straight to Wiring without the gauge count');
   else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
   if(j.stage==='Laser')h+=a.laser?B('','laserDone','✓ Laser done','Move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
@@ -396,15 +403,15 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   return h;}
 
 /* ═══════════ RENDER ═══════════ */
-function renderJobs(){const jobs=g(JK),srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';const today=ST.today();
+function renderJobs(){const jobs=VJ(),srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';const today=ST.today();
   const fl=jobs.filter(j=>{const its=itemsOf(j);if(srch&&!((j.party+' '+j.jobNo+' '+(j.orderRef||'')+' '+ST.itemsShort(its)).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});
   document.getElementById('jBody').innerHTML=fl.slice().reverse().map(j=>{const si=STAGE_IDX[j.stage]||0;const pct=Math.round((si/(STAGES.length-1))*100);const clr=STAGE_CLR[j.stage]||'#666';
     const overdue=j.target&&j.target<today&&STAGE_IDX[j.stage]<6;const its=itemsOf(j);const tot=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);
-    return `<tr style="${j.stage==='Dispatched'?'opacity:0.55;':''}"><td style="min-width:200px;">${actions(j)}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${E(j.jobNo)}</td><td style="font-family:var(--mono);font-size:10px;">${E(j.orderRef)||'—'}</td><td><strong>${E(j.party)}</strong></td><td>${its.map(i=>E(i.type||'—')+(ST.prodCap(i)?' <span style="color:var(--text-dim)">'+E(ST.prodCap(i))+'</span>':'')).join('<br>')}</td><td>${its.length>1?its.map(i=>E(i.qty)).join('<br>')+'<div style="font-size:10px;color:var(--green);font-family:var(--mono);">= '+tot+'</div>':'<strong>'+E(its[0].qty)+'</strong>'}</td><td><span class="tag" style="background:${clr}22;color:${clr};">${E(j.stage)}</span><div>${flags(j)}</div></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(j.startDate)||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${ST.fmtDate(j.target)||'—'}${overdue?' ⚠':''}</td><td style="font-family:var(--mono);font-size:10px;">${j.boxes?E(j.boxes)+' box':'—'}${j.weight?'<br>'+E(j.weight)+' kg':''}</td><td>${E(j.worker)||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:160px;">${E(j.remarks)||'—'}</td></tr>`;}).join('');}
-function renderBoard(){const jobs=g(JK);
+    return `<tr style="${isCanc(j)?'opacity:0.45;text-decoration:line-through;':j.stage==='Dispatched'?'opacity:0.55;':''}"><td style="min-width:200px;">${actions(j)}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${E(j.jobNo)}</td><td style="font-family:var(--mono);font-size:10px;">${E(j.orderRef)||'—'}</td><td><strong>${E(j.party)}</strong></td><td>${its.map(i=>E(i.type||'—')+(ST.prodCap(i)?' <span style="color:var(--text-dim)">'+E(ST.prodCap(i))+'</span>':'')).join('<br>')}</td><td>${its.length>1?its.map(i=>E(i.qty)).join('<br>')+'<div style="font-size:10px;color:var(--green);font-family:var(--mono);">= '+tot+'</div>':'<strong>'+E(its[0].qty)+'</strong>'}</td><td><span class="tag" style="background:${clr}22;color:${clr};">${E(j.stage)}</span><div>${flags(j)}</div></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(j.startDate)||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${ST.fmtDate(j.target)||'—'}${overdue?' ⚠':''}</td><td style="font-family:var(--mono);font-size:10px;">${j.boxes?E(j.boxes)+' box':'—'}${j.weight?'<br>'+E(j.weight)+' kg':''}</td><td>${E(j.worker)||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:160px;">${E(j.remarks)||'—'}</td></tr>`;}).join('');}
+function renderBoard(){const jobs=VJ();
   document.getElementById('bRow').innerHTML=STAGES.map(st=>{const stJ=jobs.filter(j=>j.stage===st);const clr=STAGE_CLR[st];
-    return `<div class="board-col" style="border-top:3px solid ${clr};"><h3>${SL(st)}</h3><div class="cnt" style="color:${clr};">${stJ.length}</div>${stJ.map(j=>`<div class="jcard"><b>${E(j.party)}</b><small>${E(j.jobNo)}${j.orderRef?' · '+E(j.orderRef):''}</small><small>${E(ST.itemsShort(itemsOf(j)))}</small>${j.boxes?'<small>'+E(j.boxes)+' box · '+E(j.weight||'—')+' kg</small>':''}<div>${flags(j)}</div><div class="acts">${actions(j,true)}</div></div>`).join('')}</div>`;}).join('');}
-function renderDash(){const jobs=g(JK),today=ST.today();const active=jobs.filter(j=>j.stage!=='Dispatched');
+    return `<div class="board-col" style="border-top:3px solid ${clr};"><h3>${SL(st)}</h3><div class="cnt" style="color:${clr};">${stJ.length}</div>${stJ.map(j=>`<div class="jcard" style="${isCanc(j)?'opacity:0.45;text-decoration:line-through;':''}"><b>${E(j.party)}</b><small>${E(j.jobNo)}${j.orderRef?' · '+E(j.orderRef):''}</small><small>${E(ST.itemsShort(itemsOf(j)))}</small>${j.boxes?'<small>'+E(j.boxes)+' box · '+E(j.weight||'—')+' kg</small>':''}<div>${flags(j)}</div><div class="acts">${actions(j,true)}</div></div>`).join('')}</div>`;}).join('');}
+function renderDash(){const jobs=VJ(true),today=ST.today();const active=jobs.filter(j=>j.stage!=='Dispatched');
   const totalQty=active.reduce((a,j)=>a+itemsOf(j).reduce((x,i)=>x+(parseFloat(i.qty)||0),0),0);const overdue=active.filter(j=>j.target&&j.target<today&&STAGE_IDX[j.stage]<6);
   let html=`<div class="stat-card"><div class="num" style="color:var(--blue);">${jobs.length}</div><div class="lab">Total Jobs</div></div><div class="stat-card"><div class="num" style="color:var(--accent);">${active.length}</div><div class="lab">Active</div></div><div class="stat-card"><div class="num" style="color:var(--cyan);">${totalQty}</div><div class="lab">Total Pcs</div></div><div class="stat-card"><div class="num" style="color:var(--red);">${overdue.length}</div><div class="lab">Overdue</div></div>`;
   STAGES.slice(0,-1).forEach(st=>{html+=`<div class="stat-card"><div class="num" style="color:${STAGE_CLR[st]};">${active.filter(j=>j.stage===st).length}</div><div class="lab">${SL(st)}</div></div>`;});
@@ -419,7 +426,7 @@ function pendingActions(jobs){const out=[];jobs.forEach(j=>{const a=j.approvals|
 });return out;}
 // Banners: pickup messages before the cut-off (2 PM) and approvals waiting
 let alertedFor='';
-function renderBanners(){const jobs=g(JK);const pend=jobs.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt);const b=document.getElementById('pickupBanner');
+function renderBanners(){const jobs=VJ(true);const pend=jobs.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt);const b=document.getElementById('pickupBanner');
   if(!pend.length){b.className='banner';b.innerHTML='';}
   else{const w=pickupWhen();const now=new Date();const [h,m]=w.cut.split(':').map(Number);const left=h*60+(m||0)-(now.getHours()*60+now.getMinutes());
     b.className='banner show'+(w.late?' late':'')+(!w.late&&left<=60?' urgent':'');
@@ -436,7 +443,7 @@ window.addEventListener('storage',()=>refreshAll());
 // Job card = the same half-A4 layout as the Order Sheet print, opened straight in the printer dialog
 function printJob(no){const j=getJob(no);if(!j)return alert('Job not found');ST.printOrderSheets([{order:ST.orderForJob(j),opt:{jobNo:j.jobNo,stage:j.stage}}],{name:'JobCard_'+j.jobNo});}
 const fmtD=d=>{if(!d)return '—';const x=new Date(d);return isNaN(x)?d:x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});};
-function shownJobs(all){const jobs=g(JK);if(all)return jobs.filter(j=>j.stage!=='Dispatched');const srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';return jobs.filter(j=>{if(srch&&!((j.party+' '+j.jobNo+' '+(j.orderRef||'')+' '+ST.itemsShort(itemsOf(j))).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});}
+function shownJobs(all){const jobs=VJ(true);if(all)return jobs.filter(j=>j.stage!=='Dispatched');const srch=(document.getElementById('jSrch')?.value||'').toLowerCase(),filt=document.getElementById('jFilt')?.value||'';return jobs.filter(j=>{if(srch&&!((j.party+' '+j.jobNo+' '+(j.orderRef||'')+' '+ST.itemsShort(itemsOf(j))).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});}
 function openPrint(title,body){const w=window.open('','_blank');if(!w){alert('Please allow pop-ups for this page to print.');return;}
 w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${E(title)}</title><style>
 *{box-sizing:border-box;}body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;font-size:13px;}
@@ -484,7 +491,7 @@ async function overrideAdvance(list){
 let advShown='';
 function advanceAlert(){
   if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove())return;     // only people who can approve laser
-  const hold=g(JK).filter(j=>j.stage==='Laser'&&!(j.approvals&&j.approvals.laser)).map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!x.j.laserOverride).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
+  const hold=VJ(true).filter(j=>j.stage==='Laser'&&!(j.approvals&&j.approvals.laser)).map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!x.j.laserOverride).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
   const sig=hold.map(x=>x.j.jobNo+':'+(x.ac.adv||0)).join('|');if(!hold.length||sig===advShown)return;advShown=sig;
   const adm=ST.isAdmin();
   const rows=hold.map(x=>'<div style="border:1px solid #ef4444;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 10px;margin:6px 0;"><b>'+E(x.j.jobNo)+' · '+E(x.j.party)+'</b> <span style="opacity:.7">('+E(x.j.orderRef||'')+')</span><br>'+E(ST.itemsShort(itemsOf(x.j)))+
