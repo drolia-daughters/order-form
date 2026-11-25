@@ -277,7 +277,13 @@ function renderOpen(){if(!document.getElementById('oDate').value)document.getEle
   document.getElementById('tOpen').innerHTML='<tr><th>Who</th><th>Party</th><th class="n">Amount</th><th>Date</th><th>Bill no.</th><th></th></tr>'+(L.length?L.map(o=>`<tr><td>${o.side==='pay'?'We owe supplier':'Customer owes us'}</td><td>${esc(o.party)}</td><td class="n">${inr(o.amount)}</td><td>${esc(o.date)}</td><td>${esc(o.ref||'—')}</td><td><button class="btn sm red" onclick="offOpening('${o.id}')">Remove</button></td></tr>`).join(''):'<tr><td colspan="6" class="dim" style="padding:18px;text-align:center">No opening balances added.</td></tr>');}
 
 /* ───────── only the Admin and Sub Admin ───────── */
-function start(){document.getElementById('app').style.display='';render();}
+function start(){document.getElementById('app').style.display='';render();pickBank();}
+/* 1.17.0: bank statements sent from Admin → Migration → Banking arrive here and are read at once */
+async function pickBank(){if(!('indexedDB' in window))return;let db;try{db=await new Promise((res,rej)=>{const r=indexedDB.open('sentire-bank',1);r.onupgradeneeded=()=>r.result.createObjectStore('files',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}catch(e){return;}
+  const recs=await new Promise(res=>{const q=db.transaction('files').objectStore('files').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});if(!recs.length)return;
+  await new Promise(res=>{const tx=db.transaction('files','readwrite');recs.forEach(r=>tx.objectStore('files').delete(r.id));tx.oncomplete=res;tx.onerror=res;});
+  const imp=document.getElementById('drop');if(imp)imp.scrollIntoView({behavior:'smooth',block:'center'});
+  await loadFiles(recs.map(r=>new File([r.blob],r.name,{type:r.type||''})));}
 function noAccess(){location.replace('index.html');}   // auth.js already sends everyone else away; this is a second lock
 if(!A||!A.enabled)start();else A.ready.then(me=>{if(me&&A.isSecurityAdmin(me))start();else if(me)noAccess();});
 </script>
