@@ -9,6 +9,8 @@
 <script src="auth_config.js"></script>
 <script src="auth.js"></script>
 <script src="sync.js"></script>
+<script src="sentire_common.js"></script>
+<script src="invoice_engine.js"></script>
 <style>
 :root{--bg:#0c0f14;--surface:#141820;--surface-2:#1a1f2b;--border:#262d3a;--text:#e8ecf4;--text-dim:#7a8599;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -18,7 +20,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 .sub{color:var(--text-dim);font-size:13px;margin-bottom:14px;line-height:1.5;}
 .btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-weight:600;font-size:13px;cursor:pointer;}
 .btn:hover{border-color:var(--accent);}.btn.ok{background:var(--green);border-color:var(--green);color:#04120a;}.btn:disabled{opacity:.45;cursor:default;}
-.btn.sm{padding:4px 9px;font-size:12px;font-weight:500;}.btn.red{color:#fca5a5;border-color:rgba(239,68,68,.5);}
+.btn.sm{padding:4px 9px;font-size:12px;font-weight:500;}.btn.red{color:#fca5a5;border-color:rgba(239,68,68,.5);}.btn.teach{color:#fde68a;border-color:rgba(245,158,11,.6);}
 .folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px;}
 .fold{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:left;color:var(--text);}
 .fold:hover{border-color:var(--accent);}.fold.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:rgba(59,130,246,.08);}
@@ -30,68 +32,82 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,
 table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--border);vertical-align:middle;}
 th{color:var(--text-dim);font-weight:600;font-size:12px;}
 .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
-.t-new{background:rgba(245,158,11,.14);color:var(--orange);}.t-sent{background:rgba(34,197,94,.14);color:var(--green);}.t-kept{background:rgba(148,163,184,.14);color:var(--text-dim);}
+.t-new{background:rgba(245,158,11,.14);color:var(--orange);}.t-sent{background:rgba(34,197,94,.14);color:var(--green);}.t-chk{background:rgba(239,68,68,.14);color:#fca5a5;}
 .msg{min-height:20px;margin:8px 0;font-size:13px;}.msg.bad{color:var(--red);}.msg.good{color:var(--green);}
 .dim{color:var(--text-dim);font-size:12px;}
+.rtext{max-height:220px;overflow:auto;background:#0b0e13;border:1px solid var(--border);border-radius:8px;padding:8px;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;margin:8px 0;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><h1>📂 Migration</h1><span class="sp"></span><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
-  <p class="sub">Save every document in its folder first. The files are kept safely online (private — Admin and Sub Admin only). Then press <b>🔄 Migrate</b> in a folder and the software posts them: Sales and Purchase bills into Accounts, bank statements into Smart Finance. A file is never posted twice.</p>
+  <div class="top"><h1>📂 Migration</h1><span class="sp"></span><button class="btn" id="homeBtn" onclick="location.href='index.html'">← Main Page</button></div>
+  <p class="sub">Save every document in its folder, then press <b>🔄 Migrate</b>. The software reads each file (PDF or JPEG photo) and posts it: Sales and Purchase bills into Accounts, L.R. copies onto the despatched job, bank statements into Smart Finance, other documents filed under their party. If a document cannot be read, press <b>🎓 Teach</b> once and type what it says — next time the same kind of document is read by itself.</p>
   <div class="folders" id="folders"></div>
   <div class="box" id="panel"></div>
 </div>
 <script>
-/* 1.17.0: Admin → Migration — five folders (Sales, Purchases, L.R. copy, Banking, Other documents).
-   Files are stored in the private Supabase bucket 'invoices' under migration/<folder>/…; the list (sfin_migration) is shared only
-   between the Admin and Sub Admin. Migrate hands the files to the engines that already exist:
-   Sales / Purchases → Accounts Data Migration (same hand-over as WhatsApp share, IndexedDB 'sentire-share'),
-   Banking → Smart Finance bank statement reader (IndexedDB 'sentire-bank'). */
+/* 1.18.0: 📂 Migration (left menu, after Accounts — Admin, Sub Admin and the accounts login).
+   Five folders; files kept in the private Supabase bucket 'invoices' under migration/<folder>/… ; list in fin_migration.
+   Migrate:  Sales / Purchases → Accounts Data Migration (hand-over through IndexedDB 'sentire-share')
+             Banking → Smart Finance statement reader (IndexedDB 'sentire-bank')  — Admin and Sub Admin only
+             L.R. copy → read here (PDF text or OCR): L.R. no. + date → saved on the despatched job that has no L.R.
+             Other documents → read here, filed under the party found in the text
+   🎓 Teach: the user types the value once; the words in front of it on the document are learnt (fin_mig_formats)
+             and used for every later document of the same format. */
 var A = window.SentireAuth, $ = function (id) { return document.getElementById(id); };
 var FOLDERS = [
   { k: 'sales', ic: '🧾', name: 'Sales', hint: 'Sales bills — PDF or JPEG photo', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: 'accounts' },
   { k: 'purchases', ic: '📥', name: 'Purchases', hint: 'Supplier / purchase bills — PDF or JPEG photo', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: 'accounts' },
-  { k: 'lr', ic: '🚚', name: 'L.R. copy', hint: 'Transporter L.R. copies — JPEG photo or PDF', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: '' },
-  { k: 'banking', ic: '🏦', name: 'Banking', hint: 'Bank statements (PDF, Excel, CSV) — JPEG photos are kept too', accept: '.pdf,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,image/*', to: 'bank' },
-  { k: 'other', ic: '📁', name: 'Other documents', hint: 'Anything else to keep', accept: '', to: '' }
+  { k: 'lr', ic: '🚚', name: 'L.R. copy', hint: 'Transporter L.R. copies — JPEG photo or PDF', accept: '.pdf,.jpg,.jpeg,.png,image/*', to: 'lr' },
+  { k: 'banking', ic: '🏦', name: 'Banking', hint: 'Bank statements (PDF, Excel, CSV)', accept: '.pdf,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,image/*', to: 'bank', admin: true },
+  { k: 'other', ic: '📁', name: 'Other documents', hint: 'Anything else — filed under its party', accept: '', to: 'other' }
 ];
-var KEY = 'sfin_migration', cur = 'sales';
+var KEY = 'fin_migration', FMT = 'fin_mig_formats', cur = 'sales';
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-function list() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } }
-function save(l) { localStorage.setItem(KEY, JSON.stringify(l)); }
+function get(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+function put(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function list() { return get(KEY, []); }
+function save(l) { put(KEY, l); }
+function upd(id, fn) { var l = list(); l.forEach(function (x) { if (x.id === id) fn(x); }); save(l); }
+function isAdm() { return !A || !A.enabled || A.isSecurityAdmin(); }
+function folders() { return FOLDERS.filter(function (f) { return !f.admin || isAdm(); }); }
 function fold(k) { return FOLDERS.find(function (f) { return f.k === k; }); }
 function me() { return (A && A.user && (A.user.name || A.user.login_id)) || ''; }
 function client() { return A && A.client; }
 function size(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
 function when(t) { return t ? new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
 function say(t, cls) { var m = $('msg'); if (m) { m.textContent = t || ''; m.className = 'msg ' + (cls || ''); } }
+function inFrame() { try { return window.top !== window && !!window.top.go; } catch (e) { return false; } }
 
 function renderFolders() {
   var l = list();
-  $('folders').innerHTML = FOLDERS.map(function (f) {
-    var n = l.filter(function (x) { return x.folder === f.k; }), p = n.filter(function (x) { return !x.sentAt; }).length;
-    return '<button class="fold' + (f.k === cur ? ' on' : '') + '" onclick="openFolder(\'' + f.k + '\')"><div class="ic">' + f.ic + '</div><b>' + esc(f.name) + '</b><span>' + n.length + ' file' + (n.length === 1 ? '' : 's') + (f.to && p ? ' · ' + p + ' to migrate' : '') + '</span></button>';
+  $('folders').innerHTML = folders().map(function (f) {
+    var n = l.filter(function (x) { return x.folder === f.k; }), p = n.filter(function (x) { return !x.sentAt && x.state !== 'check'; }).length, c = n.filter(function (x) { return x.state === 'check'; }).length;
+    return '<button class="fold' + (f.k === cur ? ' on' : '') + '" onclick="openFolder(\'' + f.k + '\')"><div class="ic">' + f.ic + '</div><b>' + esc(f.name) + '</b><span>' + n.length + ' file' + (n.length === 1 ? '' : 's') + (p ? ' · ' + p + ' to migrate' : '') + (c ? ' · ' + c + ' to teach' : '') + '</span></button>';
   }).join('');
 }
 function openFolder(k) { cur = k; renderFolders(); renderPanel(); }
+function status(f, x) {
+  if (x.state === 'check') return '<span class="tag t-chk">needs you</span><div class="dim">' + esc(x.note || '') + '</div>';
+  if (x.sentAt) return '<span class="tag t-sent">✓ ' + (f.to === 'accounts' || f.to === 'bank' ? 'migrated' : 'posted') + '</span><div class="dim">' + esc(x.note ? x.note + ' · ' : '') + esc(when(x.sentAt)) + (x.sentBy ? ' · ' + esc(x.sentBy) : '') + '</div>';
+  return '<span class="tag t-new">new — not migrated yet</span>';
+}
 function renderPanel() {
   var f = fold(cur), l = list().filter(function (x) { return x.folder === cur; }).sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
-  var pend = l.filter(function (x) { return !x.sentAt; }).length;
-  var canDel = !A.enabled || (A.user && (A.user.role === 'Admin' || A.canDelete()));
-  var target = f.to === 'accounts' ? 'Accounts (Data Migration)' : f.to === 'bank' ? 'Smart Finance (bank entries)' : '';
+  var pend = l.filter(function (x) { return !x.sentAt && x.state !== 'check'; }).length;
+  var canDel = !A || !A.enabled || (A.user && (A.user.role === 'Admin' || A.canDelete()));
+  var target = { accounts: 'Accounts (Sales / Purchase)', bank: 'Smart Finance (bank entries)', lr: 'the despatched job (L.R. no. and date)', other: 'the party it belongs to' }[f.to];
   $('panel').innerHTML =
-    '<div class="bar"><h2>' + f.ic + ' ' + esc(f.name) + '</h2><span class="sp"></span>' +
-    (f.to ? '<button class="btn ok" id="migBtn" onclick="migrate()" ' + (pend ? '' : 'disabled') + '>🔄 Migrate ' + (pend ? pend + ' new file' + (pend > 1 ? 's' : '') : '') + '</button>' : '') + '</div>' +
-    '<div class="dim">' + (f.to ? 'Migrate posts the new files into ' + target + '. Results (posted / not posted and why) are shown there.' : 'Files here are kept safely. Automatic posting for this folder is not set up yet.') + '</div>' +
+    '<div class="bar"><h2>' + f.ic + ' ' + esc(f.name) + '</h2><span class="sp"></span><button class="btn ok" id="migBtn" onclick="migrate()" ' + (pend ? '' : 'disabled') + '>🔄 Migrate' + (pend ? ' ' + pend + ' new file' + (pend > 1 ? 's' : '') : '') + '</button></div>' +
+    '<div class="dim">Migrate reads the new files and posts them to ' + target + '. A file is never posted twice.</div>' +
     '<div class="drop" id="drop"><div style="font-size:26px">' + f.ic + '</div><b>Click or drop files here</b><div class="dim" style="margin-top:4px">' + esc(f.hint) + '</div></div>' +
     '<input type="file" id="file" multiple accept="' + esc(f.accept) + '" style="display:none">' +
     '<div class="msg" id="msg"></div>' +
     (l.length ? '<table><tr><th>File</th><th>Size</th><th>Saved</th><th>Status</th><th></th></tr>' + l.map(function (x) {
-      var st = !f.to ? '<span class="tag t-kept">kept</span>' : x.sentAt ? '<span class="tag t-sent">✓ migrated</span><div class="dim">' + esc(when(x.sentAt)) + (x.sentBy ? ' · ' + esc(x.sentBy) : '') + '</div>' : '<span class="tag t-new">new — not migrated yet</span>';
-      return '<tr><td>📄 ' + esc(x.name) + '</td><td>' + esc(size(x.size || 0)) + '</td><td>' + esc(when(x.at)) + (x.by ? '<div class="dim">' + esc(x.by) + '</div>' : '') + '</td><td>' + st + '</td><td style="white-space:nowrap">' +
+      return '<tr><td>📄 ' + esc(x.name) + (x.party ? '<div class="dim">' + esc(x.party) + (x.docType ? ' · ' + esc(x.docType) : '') + '</div>' : '') + '</td><td>' + esc(size(x.size || 0)) + '</td><td>' + esc(when(x.at)) + (x.by ? '<div class="dim">' + esc(x.by) + '</div>' : '') + '</td><td>' + status(f, x) + '</td><td style="white-space:nowrap">' +
         '<button class="btn sm" onclick="viewFile(\'' + x.id + '\')">👁 View</button> ' +
-        (f.to && x.sentAt ? '<button class="btn sm" title="Send this file to migration again" onclick="migrate(\'' + x.id + '\')">🔄 Again</button> ' : '') +
+        ((f.to === 'lr' || f.to === 'other') && (x.state === 'check' || x.sentAt) ? '<button class="btn sm teach" onclick="teach(\'' + x.id + '\')">🎓 ' + (x.state === 'check' ? 'Teach' : 'Change') + '</button> ' : '') +
+        ((f.to === 'accounts' || f.to === 'bank') && x.sentAt ? '<button class="btn sm" title="Send this file to migration again" onclick="migrate(\'' + x.id + '\')">🔄 Again</button> ' : '') +
         (canDel ? '<button class="btn sm red" onclick="delFile(\'' + x.id + '\')">🗑</button>' : '') + '</td></tr>';
     }).join('') + '</table>' : '<div class="dim" style="margin-top:8px">No files in this folder yet.</div>');
   var d = $('drop'), inp = $('file');
@@ -118,7 +134,7 @@ async function addFiles(files) {
     l = list(); l.push({ id: id, folder: f.k, name: x.name, size: x.size, type: x.type || '', path: path, at: new Date().toISOString(), by: me() }); save(l); ok++;
   }
   renderFolders(); renderPanel();
-  say((ok ? '✓ ' + ok + ' file(s) saved in ' + f.name + '. ' : '') + (same ? same + ' already in this folder (skipped). ' : '') + (bad.length ? 'Not saved: ' + bad.join('; ') : ''), bad.length ? 'bad' : 'good');
+  say((ok ? '✓ ' + ok + ' file(s) saved in ' + f.name + ' — press 🔄 Migrate. ' : '') + (same ? same + ' already in this folder (skipped). ' : '') + (bad.length ? 'Not saved: ' + bad.join('; ') : ''), bad.length ? 'bad' : 'good');
 }
 async function viewFile(id) {
   var x = list().find(function (y) { return y.id === id; }), c = client(); if (!x || !c) return;
@@ -130,9 +146,10 @@ async function viewFile(id) {
 async function delFile(id) {
   var x = list().find(function (y) { return y.id === id; }); if (!x) return;
   if (!confirm('Delete "' + x.name + '" from ' + fold(x.folder).name + '?\nIt is removed from this folder list (a safety copy stays online). Entries already posted from it stay.')) return;
-  var c = client(); if (c) { var r = await c.storage.from('invoices').remove([x.path]); if (r.error) { say('Could not delete: ' + r.error.message, 'bad'); return; } }
+  var c = client(); if (c) { try { await c.storage.from('invoices').remove([x.path]); } catch (e) {} }
   save(list().filter(function (y) { return y.id !== id; })); renderFolders(); renderPanel(); say('🗑 Deleted ' + x.name, 'good');
 }
+async function blobOf(x) { var r = await client().storage.from('invoices').download(x.path); if (r.error || !r.data) throw new Error(r.error ? r.error.message : 'could not get the file'); return r.data; }
 function idbPut(dbName, recs) {
   return new Promise(function (res, rej) {
     var r = indexedDB.open(dbName, 1);
@@ -141,30 +158,134 @@ function idbPut(dbName, recs) {
     r.onsuccess = function () { var tx = r.result.transaction('files', 'readwrite'), st = tx.objectStore('files'); recs.forEach(function (x) { st.put(x); }); tx.oncomplete = res; tx.onerror = function () { rej(tx.error); }; };
   });
 }
+
 async function migrate(oneId) {
-  var f = fold(cur), c = client(); if (!f.to) return; if (!c) { say('Log in first.', 'bad'); return; }
-  var todo = list().filter(function (x) { return x.folder === f.k && (oneId ? x.id === oneId : !x.sentAt); }); if (!todo.length) return;
+  var f = fold(cur), c = client(); if (!c) { say('Log in first.', 'bad'); return; }
+  var todo = list().filter(function (x) { return x.folder === f.k && (oneId ? x.id === oneId : (!x.sentAt && x.state !== 'check')); }); if (!todo.length) return;
   var b = $('migBtn'); if (b) b.disabled = true;
+  if (f.to === 'lr' || f.to === 'other') { await migrateHere(f, todo); if (b) b.disabled = false; return; }
   var recs = [], failed = [];
   for (var i = 0; i < todo.length; i++) {
     var x = todo[i]; say('Getting ' + x.name + '… (' + (i + 1) + ' of ' + todo.length + ')');
-    var r = await c.storage.from('invoices').download(x.path);
-    if (r.error || !r.data) { failed.push(x.name); continue; }
-    recs.push({ id: Date.now() + '-' + i, name: x.name, type: x.type || r.data.type || 'application/pdf', blob: r.data, at: Date.now(), mig: x.id });
+    try { var bl = await blobOf(x); recs.push({ id: Date.now() + '-' + i, name: x.name, type: x.type || bl.type || 'application/pdf', blob: bl, at: Date.now(), mig: x.id }); } catch (e) { failed.push(x.name); }
   }
   if (!recs.length) { say('Could not get the files: ' + failed.join(', '), 'bad'); if (b) b.disabled = false; return; }
   try { await idbPut(f.to === 'bank' ? 'sentire-bank' : 'sentire-share', recs); } catch (e) { say('Could not hand the files over: ' + e.message, 'bad'); if (b) b.disabled = false; return; }
   var now = new Date().toISOString(), ids = recs.map(function (x) { return x.mig; });
   save(list().map(function (y) { if (ids.indexOf(y.id) >= 0) { y.sentAt = now; y.sentBy = me(); } return y; }));
-  say('Opening ' + (f.to === 'bank' ? 'Smart Finance' : 'Accounts') + ' — the files are being migrated…' + (failed.length ? ' (could not get: ' + failed.join(', ') + ')' : ''), 'good');
-  setTimeout(function () { location.href = f.to === 'bank' ? 'smart_finance.html' : 'index.html#accounts'; }, 600);
+  say('Opening ' + (f.to === 'bank' ? 'Smart Finance' : 'Accounts') + ' — the files are being read and posted…' + (failed.length ? ' (could not get: ' + failed.join(', ') + ')' : ''), 'good');
+  setTimeout(function () {
+    if (f.to === 'bank') { (inFrame() ? window.top : window).location.href = 'smart_finance.html'; return; }
+    if (inFrame()) { window.top.go('accounts'); setTimeout(function () { try { var fr = window.top.document.querySelector('#v-accounts iframe'); if (fr && fr.contentWindow.pickShared) fr.contentWindow.pickShared(); } catch (e) {} }, 1500); }
+    else location.href = 'index.html#accounts';
+  }, 600);
 }
 
-function start() { renderFolders(); renderPanel(); }
+/* ───── reading + learnt formats ───── */
+function lines(t) { return String(t || '').split('\n').map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean); }
+function norm(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+var COMMON = /^(THE|AND|FOR|FROM|WITH|DATE|TOTAL|NAME|ADDRESS|PHONE|MOBILE|GSTIN|STATE|CODE|INVOICE|COPY|PAGE|ORIGINAL|DUPLICATE|NUMBER|CONSIGNOR|CONSIGNEE|WEIGHT|PACKAGES|AMOUNT|FREIGHT|INDIA|GUJARAT|LIMITED|PRIVATE|LTD|PVT)$/;
+function keysOf(t) { var out = []; lines(t).slice(0, 8).join(' ').toUpperCase().split(/[^A-Z]+/).forEach(function (w) { if (w.length >= 4 && !COMMON.test(w) && out.indexOf(w) < 0) out.push(w); }); return out.slice(0, 4); }
+function fmtFor(folder, t) { var U = ' ' + String(t || '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ') + ' '; return get(FMT, []).filter(function (m) { return m.folder === folder && m.keys.length && m.keys.every(function (k) { return U.indexOf(' ' + k + ' ') >= 0; }); })[0] || null; }
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+// learn: the words just before the typed value (same line), or the line above when the value starts its own line
+function learn(t, val) {
+  if (!val) return null; var L = lines(t), nv = norm(val);
+  for (var i = 0; i < L.length; i++) {
+    var ln = L[i], idx = ln.toUpperCase().indexOf(String(val).toUpperCase());
+    if (idx < 0 && norm(ln).indexOf(nv) >= 0) { var m = ln.match(new RegExp(String(val).split('').filter(function (ch) { return /[A-Za-z0-9]/.test(ch); }).map(escRe).join('[^A-Za-z0-9]*'), 'i')); if (m) idx = m.index; }
+    if (idx < 0) continue;
+    var bw = ln.slice(0, idx).replace(/[:\-#.\s]+$/, '').trim().split(' '), bk = []; for (var q = bw.length - 1; q >= 0 && bk.length < 3; q--) { if (/\d/.test(bw[q])) { if (bk.length) break; else continue; } bk.unshift(bw[q]); } var before = bk.join(' ');
+    if (before.replace(/[^A-Za-z]/g, '').length >= 2) return { anchor: before, next: false };
+    if (i > 0) return { anchor: L[i - 1].split(' ').slice(-3).join(' '), next: true };
+  }
+  return null;
+}
+function pick(t, rule, kind) {
+  if (!rule) return ''; var L = lines(t), a = rule.anchor.toUpperCase();
+  var pat = kind === 'date' ? '(\\d{1,2}[\\/\\-.][\\d A-Za-z]{1,9}[\\/\\-.]\\d{2,4})' : '([A-Za-z0-9][A-Za-z0-9\\-\\/]{1,24})';
+  for (var i = 0; i < L.length; i++) {
+    var U = L[i].toUpperCase(), p = U.indexOf(a); if (p < 0) continue;
+    if (rule.next) { var nx = L[i + 1] || '', m1 = nx.match(new RegExp(pat)); if (m1) return m1[1]; continue; }
+    var m = L[i].slice(p + a.length).match(new RegExp('^[\\s:\\-#.]*' + pat)); if (m) return m[1];
+  }
+  return '';
+}
+function guessLR(t) { var m = String(t).match(/(?:\bL\.?\s?R\.?|\bG\.?\s?R\.?|\bC\.?\s?N\.?|DOCKET|CONSIGNMENT|BILTY|BUILTY)\s*(?:NO\.?|NUMBER|#)?\s*[:\-.#]?\s*([A-Z0-9][A-Z0-9\-\/]{2,20})/i); return m ? m[1] : ''; }
+function guessDate(t) { var m = String(t).match(/\b(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})\b/); return m ? m[1] : ''; }
+function toISO(d) { var m = String(d || '').match(/(\d{1,2})[\/\-. ]+(\d{1,2}|[A-Za-z]{3})[A-Za-z]*[\/\-. ]+(\d{2,4})/); if (!m) return ''; var M = { JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6, JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12 }; var mo = /\d/.test(m[2]) ? +m[2] : M[m[2].toUpperCase()]; var y = m[3].length === 2 ? '20' + m[3] : m[3]; if (!mo || mo > 12) return ''; return y + '-' + String(mo).padStart(2, '0') + '-' + String(+m[1]).padStart(2, '0'); }
+function parties() { var s = {}; Object.keys(ST.clients() || {}).forEach(function (n) { s[n] = 1; }); (ST.orders() || []).forEach(function (o) { if (o.partyName) s[o.partyName] = 1; }); Object.keys(get('ordersheet_vendors', {}) || {}).forEach(function (n) { s[n] = 1; }); return Object.keys(s).filter(Boolean).sort(); }
+function partyIn(t) { var U = norm(t), best = ''; parties().forEach(function (p) { var n = norm(p).replace(/(PVTLTD|PRIVATELIMITED|LIMITED|LTD|LLP)$/, ''); if (n.length >= 5 && U.indexOf(n) >= 0 && n.length > norm(best).length) best = p; }); return best; }
+function trOf(j) { var o = j.orderRef && ST.findOrder(j.orderRef); return (o && o.transporterName) || j.transporter || ''; }
+function waitingLR() { return ST.jobs().filter(function (j) { return j.stage === 'Dispatched' && !j.lrNumber && !ST.isSelf(trOf(j)); }); }
+async function textOf(x) { if (x.text) return x.text; var bl = await blobOf(x); var t = await InvoiceEngine.pdfText(new File([bl], x.name, { type: x.type || bl.type || '' })); t = String(t || '').slice(0, 20000); upd(x.id, function (y) { y.text = t; }); return t; }
+
+function postLR(job, lr, date, x) {
+  var dod = toISO(date) || job.dod || ST.today();
+  if (job.orderRef && ST.findOrder(job.orderRef)) ST.recordDespatch(job.orderRef, { lr: lr, dod: dod, transporter: '' });
+  var jobs = ST.jobs(), j = jobs.find(function (y) { return y.jobNo === job.jobNo; });
+  if (j) { j.lrNumber = lr; j.dod = dod; j.lrFile = x.path; if (j.stage !== 'Dispatched') j.stage = 'Dispatched'; (j.history = j.history || []).push({ stage: 'Dispatched', date: new Date().toISOString(), note: 'L.R. ' + lr + ' from L.R. copy (Migration)' }); ST.set('prod_jobs', jobs); }
+}
+async function migrateHere(f, todo) {
+  var done = 0, check = 0;
+  for (var i = 0; i < todo.length; i++) {
+    var x = todo[i]; say('Reading ' + x.name + '… (' + (i + 1) + ' of ' + todo.length + ') — photos take a few seconds');
+    var t = ''; try { t = await textOf(x); } catch (e) { upd(x.id, function (y) { y.state = 'check'; y.note = 'Could not read: ' + e.message; }); check++; continue; }
+    var fm = fmtFor(f.k, t), now = new Date().toISOString();
+    if (f.to === 'lr') {
+      var lr = (fm && pick(t, fm.lr, 'code')) || guessLR(t), dt = (fm && pick(t, fm.date, 'date')) || guessDate(t);
+      var w = waitingLR(), p = partyIn(t), cand = p ? w.filter(function (j) { return norm(j.party) === norm(p); }) : [];
+      if (lr && cand.length === 1) { postLR(cand[0], lr, dt, x); upd(x.id, function (y) { y.state = 'posted'; y.sentAt = now; y.sentBy = me(); y.party = cand[0].party; y.lr = lr; y.job = cand[0].jobNo; y.note = 'L.R. ' + lr + ' → ' + cand[0].jobNo; }); done++; }
+      else { upd(x.id, function (y) { y.state = 'check'; y.lrGuess = lr; y.dateGuess = dt; y.party = p || y.party; y.note = !lr ? 'L.R. number not found — teach once' : !w.length ? 'No despatched job is waiting for an L.R.' : !p ? 'Party not found on the L.R. — pick the job' : cand.length ? 'More than one job of ' + p + ' — pick the job' : 'No despatched job of ' + p + ' is waiting for an L.R.'; }); check++; }
+    } else {
+      var party = partyIn(t) || (fm && fm.party) || '', type = (fm && fm.docType) || '';
+      if (party) { upd(x.id, function (y) { y.state = 'posted'; y.sentAt = now; y.sentBy = me(); y.party = party; y.docType = type; y.note = 'Filed under ' + party + (type ? ' · ' + type : ''); }); done++; }
+      else { upd(x.id, function (y) { y.state = 'check'; y.note = 'Party not found — teach once'; }); check++; }
+    }
+  }
+  renderFolders(); renderPanel();
+  say((done ? '✓ ' + done + ' posted. ' : '') + (check ? check + ' need you — press 🎓 Teach on them once.' : ''), check ? 'bad' : 'good');
+}
+
+async function teach(id) {
+  var x = list().find(function (y) { return y.id === id; }); if (!x) return; var f = fold(x.folder);
+  var t = ''; try { say('Reading ' + x.name + '…'); t = await textOf(x); say(''); } catch (e) { say('Could not read: ' + e.message, 'bad'); }
+  var txt = '<div class="dim">What the software read from the document (👁 View shows the file):</div><div class="rtext">' + esc(t || '(nothing could be read — type the values from the document)') + '</div>';
+  if (f.to === 'lr') {
+    var w = waitingLR(); if (x.job && !w.some(function (j) { return j.jobNo === x.job; })) { var jx = ST.jobs().find(function (j) { return j.jobNo === x.job; }); if (jx) w.unshift(jx); }
+    var guess = x.job || ((w.filter(function (j) { return norm(j.party) === norm(x.party || ''); })[0] || {}).jobNo) || '';
+    var r = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Type the L.R. number and date exactly as they are on this L.R. copy and pick the job. Next time an L.R. of this transporter is read by itself.', wide: true,
+      html: txt + '<label>L.R. number</label><input id="t_lr" value="' + esc(x.lr || x.lrGuess || '') + '"><label>L.R. date</label><input id="t_d" value="' + esc(x.dateGuess || '') + '" placeholder="e.g. 25/11/2026"><label>Despatched job waiting for this L.R.</label><select id="t_j"><option value="">— pick the job —</option>' + w.map(function (j) { return '<option value="' + esc(j.jobNo) + '"' + (j.jobNo === guess ? ' selected' : '') + '>' + esc(j.jobNo + ' · ' + j.party + (j.dod ? ' · despatched ' + ST.fmtDate(j.dod) : '')) + '</option>'; }).join('') + '</select>',
+      buttons: [{ label: 'Cancel', value: null }, { label: '✓ Save & post', cls: 'ok', onClick: function (ov, err) { var q = function (i) { return ov.querySelector('#' + i).value.trim(); }; if (!q('t_lr')) { err.textContent = 'Type the L.R. number.'; return false; } if (!q('t_j')) { err.textContent = 'Pick the job.'; return false; } return { lr: q('t_lr'), d: q('t_d'), job: q('t_j') }; } }] });
+    if (!r) return;
+    var job = ST.jobs().find(function (j) { return j.jobNo === r.job; }); if (!job) return;
+    if (t) { var k = keysOf(t), fl = learn(t, r.lr), fd = learn(t, r.d); if (k.length && (fl || fd)) { var F = get(FMT, []).filter(function (m) { return !(m.folder === 'lr' && m.keys.join() === k.join()); }); F.push({ folder: 'lr', keys: k, lr: fl, date: fd, at: new Date().toISOString(), by: me() }); put(FMT, F); } }
+    postLR(job, r.lr, r.d, x);
+    upd(x.id, function (y) { y.state = 'posted'; y.sentAt = new Date().toISOString(); y.sentBy = me(); y.party = job.party; y.lr = r.lr; y.job = job.jobNo; y.note = 'L.R. ' + r.lr + ' → ' + job.jobNo; });
+    renderFolders(); renderPanel(); say('✓ L.R. ' + r.lr + ' saved on ' + job.jobNo + ' (' + job.party + '). Learnt — the next L.R. like this is read by itself. Send the customer WhatsApp from Factory Production → 💬 Customer.', 'good');
+  } else {
+    var P = parties();
+    var r2 = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Pick the party this document belongs to and say what it is. Next time a document of this kind is filed by itself.', wide: true,
+      html: txt + '<label>Party</label><input id="t_p" list="t_pl" value="' + esc(x.party || '') + '" placeholder="type or pick"><datalist id="t_pl">' + P.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist><label>What is it?</label><input id="t_t" value="' + esc(x.docType || '') + '" placeholder="e.g. Purchase order, Test certificate, Letter">',
+      buttons: [{ label: 'Cancel', value: null }, { label: '✓ Save & file', cls: 'ok', onClick: function (ov, err) { var p = ov.querySelector('#t_p').value.trim().toUpperCase(); if (!p) { err.textContent = 'Type or pick the party.'; return false; } return { p: p, t: ov.querySelector('#t_t').value.trim() }; } }] });
+    if (!r2) return;
+    if (t) { var k2 = keysOf(t); if (k2.length) { var F2 = get(FMT, []).filter(function (m) { return !(m.folder === 'other' && m.keys.join() === k2.join()); }); F2.push({ folder: 'other', keys: k2, party: partyIn(t) ? '' : r2.p, docType: r2.t, at: new Date().toISOString(), by: me() }); put(FMT, F2); } }
+    upd(x.id, function (y) { y.state = 'posted'; y.sentAt = new Date().toISOString(); y.sentBy = me(); y.party = r2.p; y.docType = r2.t; y.note = 'Filed under ' + r2.p + (r2.t ? ' · ' + r2.t : ''); });
+    renderFolders(); renderPanel(); say('✓ Filed under ' + r2.p + '. Learnt for next time.', 'good');
+  }
+}
+
+function start() {
+  if (inFrame()) $('homeBtn').style.display = 'none';
+  // 1.18.0: the list moved from sfin_migration (Admin only) to fin_migration (also the accounts login)
+  try { var old = get('sfin_migration', null); if (old && old.length && !list().length) save(old); } catch (e) {}
+  if (!folders().some(function (f) { return f.k === cur; })) cur = folders()[0].k;
+  renderFolders(); renderPanel();
+}
 if (!A || !A.enabled) start();
 else A.ready.then(function (u) {
   if (!u) return;
-  if (!A.isSecurityAdmin(u)) { document.querySelector('.wrap').innerHTML = '<div class="top"><h1>📂 Migration</h1></div><p class="sub">Only the Admin and Sub Admin can open this page.</p><button class="btn" onclick="location.href=\'index.html\'">← Main Page</button>'; return; }
+  if (!(A.isSecurityAdmin(u) || A.canBill())) { document.querySelector('.wrap').innerHTML = '<div class="top"><h1>📂 Migration</h1></div><p class="sub">Only the Admin, Sub Admin and the accounts login can open this page.</p>'; return; }
   start();
 });
 document.addEventListener('st-sync', function (e) { if (!e.detail || !e.detail.keys || e.detail.keys.indexOf(KEY) >= 0) { renderFolders(); renderPanel(); } });
