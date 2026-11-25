@@ -357,7 +357,9 @@ const pk=n=>String(n||'').toUpperCase().replace(/^M\/S\.?\s*/,'').replace(/[^A-Z
 ST.cells=()=>ST.get(ST.K.cells,[]);
 // 1.12.1: MANUAL beats AUTO — a client changed by hand is used as it is (no name matching / alias)
 ST.cellParty=c=>c&&c.clientMoved&&c.client?String(c.client).toUpperCase():ST.partyFor(c&&c.client);
-ST.parties=()=>{const s=new Set(ST.get(ST.K.parties,[]));ST.orders().forEach(o=>{if(o.partyName)s.add(o.partyName);});return [...s].filter(Boolean);};
+/* 1.15.0: SENTIRE = our own factory stock (tested load cells not sold yet) - always in the party list */
+ST.STOCK='SENTIRE';ST.isStock=p=>String(p||'').trim().toUpperCase()===ST.STOCK;
+ST.parties=()=>{const s=new Set(ST.get(ST.K.parties,[]));s.add(ST.STOCK);ST.orders().forEach(o=>{if(o.partyName)s.add(o.partyName);});return [...s].filter(Boolean);};
 // Test-report customer name → Command Center party ('' when not sure — the Test Reports page asks once)
 ST.partyFor=function(name){if(!name)return '';const al=ST.get(ST.K.alias,{});const up=String(name).trim().toUpperCase();if(al[up]!==undefined)return al[up];
   const ps=ST.parties(),k=pk(name);let hit=ps.find(p=>pk(p)===k);if(hit)return hit;
@@ -397,12 +399,14 @@ ST.cellInfo=function(sn,alloc){sn=String(sn||'').trim();if(!sn)return null;const
   if(!c)return {sn,found:false,repairs};alloc=alloc||ST.allocate();const a=alloc[c.sn]||null;const o=a?ST.findOrder(a.orderNo):null;const it=o?ST.items(o)[a.idx]:null;
   const inv=(a&&a.manualInv?{no:a.invoiceNo,date:a.invDate}:null)||ST.invoiceFor(o)||(a&&a.invoiceNo?{no:a.invoiceNo,date:a.invDate}:null);const sold=(o&&o.dod)||(inv&&inv.date)||'';const yrs=o?ST.warrYears(o,it):1;const from=sold||c.testDate||'';
   const until=from&&yrs?ST.addDays(from.slice(0,10),Math.round(365.25*yrs)):'';
-  return {sn:c.sn,found:true,cell:c,party:(o&&o.partyName)||ST.cellParty(c)||'',order:o,item:it,capOk:a?a.capOk:null,invoice:inv,sold,despatched:!!((o&&(o.dod||o.status==='completed'))||(a&&a.invoiceNo)),years:yrs,from,until,inWarranty:until?ST.daysBetween(ST.today(),until)>=0:null,repairs};};
+  const _r={sn:c.sn,found:true,cell:c,party:(o&&o.partyName)||ST.cellParty(c)||'',order:o,item:it,capOk:a?a.capOk:null,invoice:inv,sold,despatched:!!((o&&(o.dod||o.status==='completed'))||(a&&a.invoiceNo)),years:yrs,from,until,inWarranty:until?ST.daysBetween(ST.today(),until)>=0:null,repairs};
+  if(ST.isStock(_r.party)&&!o){_r.stock=true;_r.years=null;_r.until='';_r.inWarranty=null;_r.from='';}
+  return _r;};
 // The card shown in Masters → Loadcell S/N search, Repairs and Test Reports
 ST.cellCard=function(x){const E=ST.esc;if(!x)return '';
   if(!x.found)return '<div style="padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:rgba(245,158,11,.07)"><b>Loadcell S/N '+E(x.sn)+'</b> — not found in any test report.'+(x.repairs.length?' Seen in '+x.repairs.length+' repair(s).':'')+'</div>';
   const c=x.cell,o=x.order,dig=!(+c.sens);const row=(l,v)=>v===''||v==null?'':'<div><span style="color:var(--text-dim);font-size:11px;display:block">'+l+'</span><b>'+v+'</b></div>';
-  const wb=x.years===0?'<span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">NO WARRANTY (SP)</span>'
+  const wb=x.stock?'<span style="background:rgba(59,130,246,.15);color:#60a5fa;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">FACTORY STOCK – not sold yet</span>':x.years===0?'<span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">NO WARRANTY (SP)</span>'
     :x.until?(x.inWarranty?'<span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">IN WARRANTY till '+ST.fmtDate(x.until)+'</span>':'<span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">WARRANTY OVER on '+ST.fmtDate(x.until)+'</span>'):'';
   return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface,#141922)">'
    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><b style="font-family:var(--mono);font-size:16px;color:#93c5fd">Loadcell S/N '+E(c.sn)+'</b>'+wb+(x.years>1?'<span style="font-size:11px;color:var(--text-dim)">'+x.years+'-year extended warranty</span>':'')+'</div>'
