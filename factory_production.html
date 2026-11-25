@@ -178,13 +178,21 @@ document.addEventListener('input',e=>{if(!e.target.closest)return;const m=e.targ
   box.innerHTML=d===0?'<b style="color:var(--green)">✓ Exactly as needed ('+ex+').</b>':d>0?'<b style="color:var(--red)">'+d+' gauges MORE than needed ('+ex+') – broken / rework. Add a note.</b>':'<b style="color:#f59e0b">'+(-d)+' gauges FEWER than needed ('+ex+') – check the count.</b>';});
 const lines=(j,extra)=>{const o=orderOf(j);const its=itemsOf(j);return [j.jobNo+(j.orderRef?' · '+j.orderRef:''),'Party: '+j.party,'Items: '+ST.itemsShort(its)+(its.length>1?' (total '+its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)+' pcs)':'')].concat(extra||[]);};
 // Testing → Laser needs approval
+/* 1.16.2: laser approval needs no PIN — the logged-in account is checked for approval rights and recorded as the approver */
+async function loginApprove(o){const A=window.SentireAuth,u=A&&A.enabled&&A.user;if(!u)return ST.approve(o);
+  if(!A.canApprove()){alert('Your login ('+(u.name||u.login_id)+') does not have the right to approve. Ask the Admin, Sub Admin or an approver.');return null;}
+  const role=u.role==='Admin'?'Admin':(u.can_delete&&u.can_approve?'Sub Admin':'Approver');
+  const ok=await ST.modal({title:'🔐 '+o.title,sub:'Approving as '+E(u.name||u.login_id)+' ('+role+')',html:'<div class="st-lines">'+E((o.lines||[]).join('\n'))+'</div>',
+    buttons:[{label:'Cancel',value:null},{label:'✓ Approve',cls:'ok',value:true}]});
+  if(!ok)return null;const r={by:u.name||u.login_id,role,login:u.login_id||'',at:new Date().toISOString()};
+  const log=ST.get(ST.K.log,[]);log.push(Object.assign({action:o.action,ref:o.ref||''},r));ST.set(ST.K.log,log.slice(-2000));return r;}
 async function approveLaser(no){const j=getJob(no);if(!j||(j.stage!=='Laser'&&j.stage!=='Testing'))return;if(j.approvals&&j.approvals.laser&&j.stage==='Laser')return;const o=orderOf(j);
   if(o&&!j.laserOverride){const ac=ST.advanceCheck(o);if(ac.needed&&!ac.ok){const adm=ST.isAdmin();
     const go=await ST.modal({title:'🔒 Laser cannot be approved yet',sub:E(j.jobNo)+' · '+E(j.party),
       html:'<div style="font-size:13px;line-height:1.5">This is an <b>ADVANCE</b> order — at least <b>'+ST.ADV_MIN+'%</b> of the order value must be received first.'+(adm?(ac.noPrice?'<br><br>The order has no price per piece. Open Order Sheet → ✏️ Edit, fill the Price / pc and Advance received.':'<br><br>Order value: <b>'+ST.inr(ac.total)+'</b><br>Minimum advance ('+ST.ADV_MIN+'%): <b>'+ST.inr(ac.min)+'</b><br>Advance received: <b>'+ST.inr(ac.adv)+'</b>'):'<br><br>Please ask the Admin to confirm the advance payment.')+'</div>',
       buttons:[{label:'Close',value:false},{label:'⚠ Approve anyway…',cls:'pri',value:true}]});
     if(!go)return;if(!(await overrideAdvance([j])))return;}}
-  const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete — job is in the Laser stage.'])});
+  const r=await (loginApprove)({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete — job is in the Laser stage.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.laser=r;x.stage='Laser';hist(x,'Laser','Laser approved by '+r.by+' ('+r.role+')');});toast('🔐 Laser approved by '+r.by);refreshAll();}
 async function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!(j.approvals&&j.approvals.laser)){alert('Laser is not approved yet for '+no+'.\nPress 🔐 Laser approval first.');return;}
   mutate(no,x=>{x.stage='Packing';hist(x,'Packing','Laser done → Packing');});toast('→ Packing');refreshAll();notifyAcs(no);}
