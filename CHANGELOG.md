@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.16.4 | 25 Nov 2026 | Advance orders: laser / logo approval now needs at least 10% of the order value received (was 25%) — the check, the alerts, the Order Sheet note and the Payments column all use 10% |
 | 1.16.3 | 25 Nov 2026 | Packing stage now has only a '→ Next' button (moves to Ready). '📦 Boxes & weight' moved from Packing to Ready: in Ready enter boxes & weight first, then the '📲 Pickup WhatsApp' button appears (📦 to change them later) |
 | 1.16.2 | 25 Nov 2026 | Laser approval without PIN: the system checks the logged-in account — if it has approval rights (Admin, Sub Admin or approver) a simple '✓ Approve' confirms it and that login is recorded as the approver (shown on the job and in the approval log); other logins are told they have no right to approve. Security: '✓ Mark all as seen' moved to the top bar of the Security page, and the red SECURITY ALERT bar at the top of every page now has its own '✓ Mark as seen' button |
 | 1.16.1 | 25 Nov 2026 | Cancelled orders in Factory Production: the job of a cancelled order is shown struck through with '✕ ORDER CANCELLED — STOP WORK' and no work buttons on the day it is cancelled, and is no longer shown in Factory Production from the next day. Cancelled jobs are left out of the dashboard counts, waiting list, banners, prints and WhatsApp summaries. Works for orders cancelled earlier too. Laser stage: after the laser approval the '✓ Laser done' button is now '→ Next' like the other stages (moves to Packing, no extra question) |
