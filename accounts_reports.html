@@ -122,7 +122,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="view" id="v_invoices"><h2 style="margin-bottom:6px;">📥 Invoice Inbox</h2>
 <p style="color:var(--text-dim);margin-bottom:12px;font-size:13px;">Add all your sales and purchase invoice PDFs here, then press <b>Data Migration</b>. Your own Tally sales invoices post automatically; supplier purchase bills are shown for a quick check first. Bills of <b>AKRITI SALES CORPORATION</b> and <b>PUNAM SALES</b> are never migrated. If a bill is not posted, press <b>👁 View</b> to see why.</p>
 <div id="dropZone" style="border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;cursor:pointer;margin-bottom:12px;">
-  <input type="file" id="pdfInput" accept="application/pdf" multiple style="display:none;">
+  <input type="file" id="pdfInput" accept="application/pdf,image/jpeg,image/png" multiple style="display:none;">
   <div style="font-size:28px;margin-bottom:6px;">🧾</div>
   <div style="font-weight:600;">Click to choose PDF invoices, or drop them here</div>
   <div style="color:var(--text-dim);font-size:12px;margin-top:4px;">You can select many at once</div>
@@ -443,7 +443,7 @@ function initInbox(){
   ['dragleave'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.style.borderColor='var(--border)';}));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='var(--border)';if(e.dataTransfer&&e.dataTransfer.files)addFiles(e.dataTransfer.files);});
 }
-function addFiles(list){[...list].forEach(f=>{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name))inbox.push({name:f.name,file:f,status:'pending'});});renderInbox();}
+function addFiles(list){[...list].forEach(f=>{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)||(window.InvoiceEngine&&InvoiceEngine.isImage(f)))inbox.push({name:f.name,file:f,status:'pending'});});renderInbox();}
 function clearInbox(){inbox=[];const r=document.getElementById('inboxResults');if(r)r.innerHTML='';const m=document.getElementById('inboxMsg');if(m)m.textContent='';renderInbox();}
 function renderInbox(){initInbox();const fl=document.getElementById('inboxFiles');if(!fl)return;
   fl.innerHTML=inbox.length?('<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">'+inbox.length+' file(s) in the pool:</div>'+inbox.map(it=>`<span class="pill">📄 ${aEsc(it.name)}</span>`).join(' ')):'<div style="color:var(--text-muted);font-size:13px;">No PDFs added yet.</div>';
