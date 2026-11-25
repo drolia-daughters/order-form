@@ -122,7 +122,7 @@
 
   // The Admin section (Smart Finance, Loadcell Calculator, Cohort, Security) is for the Admin and Sub Admin only.
   // Anyone else who opens one of these pages is sent to the Main Page without seeing anything.
-  var ADMIN_ONLY = { 'smart_finance.html': 1, 'loadcell_calculator.html': 1, 'cohort.html': 1, 'security.html': 1, 'migration.html': 1 }, adminPage = !!ADMIN_ONLY[page];
+  var ADMIN_ONLY = { 'smart_finance.html': 1, 'loadcell_calculator.html': 1, 'cohort.html': 1, 'security.html': 1 }, adminPage = !!ADMIN_ONLY[page];
   function goHome() { hide(); var t = window; try { if (window.top !== window && window.top.location.origin === location.origin) t = window.top; } catch (e) {} t.location.replace('index.html'); }
   function wipeAdminData() { try { for (var i = localStorage.length - 1; i >= 0; i--) { var k = localStorage.key(i); if (/^(sfin_|lc_batches$)/.test(k)) localStorage.removeItem(k); } } catch (e) {} }
   if (u && !A.isSecurityAdmin(u)) wipeAdminData();
