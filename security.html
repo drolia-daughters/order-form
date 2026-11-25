@@ -44,7 +44,7 @@ tr.blocked td{background:rgba(239,68,68,.07);}
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><h1>🛡 Security</h1><span class="sp"></span><button class="btn" id="refBtn">↻ Refresh</button><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
+  <div class="top"><h1>🛡 Security</h1><span class="sp"></span><button class="btn green" id="seenBtn">✓ Mark all as seen</button><button class="btn" id="refBtn">↻ Refresh</button><button class="btn" onclick="location.href='index.html'">← Main Page</button></div>
   <p class="sub">See who is logged in right now, from which city and country, and log anyone out. Every login, wrong password, lock-out and change of rights is recorded below. Only the Admin and Sub Admin can open this page.</p>
   <div class="msg" id="msg"></div>
 
@@ -59,7 +59,7 @@ tr.blocked td{background:rgba(239,68,68,.07);}
   <div class="tbl" id="ips"></div>
   <p class="dim" style="margin-bottom:6px"><b>Save</b> = a known, trusted address with a name (e.g. Office, Brother Sydney). <b>Block</b> = nobody can ever log in from it. <b>Unblock</b> puts it back as a saved address. When someone calls about “Error 2”, find their address here (or in the log below) and press <b>Save</b>.</p>
 
-  <h2>📜 Security log <span class="sp"></span><button class="btn sm" id="seenBtn">✓ Mark all as seen</button></h2>
+  <h2>📜 Security log</h2>
   <div class="cards" id="cards"></div>
   <div class="tbl" id="list"></div>
   <div class="box" id="how" style="margin-top:14px"><b>What protects the logins</b><br>• 5 wrong passwords on one login in 15 minutes → that login is locked for 15 minutes (and every try is logged).<br>• 20 wrong passwords from one internet address in 15 minutes → that address is blocked.<br>• The internal login address of each person is secret and never sent to the browser.<br>• A person who is logged out from here loses access to all data at once, and their open pages go to the login screen within a minute.<br>If the lock-out hits the real Admin, the other Admin can still log in.</div>
