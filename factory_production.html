@@ -400,7 +400,7 @@ async function stepBack(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.
 function flags(j){const a=j.approvals||{};const f=[];
   if(j.stage==='Laser'&&!a.laser)f.push('<span class="flag wait">🔐 needs laser approval</span>');
   if(a.laser&&STAGE_IDX[j.stage]>=4)f.push('<span class="flag ok" title="'+E(a.laser.by+' · '+new Date(a.laser.at).toLocaleString('en-IN'))+'">✓ laser: '+E(a.laser.by)+'</span>');
-  if(ST.canBill()&&j.orderRef&&j.stage==='Ready'&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
+  if(ST.canBill()&&j.orderRef&&(j.stage==='Laser'||j.stage==='Ready')&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
   if(j.stage==='Ready'&&!j.packedAt&&!isSelfJ(j))f.push('<span class="flag warn">enter boxes & weight</span>');
   if(j.packedAt&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packed: '+E(j.boxes||'?')+' box</span>');
   if(j.stage==='Ready'&&isSelfJ(j))f.push('<span class="flag ok">🚗 self pickup — no L.R.</span>');
@@ -417,7 +417,7 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   if(j.stage==='Bonding')h+=B('bond','bondingDone','✅ Bonding done','Enter the load cells bonded and the strain gauges used, then move to Wiring')+B('','advance','→ Next','Bonding / Assembly done somewhere else – move straight to Wiring without the gauge count');
   else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
   if(j.stage==='Laser')h+=a.laser?B('','laserDone','→ Next','Laser done – move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
-  if(ST.canBill()&&j.stage==='Ready'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
+  if(ST.canBill()&&(j.stage==='Laser'||j.stage==='Ready')&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
   if(j.stage==='Packing')h+=B('','packingToReady','→ Next','Packing done — move to Ready');
   if(j.stage==='Ready'&&isSelfJ(j)){h+=B('','selfPickup','→ Next','Self pickup — goods collected, no L.R. needed (moves to Despatched)')+B('bill','openBill','🧾 Bill / E-way','Make the bill and e-way bill');}
   else if(j.stage==='Ready'){h+=j.packedAt?B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight — then send the pickup WhatsApp');
