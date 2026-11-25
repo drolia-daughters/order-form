@@ -211,11 +211,13 @@ function pick(t, rule, kind) {
   }
   return '';
 }
-function guessLR(t) { var m = String(t).match(/(?:\bL\.?\s?R\.?|\bG\.?\s?R\.?|\bC\.?\s?N\.?|DOCKET|CONSIGNMENT|BILTY|BUILTY)\s*(?:NO\.?|NUMBER|#)?\s*[:\-.#]?\s*([A-Z0-9][A-Z0-9\-\/]{2,20})/i); return m ? m[1] : ''; }
+function guessLR(t) { var re = /(?:\bL\.?\s?R\.?|\bG\.?\s?R\.?|\bG\.?\s?C\.?\s?(?:NOTE|N\.?)?|\bC\.?\s?N\.?|DOCKET|CONSIGNMENT|BILTY|BUILTY|AWB|WAYBILL)\s*(?:NO\.?|NUMBER|#)?\s*[:\-.#]?\s*([A-Z0-9][A-Z0-9\-\/]{2,20})/gi, m; while ((m = re.exec(String(t)))) { if (/\d/.test(m[1])) return m[1]; } return ''; }
 function guessDate(t) { var m = String(t).match(/\b(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})\b/); return m ? m[1] : ''; }
 function toISO(d) { var m = String(d || '').match(/(\d{1,2})[\/\-. ]+(\d{1,2}|[A-Za-z]{3})[A-Za-z]*[\/\-. ]+(\d{2,4})/); if (!m) return ''; var M = { JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5, JUN: 6, JUL: 7, AUG: 8, SEP: 9, OCT: 10, NOV: 11, DEC: 12 }; var mo = /\d/.test(m[2]) ? +m[2] : M[m[2].toUpperCase()]; var y = m[3].length === 2 ? '20' + m[3] : m[3]; if (!mo || mo > 12) return ''; return y + '-' + String(mo).padStart(2, '0') + '-' + String(+m[1]).padStart(2, '0'); }
 function parties() { var s = {}; Object.keys(ST.clients() || {}).forEach(function (n) { s[n] = 1; }); (ST.orders() || []).forEach(function (o) { if (o.partyName) s[o.partyName] = 1; }); Object.keys(get('ordersheet_vendors', {}) || {}).forEach(function (n) { s[n] = 1; }); return Object.keys(s).filter(Boolean).sort(); }
-function partyIn(t) { var U = norm(t), best = ''; parties().forEach(function (p) { var n = norm(p).replace(/(PVTLTD|PRIVATELIMITED|LIMITED|LTD|LLP)$/, ''); if (n.length >= 5 && U.indexOf(n) >= 0 && n.length > norm(best).length) best = p; }); return best; }
+var GST_RE = /\d{2}[A-Z]{5}\d{4}[A-Z][A-Z0-9]Z[A-Z0-9]/g;
+function gstParty(t) { var our = (InvoiceEngine.ourGstin && InvoiceEngine.ourGstin()) || '', found = (String(t || '').toUpperCase().replace(/\s+/g, '').match(GST_RE) || []).filter(function (g) { return g !== our; }); if (!found.length) return ''; var cl = ST.clients() || {}, vd = get('ordersheet_vendors', {}) || {}, hit = ''; [cl, vd].forEach(function (m) { Object.keys(m).forEach(function (n) { var g = String((m[n] || {}).gstin || '').toUpperCase(); if (g && found.indexOf(g) >= 0 && !hit) hit = n; }); }); return hit; }
+function partyIn(t) { var g = gstParty(t); if (g) return g; var U = norm(t), best = ''; parties().forEach(function (p) { var n = norm(p).replace(/(PVTLTD|PRIVATELIMITED|LIMITED|LTD|LLP)$/, ''); if (n.length >= 5 && U.indexOf(n) >= 0 && n.length > norm(best).length) best = p; }); return best; }
 function trOf(j) { var o = j.orderRef && ST.findOrder(j.orderRef); return (o && o.transporterName) || j.transporter || ''; }
 function waitingLR() { return ST.jobs().filter(function (j) { return j.stage === 'Dispatched' && !j.lrNumber && !ST.isSelf(trOf(j)); }); }
 async function textOf(x) { if (x.text) return x.text; var bl = await blobOf(x); var t = await InvoiceEngine.pdfText(new File([bl], x.name, { type: x.type || bl.type || '' })); t = String(t || '').slice(0, 20000); upd(x.id, function (y) { y.text = t; }); return t; }
@@ -236,7 +238,7 @@ async function migrateHere(f, todo) {
       var lr = (fm && pick(t, fm.lr, 'code')) || guessLR(t), dt = (fm && pick(t, fm.date, 'date')) || guessDate(t);
       var w = waitingLR(), p = partyIn(t), cand = p ? w.filter(function (j) { return norm(j.party) === norm(p); }) : [];
       if (lr && cand.length === 1) { postLR(cand[0], lr, dt, x); upd(x.id, function (y) { y.state = 'posted'; y.sentAt = now; y.sentBy = me(); y.party = cand[0].party; y.lr = lr; y.job = cand[0].jobNo; y.note = 'L.R. ' + lr + ' → ' + cand[0].jobNo; }); done++; }
-      else { upd(x.id, function (y) { y.state = 'check'; y.lrGuess = lr; y.dateGuess = dt; y.party = p || y.party; y.note = !lr ? 'L.R. number not found — teach once' : !w.length ? 'No despatched job is waiting for an L.R.' : !p ? 'Party not found on the L.R. — pick the job' : cand.length ? 'More than one job of ' + p + ' — pick the job' : 'No despatched job of ' + p + ' is waiting for an L.R.'; }); check++; }
+      else { upd(x.id, function (y) { y.state = 'check'; y.lrGuess = lr; y.dateGuess = dt; y.party = p || y.party; y.note = !lr ? 'L.R. number not found — teach once' : !w.length ? 'No despatched job is waiting for an L.R.' : !p ? 'Client / consignee not found on the L.R. — teach once' : cand.length ? 'More than one job of ' + p + ' — teach: pick the job' : 'No despatched job of ' + p + ' is waiting for an L.R.'; }); check++; }
     } else {
       var party = partyIn(t) || (fm && fm.party) || '', type = (fm && fm.docType) || '';
       if (party) { upd(x.id, function (y) { y.state = 'posted'; y.sentAt = now; y.sentBy = me(); y.party = party; y.docType = type; y.note = 'Filed under ' + party + (type ? ' · ' + type : ''); }); done++; }
@@ -247,22 +249,31 @@ async function migrateHere(f, todo) {
   say((done ? '✓ ' + done + ' posted. ' : '') + (check ? check + ' need you — press 🎓 Teach on them once.' : ''), check ? 'bad' : 'good');
 }
 
+function wireJobs() {
+  var c = document.getElementById('t_c'), sel = document.getElementById('t_j'), nt = document.getElementById('t_jn'); if (!c || !sel) return;
+  var fill = function () {
+    var n = norm(c.value), w = n ? ST.jobs().filter(function (j) { return j.stage === 'Dispatched' && !j.lrNumber && norm(j.party) === n; }) : [];
+    sel.innerHTML = w.map(function (j) { return '<option value="' + esc(j.jobNo) + '">' + esc(j.jobNo + (j.orderRef ? ' · ' + j.orderRef : '') + (j.dod ? ' · despatched ' + ST.fmtDate(j.dod) : '')) + '</option>'; }).join('') + '<option value="">— no job: keep the L.R. under the client —</option>';
+    nt.textContent = !n ? '' : w.length ? w.length + ' despatched job(s) of this client waiting for an L.R.' : 'No despatched job of this client is waiting for an L.R. — it is kept under the client.';
+  };
+  c.addEventListener('input', fill); fill();
+}
 async function teach(id) {
   var x = list().find(function (y) { return y.id === id; }); if (!x) return; var f = fold(x.folder);
   var t = ''; try { say('Reading ' + x.name + '…'); t = await textOf(x); say(''); } catch (e) { say('Could not read: ' + e.message, 'bad'); }
+  setTimeout(wireJobs, 60);
   var txt = '<div class="dim">What the software read from the document (👁 View shows the file):</div><div class="rtext">' + esc(t || '(nothing could be read — type the values from the document)') + '</div>';
   if (f.to === 'lr') {
-    var w = waitingLR(); if (x.job && !w.some(function (j) { return j.jobNo === x.job; })) { var jx = ST.jobs().find(function (j) { return j.jobNo === x.job; }); if (jx) w.unshift(jx); }
-    var guess = x.job || ((w.filter(function (j) { return norm(j.party) === norm(x.party || ''); })[0] || {}).jobNo) || '';
-    var r = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Type the L.R. number and date exactly as they are on this L.R. copy and pick the job. Next time an L.R. of this transporter is read by itself.', wide: true,
-      html: txt + '<label>L.R. number</label><input id="t_lr" value="' + esc(x.lr || x.lrGuess || '') + '"><label>L.R. date</label><input id="t_d" value="' + esc(x.dateGuess || '') + '" placeholder="e.g. 25/11/2026"><label>Despatched job waiting for this L.R.</label><select id="t_j"><option value="">— pick the job —</option>' + w.map(function (j) { return '<option value="' + esc(j.jobNo) + '"' + (j.jobNo === guess ? ' selected' : '') + '>' + esc(j.jobNo + ' · ' + j.party + (j.dod ? ' · despatched ' + ST.fmtDate(j.dod) : '')) + '</option>'; }).join('') + '</select>',
-      buttons: [{ label: 'Cancel', value: null }, { label: '✓ Save & post', cls: 'ok', onClick: function (ov, err) { var q = function (i) { return ov.querySelector('#' + i).value.trim(); }; if (!q('t_lr')) { err.textContent = 'Type the L.R. number.'; return false; } if (!q('t_j')) { err.textContent = 'Pick the job.'; return false; } return { lr: q('t_lr'), d: q('t_d'), job: q('t_j') }; } }] });
+    var P0 = parties();
+    var r = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Type the L.R. number and date exactly as they are on this L.R. copy and pick the client / consignee. Next time an L.R. like this is read by itself (the client is also found by name or GST number).', wide: true,
+      html: txt + '<label>L.R. number</label><input id="t_lr" value="' + esc(x.lr || x.lrGuess || '') + '"><label>L.R. date</label><input id="t_d" value="' + esc(x.dateGuess || '') + '" placeholder="e.g. 25/11/2026"><label>Client / consignee</label><input id="t_c" list="t_cl" value="' + esc(x.party || '') + '" placeholder="type or pick from the client list"><datalist id="t_cl">' + P0.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist><label>Despatched job of this client</label><select id="t_j"></select><div class="dim" id="t_jn" style="margin-top:4px"></div>',
+      buttons: [{ label: 'Cancel', value: null }, { label: '✓ Save & post', cls: 'ok', onClick: function (ov, err) { var q = function (i) { return ov.querySelector('#' + i).value.trim(); }; if (!q('t_lr')) { err.textContent = 'Type the L.R. number.'; return false; } if (!q('t_c')) { err.textContent = 'Type or pick the client / consignee.'; return false; } return { lr: q('t_lr'), d: q('t_d'), c: q('t_c').toUpperCase(), job: q('t_j') }; } }] });
     if (!r) return;
-    var job = ST.jobs().find(function (j) { return j.jobNo === r.job; }); if (!job) return;
+    var job = r.job ? ST.jobs().find(function (j) { return j.jobNo === r.job; }) : null;
     if (t) { var k = keysOf(t), fl = learn(t, r.lr), fd = learn(t, r.d); if (k.length && (fl || fd)) { var F = get(FMT, []).filter(function (m) { return !(m.folder === 'lr' && m.keys.join() === k.join()); }); F.push({ folder: 'lr', keys: k, lr: fl, date: fd, at: new Date().toISOString(), by: me() }); put(FMT, F); } }
-    postLR(job, r.lr, r.d, x);
-    upd(x.id, function (y) { y.state = 'posted'; y.sentAt = new Date().toISOString(); y.sentBy = me(); y.party = job.party; y.lr = r.lr; y.job = job.jobNo; y.note = 'L.R. ' + r.lr + ' → ' + job.jobNo; });
-    renderFolders(); renderPanel(); say('✓ L.R. ' + r.lr + ' saved on ' + job.jobNo + ' (' + job.party + '). Learnt — the next L.R. like this is read by itself. Send the customer WhatsApp from Factory Production → 💬 Customer.', 'good');
+    if (job) postLR(job, r.lr, r.d, x);
+    upd(x.id, function (y) { y.state = 'posted'; y.sentAt = new Date().toISOString(); y.sentBy = me(); y.party = r.c; y.lr = r.lr; y.job = job ? job.jobNo : ''; y.note = 'L.R. ' + r.lr + (job ? ' → ' + job.jobNo : ' — kept under ' + r.c + ' (no despatched job waiting)'); });
+    renderFolders(); renderPanel(); say('✓ L.R. ' + r.lr + (job ? ' saved on ' + job.jobNo + ' (' + job.party + ').' : ' kept under ' + r.c + '.') + ' Learnt — the next L.R. like this is read by itself.' + (job ? ' Send the customer WhatsApp from Factory Production → 💬 Customer.' : ''), 'good');
   } else {
     var P = parties();
     var r2 = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Pick the party this document belongs to and say what it is. Next time a document of this kind is filed by itself.', wide: true,
