@@ -412,3 +412,26 @@ ST.cellCard=function(x){const E=ST.esc;if(!x)return '';
    +row('Zero',E(c.zero))+row('Sensitivity',dig?'Digital':E(c.sens)+' mV/V')+row('Input R',E(c.inR)+' Ω')+row('Output R',E(c.outR)+' Ω')+row('Tested on',ST.fmtDate(c.testDate))+(c.clientMoved&&(c.clientHistory||[]).length?row('Tested for',E(c.clientHistory[0].from)):'')+'</div>'
    +(x.repairs.length?'<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">Repairs: '+x.repairs.map(r=>E(r.rma||'')+' ('+ST.fmtDate(r.received)+', '+E(r.status||'')+')').join(' · ')+'</div>':'')+'</div>';};
 })();
+
+/* ═════ 1.14.0: Change client / invoice of load cells — shared by Masters → Loadcell S/N and the Detail Test Report ═════ */
+(function(){
+ST.billsOf=function(party){const k=x=>String(x||'').toUpperCase().replace(/^M\/S\.?\s*/,'').replace(/[^A-Z0-9]/g,'');const p=k(party);
+  return ST.get(ST.K.fin,[]).filter(e=>e.kind==='sale'&&(ST.sameParty?ST.sameParty(e.party,party):k(e.party).startsWith(p))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));;};
+ST.changeClient=async function(sns,after){const E=ST.esc,toast=window.toast||(m=>alert(m));sns=(sns||[]).filter(Boolean);if(!sns.length)return;const cells=ST.cells();const sel=cells.filter(c=>sns.includes(c.sn));if(!sel.length)return;
+  const parties=ST.parties().map(p=>String(p).toUpperCase()).filter((p,i,a)=>a.indexOf(p)===i).sort();const cur=[...new Set(sel.map(c=>String(ST.cellParty(c)||c.client).toUpperCase()))];
+  const curInv=[...new Set(sel.map(c=>c.invoiceFix||''))];const one=cur.length===1?cur[0]:'';
+  const invOpts=(party,keep)=>'<option value="">Automatic (app links it by order / date)</option>'+ST.billsOf(party).map(e=>'<option value="'+E(e.invoiceNo)+'"'+(keep===e.invoiceNo?' selected':'')+'>'+E(e.invoiceNo)+' · '+ST.fmtDate(e.date)+' · '+ST.inr(e.total||e.amount||0)+(e.orderNo?' · '+E(e.orderNo):'')+'</option>').join('');
+  const r=await ST.modal({title:'🔁 Change client / invoice — '+sel.length+' load cell'+(sel.length>1?'s':''),sub:'Now with: '+cur.map(E).join(', '),
+    html:'<div style="font-family:var(--mono);font-size:12px;max-height:90px;overflow:auto;margin-bottom:10px">'+sel.map(c=>E(c.sn)).join(' · ')+'</div>'
+     +'<label>Client</label><select id="cc_to">'+parties.map(p=>'<option'+(p===one?' selected':'')+'>'+E(p)+'</option>').join('')+(one&&!parties.includes(one)?'<option selected>'+E(one)+'</option>':'')+'</select>'
+     +'<label>Sales invoice of this client</label><select id="cc_inv">'+invOpts(one||parties[0],curInv.length===1?curInv[0]:'')+'</select>'
+     +'<div class="hint">Pick the bill these load cells went with, if the app linked them to the wrong bill. “Automatic” lets the app decide.</div>'
+     +'<label>Reason (optional)</label><input id="cc_why" placeholder="e.g. first party did not pay / wrong bill">',
+    buttons:[{label:'Cancel',value:null},{label:'✓ OK — save',cls:'ok',onClick:(ov,err)=>{const to=ov.querySelector('#cc_to').value;if(!to){err.textContent='Select the client.';return false;}return {to,inv:ov.querySelector('#cc_inv').value,why:ov.querySelector('#cc_why').value.trim()};}}]});
+  if(!r)return;const by=(window.SentireAuth&&SentireAuth.user&&SentireAuth.user.name)||'';const now=new Date().toISOString();let moved=0,inv=0;
+  cells.forEach(c=>{if(!sns.includes(c.sn))return;const from=String(ST.cellParty(c)||c.client).toUpperCase();
+    if(from!==r.to){(c.clientHistory=c.clientHistory||[]).push({from,to:r.to,at:now,by,why:r.why});c.client=r.to;c.clientMoved=true;delete c.orderFix;moved++;}
+    if((c.invoiceFix||'')!==r.inv){(c.invoiceHistory=c.invoiceHistory||[]).push({from:c.invoiceFix||'auto',to:r.inv||'auto',at:now,by,why:r.why});if(r.inv)c.invoiceFix=r.inv;else delete c.invoiceFix;inv++;}});
+  ST.set(ST.K.cells,cells);toast('✓ Saved'+(moved?' · '+moved+' moved to '+r.to:'')+(inv?' · invoice '+(r.inv||'automatic')+' for '+inv:''));if(after)after();};
+if(typeof document!=='undefined')document.addEventListener('change',e=>{if(e.target&&e.target.id==='cc_to'){const sel=document.getElementById('cc_inv');const E=ST.esc;if(sel){const k=x=>x;sel.innerHTML='<option value="">Automatic (app links it by order / date)</option>'+ST.billsOf(e.target.value).map(b=>'<option value="'+E(b.invoiceNo)+'">'+E(b.invoiceNo)+' · '+ST.fmtDate(b.date)+' · '+ST.inr(b.total||b.amount||0)+(b.orderNo?' · '+E(b.orderNo):'')+'</option>').join('');}}});
+})();
