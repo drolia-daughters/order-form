@@ -61,16 +61,16 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><div class="icon">FP</div><h1>Factory Production</h1><span>PHASE 3</span></div>
-<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
+<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Master Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
 <div class="main">
-<div class="flow">Flow: <b>Received → Bonding / Assembly → Wiring → Testing</b> → <i>🔐 Laser approval</i> → <b>Laser</b> → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
+<div class="flow">Flow: <b>Received → Bonding / Assembly → Wiring → Testing → Laser</b> (<i>🔐 Laser approval, then Laser done</i>) → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
 <div class="banner" id="pickupBanner"></div>
 <div class="apv-banner" id="apvBanner"></div>
 
 <div class="view active" id="v_dash"><h2 style="margin-bottom:16px;">Production Dashboard</h2><div class="stats-row" id="dStats"></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;"><div class="card"><h3 style="margin-bottom:12px;">Stage Distribution</h3><div id="stgDist"></div></div><div class="card"><h3 style="margin-bottom:12px;">Waiting for approval / action</h3><div id="waitList"></div><h3 style="margin:16px 0 12px;">Overdue / Urgent</h3><div id="urgList"></div></div></div></div>
 
-<div class="view" id="v_board"><div class="toolbar"><h2>Production Board</h2><span class="sp"></span><button class="btn pr-btn" onclick="printJobList(true)">🖨️ Print Board</button><button class="btn wa-btn" onclick="waJobList(true)">💬 WhatsApp Summary</button></div><div class="board-row" id="bRow"></div></div>
+<div class="view" id="v_board"><div class="toolbar"><h2>Master Board</h2><span class="sp"></span><button class="btn pr-btn" onclick="printJobList(true)">🖨️ Print Master Board</button><button class="btn wa-btn" onclick="waJobList(true)">💬 WhatsApp Summary</button></div><div class="board-row" id="bRow"></div></div>
 
 <div class="view" id="v_jobs"><h2 style="margin-bottom:16px;">All Production Jobs</h2>
 <div class="toolbar"><input type="text" id="jSrch" placeholder="Search party, job, order, type..." oninput="renderJobs()" style="max-width:260px;"><select id="jFilt" onchange="renderJobs()" style="max-width:180px;"><option value="">All Stages</option></select><span class="sp"></span><button class="btn pr-btn" data-tip="Print the jobs shown below" onclick="printJobList()">🖨️ Print List</button><button class="btn wa-btn" data-tip="Send the jobs shown below on WhatsApp" onclick="waJobList()">💬 WhatsApp List</button><button class="btn btn-ghost" onclick="exportJobsCSV()">↓ CSV</button></div>
@@ -142,8 +142,8 @@ function editJob(no){const j=getJob(no);if(!j)return;resetJF();editId=no;
   const t=document.getElementById('jf_target');if(t._stCheck)t._stCheck();showV('add');}
 
 /* ═══════════ FLOW ACTIONS ═══════════ */
-// Simple steps (no approval): Received → Bonding → Wiring → Testing
-function advance(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]||0;if(i>=3)return;
+// Simple steps (no approval): Received → Bonding → Wiring → Testing → Laser (1.16.0: Testing → Laser with Next; the laser approval is given in the Laser stage)
+function advance(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]||0;if(i>3)return;
   const skipB=j.stage==='Bonding';mutate(no,x=>{x.stage=STAGES[i+1];hist(x,x.stage,skipB?'Bonding / Assembly done elsewhere – Next pressed, no gauge count':'Moved to '+x.stage);});toast('→ '+STAGES[i+1]);refreshAll();}
 /* 1.13.0: Bonding done - count the strain gauges used, so gauge stock and waste are known */
 async function bondingDone(no){const j=getJob(no);if(!j||j.stage!=='Bonding')return;
@@ -172,15 +172,15 @@ document.addEventListener('input',e=>{if(!e.target.closest)return;const m=e.targ
   box.innerHTML=d===0?'<b style="color:var(--green)">✓ Exactly as needed ('+ex+').</b>':d>0?'<b style="color:var(--red)">'+d+' gauges MORE than needed ('+ex+') – broken / rework. Add a note.</b>':'<b style="color:#f59e0b">'+(-d)+' gauges FEWER than needed ('+ex+') – check the count.</b>';});
 const lines=(j,extra)=>{const o=orderOf(j);const its=itemsOf(j);return [j.jobNo+(j.orderRef?' · '+j.orderRef:''),'Party: '+j.party,'Items: '+ST.itemsShort(its)+(its.length>1?' (total '+its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)+' pcs)':'')].concat(extra||[]);};
 // Testing → Laser needs approval
-async function approveLaser(no){const j=getJob(no);if(!j||j.stage!=='Testing')return;const o=orderOf(j);
+async function approveLaser(no){const j=getJob(no);if(!j||(j.stage!=='Laser'&&j.stage!=='Testing'))return;if(j.approvals&&j.approvals.laser&&j.stage==='Laser')return;const o=orderOf(j);
   if(o&&!j.laserOverride){const ac=ST.advanceCheck(o);if(ac.needed&&!ac.ok){const adm=ST.isAdmin();
     const go=await ST.modal({title:'🔒 Laser cannot be approved yet',sub:E(j.jobNo)+' · '+E(j.party),
       html:'<div style="font-size:13px;line-height:1.5">This is an <b>ADVANCE</b> order — at least <b>'+ST.ADV_MIN+'%</b> of the order value must be received first.'+(adm?(ac.noPrice?'<br><br>The order has no price per piece. Open Order Sheet → ✏️ Edit, fill the Price / pc and Advance received.':'<br><br>Order value: <b>'+ST.inr(ac.total)+'</b><br>Minimum advance ('+ST.ADV_MIN+'%): <b>'+ST.inr(ac.min)+'</b><br>Advance received: <b>'+ST.inr(ac.adv)+'</b>'):'<br><br>Please ask the Admin to confirm the advance payment.')+'</div>',
       buttons:[{label:'Close',value:false},{label:'⚠ Approve anyway…',cls:'pri',value:true}]});
     if(!go)return;if(!(await overrideAdvance([j])))return;}}
-  const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete.'])});
+  const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete — job is in the Laser stage.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.laser=r;x.stage='Laser';hist(x,'Laser','Laser approved by '+r.by+' ('+r.role+')');});toast('🔐 Laser approved by '+r.by);refreshAll();}
-async function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!confirm('Laser marking done for '+no+' ('+j.party+')?\nIt moves to Packing.'))return;
+async function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!(j.approvals&&j.approvals.laser)){alert('Laser is not approved yet for '+no+'.\nPress 🔐 Laser approval first.');return;}if(!confirm('Laser marking done for '+no+' ('+j.party+')?\nIt moves to Packing.'))return;
   mutate(no,x=>{x.stage='Packing';hist(x,'Packing','Laser done → Packing');});toast('→ Packing');refreshAll();notifyAcs(no);}
 // After laser: WhatsApp the Accounts officer (ACS) to prepare the bill. The message carries NO rates — only the ACS sees those, inside the app.
 async function notifyAcs(no){const j=getJob(no);if(!j)return;const o=orderOf(j),ph=(localStorage.getItem('ordersheet_acs_phone')||'').trim();
@@ -368,7 +368,7 @@ async function stepBack(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.
 
 /* Which buttons a job shows, by stage */
 function flags(j){const a=j.approvals||{};const f=[];
-  if(j.stage==='Testing')f.push('<span class="flag wait">🔐 needs laser approval</span>');
+  if(j.stage==='Laser'&&!a.laser)f.push('<span class="flag wait">🔐 needs laser approval</span>');
   if(a.laser&&STAGE_IDX[j.stage]>=4)f.push('<span class="flag ok" title="'+E(a.laser.by+' · '+new Date(a.laser.at).toLocaleString('en-IN'))+'">✓ laser: '+E(a.laser.by)+'</span>');
   if(ST.canBill()&&j.orderRef&&STAGE_IDX[j.stage]>=5&&j.stage!=='Dispatched'&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
   if(j.stage==='Packing'&&!j.packedAt)f.push('<span class="flag warn">enter boxes & weight</span>');
@@ -382,9 +382,8 @@ function flags(j){const a=j.approvals||{};const f=[];
 function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h='';
   const B=(cls,fn,label,tip)=>`<button class="stg-btn ${cls}" title="${E(tip||'')}" onclick="event.stopPropagation();${fn}('${no}')">${label}</button>`;
   if(j.stage==='Bonding')h+=B('bond','bondingDone','✅ Bonding done','Enter the load cells bonded and the strain gauges used, then move to Wiring')+B('','advance','→ Next','Bonding / Assembly done somewhere else – move straight to Wiring without the gauge count');
-  else if(STAGE_IDX[j.stage]<3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
-  if(j.stage==='Testing')h+=B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
-  if(j.stage==='Laser')h+=B('','laserDone','✓ Laser done','Move to Packing');
+  else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
+  if(j.stage==='Laser')h+=a.laser?B('','laserDone','✓ Laser done','Move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
   if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
   if(j.stage==='Packing')h+=j.packedAt?B('','packingToReady','➡ Move to Ready','Packing already saved — move on to the pickup WhatsApp')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
   if(j.stage==='Ready'){h+=B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight');
@@ -415,7 +414,7 @@ function renderDash(){const jobs=g(JK),today=ST.today();const active=jobs.filter
   document.getElementById('waitList').innerHTML=wait.length?wait.map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${E(w.j.party)}</strong> · ${E(w.j.jobNo)} · <span style="color:#c084fc">${w.what}</span></span><span>${actions(w.j,true)}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">Nothing waiting ✓</p>';
   document.getElementById('urgList').innerHTML=overdue.length?overdue.map(j=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${E(j.party)}</strong> · ${E(j.jobNo)} · ${j.stage}</span><span style="color:var(--red);font-family:var(--mono);font-size:10px;">Due: ${ST.fmtDate(j.target)}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No overdue jobs</p>';}
 function pendingActions(jobs){const out=[];jobs.forEach(j=>{const a=j.approvals||{};
-  if(j.stage==='Testing')out.push({j,what:'🔐 Laser approval'});
+  if(j.stage==='Laser'&&!a.laser)out.push({j,what:'🔐 Laser approval'});
   if(j.stage==='Ready'&&!j.pickupMsgAt)out.push({j,what:'📲 Pickup WhatsApp'});
 });return out;}
 // Banners: pickup messages before the cut-off (2 PM) and approvals waiting
@@ -485,7 +484,7 @@ async function overrideAdvance(list){
 let advShown='';
 function advanceAlert(){
   if(window.SentireAuth&&SentireAuth.canApprove&&!SentireAuth.canApprove())return;     // only people who can approve laser
-  const hold=g(JK).filter(j=>j.stage==='Testing').map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!x.j.laserOverride).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
+  const hold=g(JK).filter(j=>j.stage==='Laser'&&!(j.approvals&&j.approvals.laser)).map(j=>({j,o:orderOf(j)})).filter(x=>x.o).map(x=>Object.assign(x,{ac:ST.advanceCheck(x.o)})).filter(x=>x.ac.needed&&!x.ac.ok).filter(x=>!x.j.laserOverride).filter(x=>!(x.j.laserHold&&x.j.laserHold.adv===(x.ac.adv||0)));   // already put on hold at this advance → no repeat
   const sig=hold.map(x=>x.j.jobNo+':'+(x.ac.adv||0)).join('|');if(!hold.length||sig===advShown)return;advShown=sig;
   const adm=ST.isAdmin();
   const rows=hold.map(x=>'<div style="border:1px solid #ef4444;background:rgba(239,68,68,.08);border-radius:8px;padding:8px 10px;margin:6px 0;"><b>'+E(x.j.jobNo)+' · '+E(x.j.party)+'</b> <span style="opacity:.7">('+E(x.j.orderRef||'')+')</span><br>'+E(ST.itemsShort(itemsOf(x.j)))+
