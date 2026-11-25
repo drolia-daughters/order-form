@@ -276,7 +276,7 @@ const ORDER_TAKERS=['an01'];
 const canRate=o=>isAdminMe()||(window.SentireAuth&&SentireAuth.canBill&&SentireAuth.canBill())||!!(window.SentireAuth&&SentireAuth.user&&ORDER_TAKERS.indexOf(SentireAuth.user.login_id)>=0)||(!!o&&!!o.createdBy&&o.createdBy===meName());
 /* Who may SEE Actual Capacity: the two Admins (Abhishek, Kamna) always, plus these login_ids. jai = User 10 (jaimini accounts); sa01 = sanjay. Edit this list to change who. */
 const ACTUAL_VIEWERS=['jai','sa01'];
-const canSeeActual=()=>isAdminMe()||!!(window.SentireAuth&&SentireAuth.user&&ACTUAL_VIEWERS.indexOf(SentireAuth.user.login_id)>=0);
+const canSeeActual=()=>true;   /* 1.13.0: every user sees both ordered and actual capacity in the Order Sheet */
 const noRate=x=>{const y=Object.assign({},x);if(ST.noWarr(x))y.noWarranty=true;delete y.rate;delete y.sp;return y;};
 function setItems(items,showRate){const _t=document.getElementById('itemsTbl');_t.classList.toggle('hide-rate',showRate===false);_t.classList.toggle('hide-actual',!canSeeActual());document.getElementById('itemsBody').innerHTML=(items&&items.length?items:[{}]).map(itemRowHtml).join('');updItemsTotal();}
 function addItemRow(it){const b=document.getElementById('itemsBody');b.insertAdjacentHTML('beforeend',itemRowHtml(it,b.rows.length));updItemsTotal();const r=b.rows[b.rows.length-1];if(!it)r.querySelector('.it-type').focus();return r;}
@@ -366,7 +366,10 @@ function onPaymentModeChange(){const m=document.getElementById('paymentMode').va
   document.getElementById('advanceBox').style.display=(m==='Advance'&&isAdminMe())?'block':'none';
   const n=document.getElementById('advanceNote');if(n)n.textContent='Laser approval stays blocked until at least '+ST.ADV_MIN+'% of the order value (items qty × price) is received.';}
 
-function onTransporterChange(){const t=document.getElementById('transporterName').value;if(!t)return;
+function onTransporterChange(){const t=document.getElementById('transporterName').value;
+  /* 1.13.0: Self = own vehicle: no transporter ID / email / phone / tracking */
+  const self=ST.isSelf(t);['transporterId','transporterEmail','transporterPhone','trackingLink'].forEach(id=>{const el=document.getElementById(id);if(self)el.value='';el.disabled=self;el.placeholder=self?'Not needed – own vehicle (Self)':el.placeholder.replace('Not needed – own vehicle (Self)','');});
+  if(!t||self)return;
   const tc=gm(TCK);if(tc[t]){
     if(tc[t].email){document.getElementById('transporterEmail').value=tc[t].email;showHint('tEmailHint');}
     if(tc[t].phone){document.getElementById('transporterPhone').value=tc[t].phone;showHint('tPhoneHint');}
@@ -383,7 +386,7 @@ function learnFromDB(){const db=gdb(),p=g(PK),t=g(TK),pm=gm(PLK),tc=gm(TCK),cc=g
   db.forEach(o=>{if(o.partyName&&!p.includes(o.partyName)){p.push(o.partyName);pc++;}if(o.transporterName&&!t.includes(o.transporterName)){t.push(o.transporterName);tt++;}
   if(o.partyName&&o.location)pm[o.partyName]=o.location;
   if(o.partyName){if(!cc[o.partyName])cc[o.partyName]={};if(o.clientEmail)cc[o.partyName].email=o.clientEmail;if(o.clientPhone)cc[o.partyName].phone=o.clientPhone;}
-  if(o.transporterName){if(!tc[o.transporterName])tc[o.transporterName]={};if(o.transporterEmail)tc[o.transporterName].email=o.transporterEmail;if(o.transporterPhone)tc[o.transporterName].phone=o.transporterPhone;if(o.trackingLink)tc[o.transporterName].trackingBase=o.trackingLink;if(o.transporterId)tc[o.transporterName].transporterId=o.transporterId;}});
+  if(o.transporterName&&!ST.isSelf(o.transporterName)){if(!tc[o.transporterName])tc[o.transporterName]={};if(o.transporterEmail)tc[o.transporterName].email=o.transporterEmail;if(o.transporterPhone)tc[o.transporterName].phone=o.transporterPhone;if(o.trackingLink)tc[o.transporterName].trackingBase=o.trackingLink;if(o.transporterId)tc[o.transporterName].transporterId=o.transporterId;}});
   if(pc)s(PK,p);if(tt)s(TK,t);sm(PLK,pm);sm(TCK,tc);sm(CCK,cc);}
 
 function saveScriptUrl(){const u=document.getElementById('scriptUrl').value.trim();if(!u.startsWith('https://script.google.com/'))return alert('Invalid.');localStorage.setItem(SK,u);document.getElementById('setupBanner').classList.add('hidden');showToast('success');}
@@ -490,6 +493,7 @@ function editOrder(ri){const db=gdb(),o=db[ri];if(!o)return;editingIndex=ri;show
   document.getElementById('transporterId').value=o.transporterId||'';
   document.getElementById('transporterEmail').value=o.transporterEmail||'';document.getElementById('transporterPhone').value=o.transporterPhone||'';
   document.getElementById('lrNumber').value=o.lrNumber||'';document.getElementById('trackingLink').value=o.trackingLink||'';document.getElementById('trackingLink').dataset.auto='';
+  {const sf=ST.isSelf(o.transporterName);['transporterId','transporterEmail','transporterPhone','trackingLink'].forEach(id=>{const el=document.getElementById(id);if(sf)el.value='';el.disabled=sf;});}
   document.getElementById('dod').value=o.dod||'';document.getElementById('dod')._stCheck&&document.getElementById('dod')._stCheck();
   document.getElementById('warrantyYears').value=String(o.warrantyYears||'1');document.getElementById('paymentMode').value=o.paymentMode||'';document.getElementById('advanceReceived').value=o.advanceReceived||'';onPaymentModeChange();document.getElementById('creditDays').value=o.creditDays||'';
   // Show saved logo if exists
@@ -541,7 +545,8 @@ async function submitOrder(e){e.preventDefault();
   if(form.partyName){const cc=gm(CCK);if(!cc[form.partyName])cc[form.partyName]={};const c=cc[form.partyName];
     c.email=form.clientEmail||c.email||'';c.phone=form.clientPhone||c.phone||'';c.location=form.location||c.location||'';
     if(form.paymentMode)c.paymentMode=form.paymentMode;if(form.creditDays)c.creditDays=form.creditDays;if(form.logoImage)c.logo=form.logoImage;if(form.laserLogo)c.laserLogo=form.laserLogo;sm(CCK,cc);}
-  if(form.transporterName){const tc=gm(TCK);if(!tc[form.transporterName])tc[form.transporterName]={};const x=tc[form.transporterName];if(form.transporterEmail)x.email=form.transporterEmail;if(form.transporterPhone)x.phone=form.transporterPhone;if(form.trackingLink)x.trackingBase=form.trackingLink;if(form.transporterId)x.transporterId=form.transporterId;sm(TCK,tc);}
+  if(ST.isSelf(form.transporterName)){form.transporterId='';form.transporterEmail='';form.transporterPhone='';form.trackingLink='';}
+  if(form.transporterName&&!ST.isSelf(form.transporterName)){const tc=gm(TCK);if(!tc[form.transporterName])tc[form.transporterName]={};const x=tc[form.transporterName];if(form.transporterEmail)x.email=form.transporterEmail;if(form.transporterPhone)x.phone=form.transporterPhone;if(form.trackingLink)x.trackingBase=form.trackingLink;if(form.transporterId)x.transporterId=form.transporterId;sm(TCK,tc);}
 
   const db=gdb();let despatchNo=null;
   if(editingIndex>=0){
@@ -587,7 +592,7 @@ function renderDB(){const db=gdb(),vis=db.filter(canSee),tb=document.getElementB
     const cEmail=o.clientEmail||cc[o.partyName]?.email||'';const cPhone=o.clientPhone||cc[o.partyName]?.phone||'';
     const cClean=cPhone.replace(/[^0-9+]/g,'');const cWa=ST.waPhone(cPhone);
     let cHtml='';if(cEmail)cHtml+=`<a class="contact-btn contact-email" href="mailto:${E(cEmail)}" target="_blank">📧</a>`;if(cWa)cHtml+=`<a class="contact-btn contact-whatsapp" href="https://wa.me/${cWa}" target="_blank">💬</a><a class="contact-btn contact-call" href="tel:${cClean}">📞</a>`;if(!cEmail&&!cPhone)cHtml='—';
-    const tEmail=o.transporterEmail||tc[o.transporterName]?.email||'';const tPhone=o.transporterPhone||tc[o.transporterName]?.phone||'';
+    const tSelf=ST.isSelf(o.transporterName);const tEmail=tSelf?'':(o.transporterEmail||tc[o.transporterName]?.email||'');const tPhone=tSelf?'':(o.transporterPhone||tc[o.transporterName]?.phone||'');
     const tClean=tPhone.replace(/[^0-9+]/g,'');const tWa=ST.waPhone(tPhone);
     let tHtml='';if(tEmail)tHtml+=`<a class="contact-btn contact-email" href="mailto:${E(tEmail)}?subject=Pickup%20${encodeURIComponent(o.orderNo||'')}" target="_blank">📧</a>`;if(tWa)tHtml+=`<a class="contact-btn contact-whatsapp" href="https://wa.me/${tWa}" target="_blank">💬</a><a class="contact-btn contact-call" href="tel:${tClean}">📞</a>`;if(!tEmail&&!tPhone)tHtml='—';
     let actionBtns=`<button class="btn-edit-row" data-tip="View all details of this order" onclick="viewOrder(${ri})" style="color:var(--blue);background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);">👁</button><button class="btn-edit-row" data-tip="Edit this order (items, dates, L.R. no., changes)" onclick="editOrder(${ri})">✏️</button><button class="btn-edit-row" data-tip="Print this order sheet (half A4)" onclick="printOrder(${ri})" style="color:var(--cyan);background:rgba(6,182,212,0.1);border-color:rgba(6,182,212,0.3);">🖨</button>`;
@@ -713,7 +718,7 @@ function viewOrder(ri){const o=gdb()[ri];if(!o)return;const E=ST.esc;
    +(()=>{const al=ST.allocate();const cs=ST.cells().filter(c=>al[c.sn]&&al[c.sn].orderNo===o.orderNo);const q=parseFloat(o.quantity)||0;if(!cs.length&&!ST.cells().length)return '';
       return '<div class="ovsec">Load cells — tested serial numbers ('+cs.length+' of '+q+')</div>'+(cs.length?'<div style="font-family:var(--mono);font-size:12px;line-height:1.9;">'+cs.map(c=>'<a href="test_reports.html?sn='+encodeURIComponent(c.sn)+'" style="color:#93c5fd;margin-right:10px;">'+E(c.sn)+'</a>').join('')+'</div>':'<div style="font-size:12px;color:var(--text-dim)">None in the test reports yet.</div>')+(q&&cs.length<q?'<div style="font-size:12px;color:var(--orange);margin-top:4px;">'+(q-cs.length)+' still to be tested.</div>':'');})()
    +'<div class="ovsec">Branding &amp; production</div><div class="ovgrid">'+g('Laser logo / text',o.laserLogo)+g('Wiring by',o.wiringBy)+g('Packing by',o.packingBy)+g('Testing by',o.testingBy)+g('Production remarks',o.productionRemarks)+'</div>'+logo
-   +'<div class="ovsec">Transport</div><div class="ovgrid">'+g('Transporter',o.transporterName)+g('Transporter email',o.transporterEmail)+g('Transporter phone',o.transporterPhone)+g('L.R. number',o.lrNumber)+g('Boxes',o.boxes)+g('Weight (kg)',o.weight)+g('Tracking link',o.trackingLink)+'</div>'
+   +'<div class="ovsec">Transport</div><div class="ovgrid">'+g('Transporter',ST.isSelf(o.transporterName)?'Self (own vehicle)':o.transporterName)+(ST.isSelf(o.transporterName)?'':g('Transporter email',o.transporterEmail)+g('Transporter phone',o.transporterPhone))+g('L.R. number',o.lrNumber)+g('Boxes',o.boxes)+g('Weight (kg)',o.weight)+g('Tracking link',o.trackingLink)+'</div>'
    +'<div class="ovsec">Payment</div><div class="ovgrid">'+g('Payment mode',o.paymentMode)+(isAdminMe()&&pi&&pi.mode==='Advance'?(()=>{const ac=ST.advanceCheck(o);return g('Advance received',ac.adv?ST.inr(ac.adv):'₹0')+g('Order value',ac.total?ST.inr(ac.total):'price not entered')+g('Minimum advance ('+ST.ADV_MIN+'%)',ac.total?ST.inr(ac.min):'')+g('Laser approval',ac.ok?'Allowed':'Blocked');})():'')+g('Credit days',o.creditDays)+g('Due date',pi&&pi.due?ST.fmtDate(pi.due):'')+g('Payment status',pi&&pi.action==='paid'?'Paid'+(o.paidDate?' on '+d(String(o.paidDate).slice(0,10)):''):(pi&&pi.label)||'')+g('Reminders sent',pi&&pi.sent)+g('Escalated',o.escalatedAt?'Yes':'')+'</div>'
    +(o.orderRemarks?'<div class="ovsec">Order remarks</div><div style="font-size:13px;white-space:pre-wrap;">'+E(o.orderRemarks)+'</div>':'')
    +(more?'<div class="ovsec">Other details</div><div class="ovgrid">'+more+'</div>':'')

@@ -37,7 +37,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="topbar"><div class="topbar-brand"><div class="icon">🔧</div><h1>Repairs &amp; Warranty</h1><span>RETURNS</span></div>
 <div class="tab-bar">
   <button class="tab-btn active" data-v="dash" onclick="showV('dash')">Dashboard</button>
-  <button class="tab-btn" data-v="sn" onclick="showV('sn')">🔎 S/N finder</button>
+  <button class="tab-btn" data-v="sn" onclick="showV('sn')">🔎 Loadcell S/N finder</button>
   <button class="tab-btn" data-v="new" onclick="showV('new')">+ New Repair</button>
   <button class="tab-btn" data-v="open" onclick="showV('open')">🔧 Open Repairs</button>
   <button class="tab-btn" data-v="history" onclick="showV('history')">History</button>
@@ -209,11 +209,31 @@ function liveSimilar(){
 // count comma-separated loadcell numbers -> set quantity automatically
 function lcList(v){return String(v||'').split(',').map(x=>x.trim()).filter(Boolean);}
 function onLcno(){const arr=lcList($('f_lcno').value);const rows=document.querySelectorAll('#prodRows .prow');if(arr.length&&rows.length===1){rows[0].querySelector('.p-qty').value=arr.length;updProdTotal();}$('lcnoHint').textContent=arr.length>1?(arr.length+' loadcells entered'):(arr.length===1?'1 loadcell':'');snLookup(arr);}
-/* 1.12.0: S/N finder tab — check warranty and start a repair from the serial number */
+/* 1.12.0: Loadcell S/N finder tab — check warranty and start a repair from the serial number */
 function snFind(){const list=$('snFind').value.split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);const out=$('snFindOut');if(!list.length){out.innerHTML='';return;}
   const al=ST.allocate();const infos=list.slice(0,50).map(sn=>ST.cellInfo(sn,al));const found=infos.filter(x=>x.found).map(x=>x.sn);
-  out.innerHTML=infos.map(x=>ST.cellCard(x)).join('')+(found.length?'<div><button class="btn btn-primary" onclick="repairFromSN()">🔧 Log a repair for '+(found.length>1?'these '+found.length+' load cells':'this load cell')+'</button></div>':'');SN_FOUND=found;}
+  out.innerHTML=infos.map(x=>ST.cellCard(x)+(x.found?'<div style="display:flex;gap:8px;margin:-4px 0 12px;flex-wrap:wrap"><button class="btn" onclick="snReport(\''+ST.esc(x.sn)+'\',0)">🧪 Test report – this load cell</button><button class="btn" onclick="snReport(\''+ST.esc(x.sn)+'\',1)">🧪 Batch report – '+(x.order?'all load cells of order '+ST.esc(x.order.orderNo):'all tested with it on '+ST.fmtDate(x.cell.testDate))+'</button></div>':'')).join('')+(found.length?'<div><button class="btn btn-primary" onclick="repairFromSN()">🔧 Log a repair for '+(found.length>1?'these '+found.length+' load cells':'this load cell')+'</button></div>':'');SN_FOUND=found;}
 let SN_FOUND=[];
+/* 1.13.0: test report of one load cell, or of its batch (same order; if not linked to an order: same customer, same test date) */
+function snReport(sn,batch){const al=ST.allocate(),me=ST.cellInfo(sn,al);if(!me||!me.found)return;
+  let infos=[me],title='Load Cell Test Report',sub='Loadcell S/N '+me.sn;
+  if(batch){const day=String(me.cell.testDate||'').slice(0,10),cust=String(me.party||'').toUpperCase();
+    infos=ST.cells().map(c=>ST.cellInfo(c.sn,al)).filter(x=>x&&x.found&&(me.order?(x.order&&x.order.orderNo===me.order.orderNo):(String(x.cell.testDate||'').slice(0,10)===day&&String(x.party||'').toUpperCase()===cust)));
+    infos.sort((a,b)=>String(a.sn).localeCompare(String(b.sn),undefined,{numeric:true}));
+    title='Load Cell Test Report – batch';sub=me.order?'Order '+me.order.orderNo:'Tested on '+ST.fmtDate(day);}
+  const co=ST.company(),E2=ST.esc,dig=c=>!(parseFloat(c.sens)>0);
+  const inv=me.invoice,warr=me.years===0?'NO WARRANTY (special price)':me.until?(me.years+' year'+(me.years>1?'s':'')+' warranty, till '+ST.fmtDate(me.until)+(me.inWarranty?' – IN warranty':' – OUT of warranty')):'';
+  const rows=infos.map((x,i)=>{const c=x.cell;return '<tr'+(x.sn===me.sn&&batch?' style="background:#fff7d6"':'')+'><td>'+(i+1)+'</td><td><b>'+E2(c.sn)+'</b></td><td>'+E2(c.type||'')+'</td><td>'+E2(c.capacity||'')+'</td><td>'+E2(c.cable||'')+'</td><td>'+E2(c.zero??'')+'</td><td>'+(dig(c)?'Digital':E2(c.sens)+' mV/V')+'</td><td>'+E2(c.inR??'')+'</td><td>'+E2(c.outR??'')+'</td><td>'+ST.fmtDate(c.testDate)+'</td></tr>';}).join('');
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+E2(title)+' – '+E2(sub)+'</title><style>body{font:13px Arial,sans-serif;color:#1b2330;margin:24px}h1{font-size:19px;margin:0}'
+   +'.hd{display:flex;justify-content:space-between;border-bottom:2px solid #1f3864;padding-bottom:8px;margin-bottom:12px}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 18px;margin-bottom:12px}.g span{color:#667085;font-size:11px;display:block}'
+   +'table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d9dee7;padding:5px 6px;text-align:left}th{background:#eef2f8}@media print{button{display:none}}</style></head><body>'
+   +'<div class="hd"><div><h1>'+E2(title)+'</h1><div>'+E2(sub)+' · '+infos.length+' load cell'+(infos.length>1?'s':'')+'</div></div><div style="text-align:right"><b>'+E2(co.name||'')+'</b><br>'+E2(co.address||'')+'<br>'+(co.gstin?'GSTIN '+E2(co.gstin):'')+'</div></div>'
+   +'<div class="g"><div><span>Customer</span><b>'+E2(me.party||'—')+'</b></div><div><span>Order</span><b>'+E2(me.order?me.order.orderNo:'—')+'</b></div><div><span>Sales invoice</span><b>'+E2(inv?inv.no+(inv.date?' · '+ST.fmtDate(inv.date):''):'—')+'</b></div>'
+   +'<div><span>Despatched</span><b>'+(me.order&&me.order.dod?ST.fmtDate(me.order.dod):(me.despatched?'yes':'not yet'))+'</b></div><div><span>Warranty</span><b>'+E2(warr||'—')+'</b></div><div><span>Report date</span><b>'+ST.fmtDate(ST.today())+'</b></div></div>'
+   +'<table><tr><th>#</th><th>Loadcell S/N</th><th>Type</th><th>Capacity</th><th>Cable</th><th>Zero</th><th>Sensitivity</th><th>Input R (Ω)</th><th>Output R (Ω)</th><th>Tested on</th></tr>'+rows+'</table>'
+   +(me.repairs.length&&!batch?'<p><b>Repairs of this load cell:</b> '+me.repairs.map(r=>E2(r.rma||'')+' ('+ST.fmtDate(r.received)+', '+E2(r.status||'')+')').join(' · ')+'</p>':'')
+   +'<p style="color:#667085;font-size:11px;margin-top:14px">Values from the factory testing machine. '+E2(co.name||'')+'</p><button onclick="print()">🖨 Print</button></body></html>';
+  const w=window.open('','_blank');if(!w){alert('Allow pop-ups to open the test report.');return;}w.document.write(html);w.document.close();}
 function repairFromSN(){if(!SN_FOUND.length)return;showV('new');resetForm();$('f_lcno').value=SN_FOUND.join(', ');onLcno();}
 /* 1.4.0: look up the serial numbers in the test reports → customer, order, invoice, warranty */
 let _snT=null;function snLookup(arr){clearTimeout(_snT);_snT=setTimeout(()=>{const box=$('snBox');if(!box)return;if(!arr.length){box.innerHTML='';return;}

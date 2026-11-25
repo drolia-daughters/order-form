@@ -92,7 +92,7 @@ CE.model=function(code){const P=CE.pool();const per=CE.period(code);const t=ST.t
       phone:(ords.slice(-1)[0]||{}).clientPhone||(P.clients[name]||{}).phone||'',loc:(ords.slice(-1)[0]||{}).location||(P.clients[name]||{}).location||''};}).sort((a,b)=>(b.rev-a.rev)||(b.pcs-a.pcs));
   M.segs={};['Champions','Loyal','New','Need attention','At risk','Lost'].forEach(s=>M.segs[s]=M.customers.filter(c=>c.seg===s));
   // operations
-  const J=P.jobs;M.jobs=J;M.stageCount={};['Received','Assembly','Wiring','Testing','Laser','Packing','Ready'].forEach(s=>M.stageCount[s]=J.filter(j=>j.stage===s).length);
+  const J=P.jobs;M.jobs=J;M.stageCount={};['Received','Bonding','Wiring','Testing','Laser','Packing','Ready'].forEach(s=>M.stageCount[s]=J.filter(j=>j.stage===s).length);
   const stDays={};J.forEach(j=>{const h=(j.history||[]).filter(x=>x.date&&x.stage);for(let i=0;i<h.length-1;i++){if(h[i+1].stage===h[i].stage)continue;const d=(new Date(h[i+1].date)-new Date(h[i].date))/86400000;if(d>=0&&d<120){(stDays[h[i].stage]=stDays[h[i].stage]||[]).push(d);}}});
   M.stageDays={};Object.entries(stDays).forEach(([k,a])=>M.stageDays[k]=Math.round(a.reduce((x,y)=>x+y,0)/a.length*10)/10);
   const desp=P.orders.filter(o=>o.dod&&inPer(o.dod));const cyc=desp.map(o=>({o,d:ST.daysBetween((o.approvedAt||o.date||o.dod).slice(0,10),o.dod.slice(0,10))})).filter(x=>x.d>=0&&x.d<200);
@@ -217,7 +217,7 @@ CE.makeDemo=function(){let seed=20261004;const rnd=()=>{seed|=0;seed=seed+0x6D2B
       const o={orderNo:'ORD-'+date.slice(0,4)+'-'+String(on).padStart(4,'0'),date,deliveryDate:deliv,partyName:n,location:city,clientPhone:phone,items,status:dod?'completed':(age<1?'awaiting':'pending'),approvedAt:appr.toISOString(),paymentMode:clients[n].paymentMode,creditDays:clients[n].creditDays,dod,transporterName:pick(['VRL Logistics','Gati','TCI Freight'])};
       const sum=ST.itemsSummary(items);Object.assign(o,{loadcellType:sum.loadcellType,quantity:sum.quantity});
       // production job + history
-      jn++;const stagesAll=['Received','Assembly','Wiring','Testing','Laser','Packing','Ready','Dispatched'];const reach=dod?7:Math.min(6,Math.floor(age/1.3));const h=[];let tt=appr.getTime();
+      jn++;const stagesAll=['Received','Bonding','Wiring','Testing','Laser','Packing','Ready','Dispatched'];const reach=dod?7:Math.min(6,Math.floor(age/1.3));const h=[];let tt=appr.getTime();
       for(let s=0;s<=reach;s++){h.push({stage:stagesAll[s],date:new Date(tt).toISOString(),note:''});tt+=(s===3||s===5?1.6:0.9)*86400000*(0.6+rnd());}
       const j={jobNo:'JOB-'+String(jn).padStart(4,'0'),orderRef:o.orderNo,party:n,items,stage:stagesAll[reach],history:h,target:deliv,approvals:{},startDate:date};
       if(reach>=6){j.packedAt=h[5].date;j.boxes=String(Math.ceil(sum.quantity/4));j.weight=String(sum.quantity*11);}
@@ -235,7 +235,7 @@ CE.makeDemo=function(){let seed=20261004;const rnd=()=>{seed|=0;seed=seed+0x6D2B
   ST8.forEach((st,k)=>{const n=names[(k*3+1)%names.length];const date=ST.addDays(today,-(k*2+1));on++;jn++;const items=[{type:pick(['DLC','ALC','AS']),qty:String(8*(1+k%3)),capacity:'30T',wire:'Blue 16m'}];
     const o={orderNo:'ORD-'+date.slice(0,4)+'-'+String(on).padStart(4,'0'),date,deliveryDate:k===5?ST.addDays(today,-2):ST.addDays(date,8),partyName:n,location:clients[n].location,clientPhone:clients[n].phone,items,status:'pending',approvedAt:date+'T06:00:00Z',paymentMode:clients[n].paymentMode,creditDays:clients[n].creditDays,transporterName:'VRL Logistics'};
     const sum=ST.itemsSummary(items);Object.assign(o,{loadcellType:sum.loadcellType,quantity:sum.quantity,jobNo:'JOB-'+String(jn).padStart(4,'0')});orders.push(o);
-    const idx=['Received','Assembly','Wiring','Testing','Laser','Packing','Ready'].indexOf(st);const h=[];for(let s=0;s<=idx;s++)h.push({stage:['Received','Assembly','Wiring','Testing','Laser','Packing','Ready'][s],date:new Date(ST.parseISO(date).getTime()+s*0.4*86400000).toISOString()});
+    const idx=['Received','Bonding','Wiring','Testing','Laser','Packing','Ready'].indexOf(st);const h=[];for(let s=0;s<=idx;s++)h.push({stage:['Received','Bonding','Wiring','Testing','Laser','Packing','Ready'][s],date:new Date(ST.parseISO(date).getTime()+s*0.4*86400000).toISOString()});
     const j={jobNo:o.jobNo,orderRef:o.orderNo,party:n,items,stage:st,history:h,target:o.deliveryDate,approvals:{},startDate:date};if(st==='Packing'||st==='Ready'){j.packedAt=h[h.length-1].date;j.boxes='2';j.weight='40';}jobs.push(j);});
   // monthly expenses
   for(let k=23;k>=0;k--){const m=new Date(t0.getFullYear(),t0.getMonth()-k,5);const key=iso(m).slice(0,7);const rev=fin.filter(e=>e.date.startsWith(key)).reduce((s,e)=>s+e.amount,0);

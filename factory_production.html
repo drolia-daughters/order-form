@@ -25,6 +25,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 .stg-btn{padding:4px 8px;border-radius:5px;font-size:10px;font-family:var(--mono);font-weight:600;cursor:pointer;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);color:var(--green);margin:1px;white-space:nowrap;}
 .stg-btn.apv{border-color:rgba(168,85,247,.45);background:rgba(168,85,247,.14);color:#c084fc;}
 .stg-btn.wa,.wa-btn{border-color:rgba(37,211,102,0.35)!important;background:rgba(37,211,102,0.12)!important;color:#25d366!important;}
+.stg-btn.bond{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.5);color:#c084fc}
 .stg-btn.pr,.pr-btn{border-color:rgba(96,165,250,0.35)!important;background:rgba(96,165,250,0.12)!important;color:#60a5fa!important;}
 .stg-btn.ed{border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:var(--orange);}
 .stg-btn.bk{border-color:rgba(122,133,153,.35);background:transparent;color:var(--text-dim);}
@@ -62,7 +63,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 <div class="topbar"><div class="topbar-brand"><div class="icon">FP</div><h1>Factory Production</h1><span>PHASE 3</span></div>
 <div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('board')">Board</button><button class="tab-btn" onclick="showV('jobs')">All Jobs</button><button class="tab-btn" onclick="showV('add')">+ New Job</button></div></div>
 <div class="main">
-<div class="flow">Flow: <b>Received → Assembly → Wiring → Testing</b> → <i>🔐 Laser approval</i> → <b>Laser</b> → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
+<div class="flow">Flow: <b>Received → Bonding → Wiring → Testing</b> → <i>🔐 Laser approval</i> → <b>Laser</b> → <b>Packing</b> (boxes &amp; weight) → 📲 pickup WhatsApp to transporter (before 2 PM) → <b>Ready</b> → 🧾 Bill &amp; E-way bill → L.R. → 📦 <b>Dispatched</b> + WhatsApp to customer. &nbsp;Approvals: Admin, Sub Admin or Authorised person (set up in Masters).</div>
 <div class="banner" id="pickupBanner"></div>
 <div class="apv-banner" id="apvBanner"></div>
 
@@ -87,7 +88,7 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 <div class="form-group"><label>Delivery / Target Date</label><input type="date" id="jf_target"></div>
 <div class="form-group"><label>Priority</label><select id="jf_pri"><option>Normal</option><option>High</option><option>Urgent</option></select></div>
 <div class="form-group"><label>Assigned Worker</label><input type="text" id="jf_worker"></div>
-<div class="form-group"><label>Stage</label><select id="jf_stage"><option>Received</option><option>Assembly</option><option>Wiring</option><option>Testing</option></select><div class="note" id="jf_stageNote" style="display:none;">Stage changes only through the flow buttons (approvals cannot be skipped).</div></div>
+<div class="form-group"><label>Stage</label><select id="jf_stage"><option>Received</option><option>Bonding</option><option>Wiring</option><option>Testing</option></select><div class="note" id="jf_stageNote" style="display:none;">Stage changes only through the flow buttons (approvals cannot be skipped).</div></div>
 <div class="form-group full"><label>Remarks</label><textarea id="jf_rem"></textarea></div>
 <div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;flex-wrap:wrap;"><button type="button" class="btn pr-btn" id="jfPrint" style="display:none;" onclick="printJob(editId)">🖨️ Print Job Card</button><button type="button" class="btn wa-btn" id="jfWa" style="display:none;" onclick="waJob(editId)">💬 WhatsApp</button><button type="button" class="btn btn-ghost" onclick="resetJF()">Clear</button><button type="submit" class="btn btn-primary" id="jfBtn">+ Create Job</button></div>
 </form></div></div>
@@ -97,9 +98,11 @@ input:disabled,select:disabled{opacity:.55;cursor:not-allowed;}
 const JK='prod_jobs';let editId=null;
 const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
 const E=v=>ST.esc(v);
-const STAGES=['Received','Assembly','Wiring','Testing','Laser','Packing','Ready','Dispatched'];
+/* 1.13.0: the 'Assembly' stage is now called 'Bonding' (strain gauge bonding). Old jobs are renamed once. */
+(function(){try{const jb=JSON.parse(localStorage.getItem('prod_jobs')||'[]');let ch=false;jb.forEach(j=>{if(j.stage==='Assembly'){j.stage='Bonding';ch=true;}(j.history||[]).forEach(h=>{if(h.stage==='Assembly'){h.stage='Bonding';ch=true;}if(h.note)h.note=h.note.replace(/\bAssembly\b/g,'Bonding');});});if(ch)localStorage.setItem('prod_jobs',JSON.stringify(jb));}catch(e){}})();
+const STAGES=['Received','Bonding','Wiring','Testing','Laser','Packing','Ready','Dispatched'];
 const STAGE_IDX=Object.fromEntries(STAGES.map((x,i)=>[x,i]));
-const STAGE_CLR={Received:'#60a5fa',Assembly:'#a855f7',Wiring:'#f59e0b',Testing:'#06b6d4',Laser:'#ec4899',Packing:'#22c55e',Ready:'#10b981',Dispatched:'#666'};
+const STAGE_CLR={Received:'#60a5fa',Bonding:'#a855f7',Wiring:'#f59e0b',Testing:'#06b6d4',Laser:'#ec4899',Packing:'#22c55e',Ready:'#10b981',Dispatched:'#666'};
 document.getElementById('jFilt').innerHTML='<option value="">All Stages</option>'+STAGES.map(x=>`<option>${x}</option>`).join('');
 function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');const map={dash:0,board:1,jobs:2,add:3};document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===map[v]));if(v==='dash')renderDash();if(v==='board')renderBoard();if(v==='jobs')renderJobs();}
 function toast(m,ms){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),ms||2600);}
@@ -123,7 +126,7 @@ function saveJob(e){e.preventDefault();const jobs=g(JK);const v=id=>document.get
   s(JK,jobs);resetJF();toast();showV('jobs');renderBanners();}
 function resetJF(){document.getElementById('jForm').reset();editId=null;document.getElementById('jfTitle').textContent='New Production Job';document.getElementById('jfBtn').textContent='+ Create Job';
   ['jfPrint','jfWa'].forEach(id=>document.getElementById(id).style.display='none');['jf_type','jf_qty','jf_cap','jf_wire','jf_stage'].forEach(id=>document.getElementById(id).disabled=false);
-  document.getElementById('jf_stage').innerHTML=['Received','Assembly','Wiring','Testing'].map(x=>`<option>${x}</option>`).join('');
+  document.getElementById('jf_stage').innerHTML=['Received','Bonding','Wiring','Testing'].map(x=>`<option>${x}</option>`).join('');
   document.getElementById('jf_qty').required=true;document.getElementById('jf_itemsNote').style.display='none';document.getElementById('jf_stageNote').style.display='none';
   const t=document.getElementById('jf_target');if(t._stCheck)t._stCheck();}
 function editJob(no){const j=getJob(no);if(!j)return;resetJF();editId=no;
@@ -137,9 +140,34 @@ function editJob(no){const j=getJob(no);if(!j)return;resetJF();editId=no;
   const t=document.getElementById('jf_target');if(t._stCheck)t._stCheck();showV('add');}
 
 /* ═══════════ FLOW ACTIONS ═══════════ */
-// Simple steps (no approval): Received → Assembly → Wiring → Testing
+// Simple steps (no approval): Received → Bonding → Wiring → Testing
 function advance(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.stage]||0;if(i>=3)return;
   mutate(no,x=>{x.stage=STAGES[i+1];hist(x,x.stage,'Moved to '+x.stage);});toast('→ '+STAGES[i+1]);refreshAll();}
+/* 1.13.0: Bonding done - count the strain gauges used, so gauge stock and waste are known */
+async function bondingDone(no){const j=getJob(no);if(!j||j.stage!=='Bonding')return;
+  const its=itemsOf(j),cells=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)||'';
+  const GK='prod_gauges_per_cell';let gm={};try{gm=JSON.parse(localStorage.getItem(GK)||'{}');}catch(e){}
+  const tkey=its.map(i=>i.type||'').join('+')||'default',per=gm[tkey]||gm.default||4;
+  const who=(window.SentireAuth&&SentireAuth.user&&(SentireAuth.user.name||SentireAuth.user.login_id))||'';
+  const r=await ST.modal({title:'✅ Bonding done — '+E(no),sub:E(j.party)+' · '+E(ST.itemsShort(its)),
+    html:`<label>Load cells bonded</label><input id="bd_c" type="number" min="0" value="${E(cells)}">
+      <label>Strain gauges per load cell (standard for this type)</label><input id="bd_p" type="number" min="1" value="${E(per)}">
+      <label>Strain gauges USED (count from the stock issued)</label><input id="bd_g" type="number" min="0" placeholder="e.g. ${E((parseFloat(cells)||0)*per)}">
+      <div id="bd_chk" class="hint" style="margin:8px 0;font-size:13px"></div>
+      <label>Bonded by</label><input id="bd_by" value="${E(who)}"><label>Note (optional)</label><input id="bd_n" placeholder="e.g. 2 gauges broken while bonding">`,
+    buttons:[{label:'Cancel',value:null},{label:'✅ Save & move to Wiring',cls:'ok',onClick:(ov,err)=>{const q=id=>ov.querySelector('#'+id).value.trim();
+      const c=parseFloat(q('bd_c')),p=parseFloat(q('bd_p')),gg=parseFloat(q('bd_g'));
+      if(!(c>0)){err.textContent='Enter how many load cells were bonded.';return false;}if(!(p>0)){err.textContent='Enter gauges per load cell.';return false;}
+      if(!(gg>=0)||q('bd_g')===''){err.textContent='Enter how many strain gauges were used.';return false;}
+      return {cells:c,per:p,gauges:gg,expected:c*p,extra:gg-c*p,by:q('bd_by'),note:q('bd_n'),at:new Date().toISOString()};}}]});
+  if(!r)return;gm[tkey]=r.per;localStorage.setItem(GK,JSON.stringify(gm));
+  mutate(no,x=>{x.bonding=r;x.stage='Wiring';hist(x,'Wiring','Bonding done: '+r.cells+' load cells, '+r.gauges+' gauges used ('+r.expected+' needed'+(r.extra>0?', '+r.extra+' extra':r.extra<0?', '+(-r.extra)+' fewer':'')+')'+(r.by?' by '+r.by:'')+(r.note?' – '+r.note:''));});
+  toast(r.extra>0?'Bonding saved – '+r.extra+' extra gauges used':'Bonding saved → Wiring',3500);refreshAll();}
+/* live check in the Bonding done window */
+document.addEventListener('input',e=>{if(!e.target.closest)return;const m=e.target.closest('.st-modal,.modal,body');const c=document.getElementById('bd_c');if(!c||!['bd_c','bd_p','bd_g'].includes(e.target.id))return;
+  const cc=parseFloat(c.value)||0,p=parseFloat(document.getElementById('bd_p').value)||0,g2=document.getElementById('bd_g').value,ex=cc*p,box=document.getElementById('bd_chk');
+  if(g2===''){box.textContent='Needed: '+ex+' gauges ('+cc+' × '+p+').';return;}const d=parseFloat(g2)-ex;
+  box.innerHTML=d===0?'<b style="color:var(--green)">✓ Exactly as needed ('+ex+').</b>':d>0?'<b style="color:var(--red)">'+d+' gauges MORE than needed ('+ex+') – broken / rework. Add a note.</b>':'<b style="color:#f59e0b">'+(-d)+' gauges FEWER than needed ('+ex+') – check the count.</b>';});
 const lines=(j,extra)=>{const o=orderOf(j);const its=itemsOf(j);return [j.jobNo+(j.orderRef?' · '+j.orderRef:''),'Party: '+j.party,'Items: '+ST.itemsShort(its)+(its.length>1?' (total '+its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0)+' pcs)':'')].concat(extra||[]);};
 // Testing → Laser needs approval
 async function approveLaser(no){const j=getJob(no);if(!j||j.stage!=='Testing')return;const o=orderOf(j);
@@ -207,6 +235,7 @@ async function sendPickup(no){const j=getJob(no);if(!j)return;const o=orderOf(j)
   const r=await ST.modal({title:'📲 Pickup request — '+no,wide:false,sub:w.late?'⚠ '+w.why+' — the message asks for pickup '+w.text+'.':'Send before '+w.cut+' so the transporter can plan the vehicle today.',
     html:`<label>Transporter</label><select id="pu_tr"><option value="">— Select —</option>${trs.map(x=>`<option ${x===tr?'selected':''}>${E(x)}</option>`).join('')}</select><label>Message</label><div class="st-lines" id="pu_msg">${E(msgFor(tr))}</div>`,
     buttons:[{label:'Later',value:null},{label:'💬 Send to transporter',cls:'ok',onClick:(ov,err)=>{const name=ov.querySelector('#pu_tr').value;if(!name){err.textContent='Choose the transporter.';return false;}
+      if(ST.isSelf(name)){err.textContent='Self = our own vehicle – no transporter to message.';return false;}
       const t=ST.transporter(name);const ph=t.phone||((o&&o.transporterName===name)?o.transporterPhone:'');if(!ph){err.textContent='No WhatsApp number for '+name+'. Add it in Masters → Transporters.';return false;}
       ST.openWA(ph,msgFor(name));return name;}}]});
   // live preview when transporter changes
@@ -344,12 +373,14 @@ function flags(j){const a=j.approvals||{};const f=[];
   if(j.packedAt&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packed: '+E(j.boxes||'?')+' box</span>');
   if(j.stage==='Ready'&&!j.pickupMsgAt)f.push('<span class="flag bad">📲 pickup msg not sent</span>');
   if(j.pickupMsgAt&&j.stage==='Ready')f.push('<span class="flag ok">📲 pickup '+ST.fmtDate(j.pickupFor)+'</span>');
+  if(j.bonding)f.push('<span class="flag '+(j.bonding.extra>0?'warn':'ok')+'" title="Bonding: '+E(j.bonding.cells)+' load cells, '+E(j.bonding.gauges)+' gauges used, '+E(j.bonding.expected)+' needed'+(j.bonding.by?' · '+E(j.bonding.by):'')+'">🧷 '+E(j.bonding.gauges)+' gauges'+(j.bonding.extra>0?' (+'+E(j.bonding.extra)+' extra)':'')+'</span>');
   if(j.billNo)f.push('<span class="flag ok">🧾 '+E(j.billNo)+'</span>');
   if(j.lrNumber)f.push('<span class="flag ok">L.R. '+E(j.lrNumber)+'</span>');
   return f.join('');}
 function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h='';
   const B=(cls,fn,label,tip)=>`<button class="stg-btn ${cls}" title="${E(tip||'')}" onclick="event.stopPropagation();${fn}('${no}')">${label}</button>`;
-  if(STAGE_IDX[j.stage]<3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
+  if(j.stage==='Bonding')h+=B('bond','bondingDone','✅ Bonding done','Enter the load cells bonded and the strain gauges used, then move to Wiring');
+  else if(STAGE_IDX[j.stage]<3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
   if(j.stage==='Testing')h+=B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
   if(j.stage==='Laser')h+=B('','laserDone','✓ Laser done','Move to Packing');
   if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
@@ -368,7 +399,7 @@ function renderJobs(){const jobs=g(JK),srch=(document.getElementById('jSrch')?.v
   const fl=jobs.filter(j=>{const its=itemsOf(j);if(srch&&!((j.party+' '+j.jobNo+' '+(j.orderRef||'')+' '+ST.itemsShort(its)).toLowerCase().includes(srch)))return false;if(filt&&j.stage!==filt)return false;return true;});
   document.getElementById('jBody').innerHTML=fl.slice().reverse().map(j=>{const si=STAGE_IDX[j.stage]||0;const pct=Math.round((si/(STAGES.length-1))*100);const clr=STAGE_CLR[j.stage]||'#666';
     const overdue=j.target&&j.target<today&&STAGE_IDX[j.stage]<6;const its=itemsOf(j);const tot=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);
-    return `<tr style="${j.stage==='Dispatched'?'opacity:0.55;':''}"><td style="min-width:200px;">${actions(j)}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${E(j.jobNo)}</td><td style="font-family:var(--mono);font-size:10px;">${E(j.orderRef)||'—'}</td><td><strong>${E(j.party)}</strong></td><td>${its.map(i=>E(i.type||'—')+(i.capacity?' <span style="color:var(--text-dim)">'+E(i.capacity)+'</span>':'')).join('<br>')}</td><td>${its.length>1?its.map(i=>E(i.qty)).join('<br>')+'<div style="font-size:10px;color:var(--green);font-family:var(--mono);">= '+tot+'</div>':'<strong>'+E(its[0].qty)+'</strong>'}</td><td><span class="tag" style="background:${clr}22;color:${clr};">${E(j.stage)}</span><div>${flags(j)}</div></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(j.startDate)||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${ST.fmtDate(j.target)||'—'}${overdue?' ⚠':''}</td><td style="font-family:var(--mono);font-size:10px;">${j.boxes?E(j.boxes)+' box':'—'}${j.weight?'<br>'+E(j.weight)+' kg':''}</td><td>${E(j.worker)||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:160px;">${E(j.remarks)||'—'}</td></tr>`;}).join('');}
+    return `<tr style="${j.stage==='Dispatched'?'opacity:0.55;':''}"><td style="min-width:200px;">${actions(j)}</td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${E(j.jobNo)}</td><td style="font-family:var(--mono);font-size:10px;">${E(j.orderRef)||'—'}</td><td><strong>${E(j.party)}</strong></td><td>${its.map(i=>E(i.type||'—')+(ST.prodCap(i)?' <span style="color:var(--text-dim)">'+E(ST.prodCap(i))+'</span>':'')).join('<br>')}</td><td>${its.length>1?its.map(i=>E(i.qty)).join('<br>')+'<div style="font-size:10px;color:var(--green);font-family:var(--mono);">= '+tot+'</div>':'<strong>'+E(its[0].qty)+'</strong>'}</td><td><span class="tag" style="background:${clr}22;color:${clr};">${E(j.stage)}</span><div>${flags(j)}</div></td><td><div class="pbar" style="width:80px;"><div class="pfill" style="width:${pct}%;background:${clr};"></div></div><span style="font-size:9px;font-family:var(--mono);color:var(--text-dim);">${pct}%</span></td><td style="font-family:var(--mono);font-size:10px;">${ST.fmtDate(j.startDate)||'—'}</td><td style="font-family:var(--mono);font-size:10px;${overdue?'color:var(--red);font-weight:700;':''}">${ST.fmtDate(j.target)||'—'}${overdue?' ⚠':''}</td><td style="font-family:var(--mono);font-size:10px;">${j.boxes?E(j.boxes)+' box':'—'}${j.weight?'<br>'+E(j.weight)+' kg':''}</td><td>${E(j.worker)||'—'}</td><td>${j.priority==='Urgent'?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);">🔥 URGENT</span>':j.priority==='High'?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚡ HIGH</span>':'Normal'}</td><td style="white-space:normal;max-width:160px;">${E(j.remarks)||'—'}</td></tr>`;}).join('');}
 function renderBoard(){const jobs=g(JK);
   document.getElementById('bRow').innerHTML=STAGES.map(st=>{const stJ=jobs.filter(j=>j.stage===st);const clr=STAGE_CLR[st];
     return `<div class="board-col" style="border-top:3px solid ${clr};"><h3>${st}</h3><div class="cnt" style="color:${clr};">${stJ.length}</div>${stJ.map(j=>`<div class="jcard"><b>${E(j.party)}</b><small>${E(j.jobNo)}${j.orderRef?' · '+E(j.orderRef):''}</small><small>${E(ST.itemsShort(itemsOf(j)))}</small>${j.boxes?'<small>'+E(j.boxes)+' box · '+E(j.weight||'—')+' kg</small>':''}<div>${flags(j)}</div><div class="acts">${actions(j,true)}</div></div>`).join('')}</div>`;}).join('');}
@@ -415,12 +446,12 @@ table{width:100%;border-collapse:collapse;margin-bottom:14px;}th,td{border:1px s
 </style></head><body>${body}<script>window.onload=()=>{window.print();}<\/script></body></html>`);w.document.close();}
 const pHead=(t,sub)=>`<div class="hd"><div><h1>${E(t)}</h1><div class="co">${E(ST.company().name)} · Factory Production</div></div><div class="r">${sub||''}<br>Printed: ${fmtD(new Date())}</div></div>`;
 function printJobList(all){const fl=shownJobs(all);if(!fl.length)return alert('No jobs to print.');let tq=0;
-const rows=fl.map((j,i)=>{const its=itemsOf(j);const q=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);tq+=q;return `<tr><td>${i+1}</td><td>${E(j.jobNo)}</td><td>${E(j.orderRef)||'—'}</td><td><b>${E(j.party)}</b></td><td>${its.map(x=>E(x.type)+' × '+E(x.qty)+(x.capacity?' ('+E(x.capacity)+')':'')).join('<br>')}</td><td>${q}</td><td>${E(j.stage)}</td><td>${fmtD(j.target)}</td><td>${j.boxes?E(j.boxes)+' / '+E(j.weight||'—')+' kg':'—'}</td><td>${j.priority==='Urgent'?'<span class="urg">URGENT</span>':E(j.priority||'Normal')}</td></tr>`;}).join('');
+const rows=fl.map((j,i)=>{const its=itemsOf(j);const q=its.reduce((a,b)=>a+(parseFloat(b.qty)||0),0);tq+=q;return `<tr><td>${i+1}</td><td>${E(j.jobNo)}</td><td>${E(j.orderRef)||'—'}</td><td><b>${E(j.party)}</b></td><td>${its.map(x=>E(x.type)+' × '+E(x.qty)+(ST.prodCap(x)?' ('+E(ST.prodCap(x))+')':'')).join('<br>')}</td><td>${q}</td><td>${E(j.stage)}</td><td>${fmtD(j.target)}</td><td>${j.boxes?E(j.boxes)+' / '+E(j.weight||'—')+' kg':'—'}</td><td>${j.priority==='Urgent'?'<span class="urg">URGENT</span>':E(j.priority||'Normal')}</td></tr>`;}).join('');
 openPrint('Production Report',pHead('PRODUCTION REPORT',`${fl.length} jobs · ${tq} pcs`)+`<table><tr><th>#</th><th>Job#</th><th>Order#</th><th>Party</th><th>Items</th><th>Qty</th><th>Stage</th><th>Delivery</th><th>Boxes / Wt</th><th>Priority</th></tr>${rows}<tr><th colspan="5" style="text-align:right">Total</th><th>${tq}</th><th colspan="4"></th></tr></table>`);}
 function waOpen(msg){window.SentireWA?window.SentireWA.open('',msg):window.open('https://wa.me/?text='+encodeURIComponent(msg),'sentire_whatsapp');}
 function waJob(no){const j=getJob(no);if(!j)return alert('Job not found');const its=itemsOf(j);
 const L=['*'+ST.company().name+' — Production Job*','','*Job:* '+j.jobNo];if(j.orderRef)L.push('*Order:* '+j.orderRef);L.push('*Party:* '+j.party);
-its.forEach(i=>L.push('*Item:* '+(i.type||'—')+' × '+(i.qty||'—')+' pcs'+(i.capacity?' · '+i.capacity:'')+(i.wire?' · '+i.wire:'')));
+its.forEach(i=>L.push('*Item:* '+(i.type||'—')+' × '+(i.qty||'—')+' pcs'+(ST.prodCap(i)?' · '+ST.prodCap(i):'')+(i.wire?' · '+i.wire:'')));
 L.push('*Stage:* '+j.stage);if(j.target)L.push('*Delivery:* '+fmtD(j.target));if(j.boxes)L.push('*Boxes:* '+j.boxes+' · *Weight:* '+(j.weight||'—')+' kg');if(j.worker)L.push('*Worker:* '+j.worker);if(j.priority&&j.priority!=='Normal')L.push('*Priority:* '+j.priority.toUpperCase());if(j.remarks)L.push('*Remarks:* '+j.remarks);
 waOpen(L.join('\n'));}
 function waJobList(all){const fl=shownJobs(all);if(!fl.length)return alert('No jobs to send.');const qty=j=>itemsOf(j).reduce((a,b)=>a+(parseFloat(b.qty)||0),0);const tq=fl.reduce((a,j)=>a+qty(j),0);

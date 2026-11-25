@@ -78,7 +78,7 @@ tbody td.bad{color:var(--red);}
   <div class="tab-bar">
     <button class="tab-btn" data-v="batches" onclick="showV('batches')">Batches</button>
     <button class="tab-btn active" data-v="calc" onclick="showV('calc')">Calculator</button>
-    <button class="tab-btn" data-v="lookup" onclick="showV('lookup')">Find by S/N</button>
+    <button class="tab-btn" data-v="lookup" onclick="showV('lookup')">Find by Loadcell S/N</button>
     <button class="tab-btn" data-v="fit" onclick="showV('fit')">Fitting Sheet</button>
     <button class="tab-btn" data-v="match" onclick="showV('match')">Match to weight</button>
   </div>
@@ -104,7 +104,7 @@ tbody td.bad{color:var(--red);}
       <div class="note"><b>Accepted layouts</b><br>
         • The supplier test sheet, columns in this order: <code>Item No., S/N, Model, Capacity, Accuracy, Sensitivity, Zero O/P, Input R, Output R, Protection</code><br>
         • Or just three columns: <code>S/N, Sensitivity (mV/V), Input R (Ω)</code><br>
-        • Header rows and blank rows are skipped automatically. Duplicate S/Ns are flagged.</div>
+        • Header rows and blank rows are skipped automatically. Duplicate Loadcell S/Ns are flagged.</div>
       <div class="table-wrap" style="max-height:none;"><table><thead><tr><th class="l">Batch</th><th>Cells</th><th class="l">Created</th><th class="l">Settings</th><th class="l">Actions</th></tr></thead><tbody id="bBody"></tbody></table></div>
     </div>
   </div>
@@ -128,8 +128,8 @@ tbody td.bad{color:var(--red);}
     </div>
     <div class="stats-row" id="cStats"></div>
     <div class="filters no-print">
-      <input type="text" id="cSrch" placeholder="Search S/N…" oninput="renderCalc()">
-      <select id="cSort" onchange="renderCalc()"><option value="sn">Sort by S/N</option><option value="sens">Sort by sensitivity</option><option value="cap">Sort by capacity</option><option value="leg">Sort by resistor per leg</option></select>
+      <input type="text" id="cSrch" placeholder="Search Loadcell S/N…" oninput="renderCalc()">
+      <select id="cSort" onchange="renderCalc()"><option value="sn">Sort by Loadcell S/N</option><option value="sens">Sort by sensitivity</option><option value="cap">Sort by capacity</option><option value="leg">Sort by resistor per leg</option></select>
       <button class="btn btn-ghost btn-sm" onclick="exportCalc()" data-tip="Download every step for every cell as a CSV (Excel) file">↓ CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="toggleFormulas()" data-tip="Show how each step is calculated">ƒ Formulas</button>
     </div>
@@ -145,7 +145,7 @@ tbody td.bad{color:var(--red);}
       Check: sensitivity with rounded resistors = New sensitivity × Input R ÷ (Input R + 2 × per leg)
     </div>
     <div class="table-wrap"><table><thead><tr>
-      <th class="l">S/N</th><th>Sensitivity (mV/V)</th><th>Input R (Ω)</th><th>1 · Capacity at target (kg)</th><th>2 · New weight (kg)</th><th>3 · New sensitivity (mV/V)</th>
+      <th class="l">Loadcell S/N</th><th>Sensitivity (mV/V)</th><th>Input R (Ω)</th><th>1 · Capacity at target (kg)</th><th>2 · New weight (kg)</th><th>3 · New sensitivity (mV/V)</th>
       <th>4 · Resistor total exact (Ω)</th><th class="fit">5 · Per leg — FIT (Ω)</th><th>Check sens. (mV/V)</th><th>Sens. at rated after R (mV/V)</th><th>6 · Input R after (Ω)</th><th class="fit">7 · Shunt — FIT (Ω)</th><th>Final input R (Ω)</th>
     </tr></thead><tbody id="cBody"></tbody></table></div>
     <div class="preview" id="cCount"></div>
@@ -154,9 +154,9 @@ tbody td.bad{color:var(--red);}
 
 <!-- ═══ LOOKUP ═══ -->
 <div class="view" id="v_lookup">
-  <h2>Find by S/N</h2>
+  <h2>Find by Loadcell S/N</h2>
   <p class="sub">Type a load cell number to see every step for it. Searches all batches.</p>
-  <div class="filters"><input type="text" id="lSn" placeholder="Enter S/N, e.g. 2602492161" oninput="renderLookup()" style="max-width:340px;font-family:var(--mono);"></div>
+  <div class="filters"><input type="text" id="lSn" placeholder="Enter Loadcell S/N, e.g. 2602492161" oninput="renderLookup()" style="max-width:340px;font-family:var(--mono);"></div>
   <div id="lOut"></div>
 </div>
 
@@ -166,11 +166,11 @@ tbody td.bad{color:var(--red);}
   <h2 class="no-print">Fitting Sheet</h2>
   <p class="sub no-print">The short list for the workshop: what to fit on each cell. Print it or download it.</p>
   <div class="filters no-print">
-    <input type="text" id="fSrch" placeholder="Search S/N…" oninput="renderFit()">
+    <input type="text" id="fSrch" placeholder="Search Loadcell S/N…" oninput="renderFit()">
     <button class="btn btn-primary btn-sm" onclick="printFit()">🖨 Print</button>
     <button class="btn btn-ghost btn-sm" onclick="exportFit()">↓ CSV</button>
   </div>
-  <div class="table-wrap"><table><thead><tr><th class="l">S/N</th><th class="fit">Total series resistor (Ω)</th><th class="fit">Per leg Ex+ / Ex− (Ω)</th><th>Input R after resistors (Ω)</th><th class="fit">Shunt (Ω)</th><th class="l">Done ✓</th></tr></thead><tbody id="fBody"></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th class="l">Loadcell S/N</th><th class="fit">Total series resistor (Ω)</th><th class="fit">Per leg Ex+ / Ex− (Ω)</th><th>Input R after resistors (Ω)</th><th class="fit">Shunt (Ω)</th><th class="l">Done ✓</th></tr></thead><tbody id="fBody"></tbody></table></div>
 </div>
 
 <!-- ═══ MATCH TO WEIGHT ═══ -->
@@ -182,12 +182,12 @@ tbody td.bad{color:var(--red);}
       <div class="fg"><label>Target weight (kg)</label><input type="number" step="any" id="mTarget" value="28700" oninput="renderMatch()"></div>
       <div class="fg"><label>Cells needed</label><input type="number" id="mCount" value="8" min="1" oninput="renderMatch()"></div>
       <div class="fg"><label>Max distance from target (kg)</label><input type="number" step="any" id="mTol" value="100" oninput="renderMatch()"></div>
-      <div class="fg"><label>Exclude S/Ns (comma separated)</label><input type="text" id="mEx" placeholder="already used" oninput="renderMatch()" style="font-weight:500;"></div>
+      <div class="fg"><label>Exclude Loadcell S/Ns (comma separated)</label><input type="text" id="mEx" placeholder="already used" oninput="renderMatch()" style="font-weight:500;"></div>
     </div>
   </div>
   <div class="stats-row" id="mStats"></div>
   <div class="filters"><button class="btn btn-ghost btn-sm" onclick="exportMatch()">↓ CSV of this set</button></div>
-  <div class="table-wrap"><table><thead><tr><th class="l">#</th><th class="l">S/N</th><th>Sensitivity (mV/V)</th><th>Input R (Ω)</th><th>Weight now (kg)</th><th>Distance (kg)</th><th class="fit">Per leg — FIT (Ω)</th><th>Weight after (kg)</th><th class="fit">Shunt — FIT (Ω)</th></tr></thead><tbody id="mBody"></tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th class="l">#</th><th class="l">Loadcell S/N</th><th>Sensitivity (mV/V)</th><th>Input R (Ω)</th><th>Weight now (kg)</th><th>Distance (kg)</th><th class="fit">Per leg — FIT (Ω)</th><th>Weight after (kg)</th><th class="fit">Shunt — FIT (Ω)</th></tr></thead><tbody id="mBody"></tbody></table></div>
 </div>
 
 </div>
@@ -254,7 +254,7 @@ function parseRows(rows){
 function showPreview(list,src){pending=list;const el=document.getElementById('pPrev');
   if(!list.length){el.innerHTML=src?'<span style="color:var(--red);">No load cell rows found. Check the column order.</span>':'';return;}
   const sn=list.map(c=>c.sn),dup=sn.length-new Set(sn).size;
-  el.innerHTML=`Found <b>${list.length}</b> load cells${src?' in '+esc(src):''} · sensitivity <b>${f(Math.min(...list.map(c=>c.sens)),4)}–${f(Math.max(...list.map(c=>c.sens)),4)}</b> mV/V · input R <b>${f(Math.min(...list.map(c=>c.rin)),1)}–${f(Math.max(...list.map(c=>c.rin)),1)}</b> Ω`+(dup?` · <span style="color:var(--red);">${dup} duplicate S/N</span>`:'');}
+  el.innerHTML=`Found <b>${list.length}</b> load cells${src?' in '+esc(src):''} · sensitivity <b>${f(Math.min(...list.map(c=>c.sens)),4)}–${f(Math.max(...list.map(c=>c.sens)),4)}</b> mV/V · input R <b>${f(Math.min(...list.map(c=>c.rin)),1)}–${f(Math.max(...list.map(c=>c.rin)),1)}</b> Ω`+(dup?` · <span style="color:var(--red);">${dup} duplicate Loadcell S/N</span>`:'');}
 function previewPaste(){const txt=document.getElementById('pasteIn').value;const rows=txt.split(/\r?\n/).map(l=>l.includes('\t')?l.split('\t'):l.split(','));showPreview(parseRows(rows),'');}
 function readFile(file){if(!file)return;const name=file.name;const rd=new FileReader();
   if(/\.(xlsx|xls)$/i.test(name)){
@@ -269,7 +269,7 @@ function createBatch(){const name=document.getElementById('bName').value.trim();
   if(!name)return alert('Give the batch a name, e.g. dec500.');if(!pending.length)return alert('Paste or upload the supplier data first.');
   const all=g();if(all.some(b=>b.name.toLowerCase()===name.toLowerCase()))return alert('A batch with this name already exists.');
   const sn=pending.map(c=>c.sn),dup=sn.length-new Set(sn).size;
-  if(dup&&!confirm(dup+' S/N appear more than once. Create the batch anyway? (They will be flagged.)'))return;
+  if(dup&&!confirm(dup+' Loadcell S/N appear more than once. Create the batch anyway? (They will be flagged.)'))return;
   const b={id:Date.now().toString(36),name,created:new Date().toISOString(),settings:{...DEF,...(batch()?.settings||{})},cells:pending.slice().sort((a,b)=>a.sn.localeCompare(b.sn,undefined,{numeric:true}))};
   all.push(b);if(!s(all))return;cur=b.id;localStorage.setItem(CK,cur);clearImport();toast('✓ Batch '+name+' created with '+b.cells.length+' cells');renderAll();showV('calc');}
 function delBatch(id){const b=g().find(x=>x.id===id);if(!b)return;if(!confirm('Delete batch '+b.name+' ('+b.cells.length+' cells)?'))return;s(g().filter(x=>x.id!==id));if(cur===id){cur='';localStorage.removeItem(CK);}renderAll();}
@@ -301,13 +301,13 @@ function renderCalc(){const b=batch();document.getElementById('calcEmpty').style
     {n:checks.length?f(Math.min(...checks),4)+'–'+f(Math.max(...checks),4):'—',l:'Sensitivity after rounding (mV/V)'},
     {n:fins.length?f(Math.min(...fins),1)+'–'+f(Math.max(...fins),1):'—',l:'Final input R (Ω)'},
     {n:ok.filter(r=>r.cannot).length,l:'Cells that cannot be trimmed',cls:ok.some(r=>r.cannot)?'alert':''},
-    {n:dupSet.size,l:'Duplicate S/N',cls:dupSet.size?'alert':''}
+    {n:dupSet.size,l:'Duplicate Loadcell S/N',cls:dupSet.size?'alert':''}
   ].map(x=>`<div class="stat-card ${x.cls||''}"><div class="num">${x.n}</div><div class="lab">${x.l}</div></div>`).join('');
   const q=(document.getElementById('cSrch').value||'').trim();
   const list=sortRes(res.filter(r=>!q||String(r.sn).includes(q)),document.getElementById('cSort').value);
   const show=list.slice(0,1500);
   document.getElementById('cBody').innerHTML=show.map(r=>r.err?`<tr><td class="l">${esc(r.sn)}</td><td colspan="12" class="bad l">${r.err}</td></tr>`:`<tr>
-    <td class="l"${dupSet.has(r.sn)?' style="color:var(--red);" data-tip="This S/N appears more than once in the batch"':''}>${esc(r.sn)}</td><td>${f(r.sens,4)}</td><td>${f(r.rin,1)}</td><td>${f(r.c1,1)}</td><td>${f(r.w,1)}</td><td>${f(r.sNew,4)}</td>
+    <td class="l"${dupSet.has(r.sn)?' style="color:var(--red);" data-tip="This Loadcell S/N appears more than once in the batch"':''}>${esc(r.sn)}</td><td>${f(r.sens,4)}</td><td>${f(r.rin,1)}</td><td>${f(r.c1,1)}</td><td>${f(r.w,1)}</td><td>${f(r.sNew,4)}</td>
     <td>${r.cannot?'<span class="bad">Cannot trim</span>':f(r.rTotExact,2)}</td><td class="fit">${r.cannot?'—':f(r.leg,1)}</td><td>${f(r.check,4)}</td><td>${f(r.realSens,4)}</td><td>${f(r.rinAfter,1)}</td>
     <td class="fit">${r.shunt?f(r.shunt,0):(r.noShunt?'<span class="bad">Not possible</span>':'—')}</td><td>${f(r.finalRin,1)}</td></tr>`).join('');
   document.getElementById('cCount').textContent=list.length>show.length?`Showing first ${show.length} of ${list.length} — use search to find others, or download the CSV for all.`:`${list.length} cells shown.`;}
@@ -315,14 +315,14 @@ function toggleFormulas(){const n=document.getElementById('formulaNote');n.style
 function csv(name,head,rows){let t=head.map(h=>'"'+h+'"').join(',')+'\n';rows.forEach(r=>{t+=r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')+'\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=name;a.click();}
 const n4=(v,d)=>v===null||v===undefined||isNaN(v)?'':Number(v).toFixed(d);
 function exportCalc(){const b=batch();if(!b)return;const S=b.settings;
-  csv('calculator_'+b.name+'.csv',['S/N','Sensitivity (mV/V)','Input R (Ohm)','Step 1 Capacity at '+S.target+' mV/V (kg)','Step 2 New weight (kg)','Step 3 New sensitivity (mV/V)','Step 4 Resistor total exact (Ohm)','Step 5 Per leg FIT (Ohm)','Check sensitivity (mV/V)','Sensitivity at rated after R (mV/V)','Step 6 Input R after (Ohm)','Step 7 Shunt FIT (Ohm)','Final input R (Ohm)'],
+  csv('calculator_'+b.name+'.csv',['Loadcell S/N','Sensitivity (mV/V)','Input R (Ohm)','Step 1 Capacity at '+S.target+' mV/V (kg)','Step 2 New weight (kg)','Step 3 New sensitivity (mV/V)','Step 4 Resistor total exact (Ohm)','Step 5 Per leg FIT (Ohm)','Check sensitivity (mV/V)','Sensitivity at rated after R (mV/V)','Step 6 Input R after (Ohm)','Step 7 Shunt FIT (Ohm)','Final input R (Ohm)'],
     sortRes(results(b),'sn').map(r=>[r.sn,n4(r.sens,4),n4(r.rin,1),n4(r.c1,1),n4(r.w,1),n4(r.sNew,4),r.cannot?'Cannot trim':n4(r.rTotExact,2),r.cannot?'':n4(r.leg,1),n4(r.check,4),n4(r.realSens,4),n4(r.rinAfter,1),r.shunt?n4(r.shunt,0):'',n4(r.finalRin,1)]));}
 
 // ═══ Lookup ═══
 function renderLookup(){const q=(document.getElementById('lSn').value||'').trim();const out=document.getElementById('lOut');
-  if(!q){out.innerHTML='<div class="empty"><b>Type a S/N above</b>Partial numbers work too — the first matches are shown.</div>';return;}
+  if(!q){out.innerHTML='<div class="empty"><b>Type a Loadcell S/N above</b>Partial numbers work too — the first matches are shown.</div>';return;}
   const hits=[];g().forEach(b=>b.cells.forEach(c=>{if(String(c.sn).includes(q))hits.push({b,c});}));
-  if(!hits.length){out.innerHTML='<div class="empty"><b>Not found</b>No cell with this S/N in any batch.</div>';return;}
+  if(!hits.length){out.innerHTML='<div class="empty"><b>Not found</b>No cell with this Loadcell S/N in any batch.</div>';return;}
   const exact=hits.filter(h=>h.c.sn===q);const list=(exact.length?exact:hits).slice(0,6);
   out.innerHTML=(hits.length>list.length&&!exact.length?`<p class="sub">${hits.length} cells match — showing the first ${list.length}. Type more digits to narrow it down.</p>`:'')+'<div class="grid2">'+list.map(({b,c})=>{const r=calc(c,b.settings),S=b.settings;
     const row=(k,v,form,fit)=>`<div class="k">${k}</div><div class="formula">${form||''}</div><div class="v${fit?' fit':''}">${v}</div>`;
@@ -346,7 +346,7 @@ function renderFit(){const b=batch();const body=document.getElementById('fBody')
   const q=(document.getElementById('fSrch').value||'').trim();
   body.innerHTML=sortRes(results(b),'sn').filter(r=>!q||String(r.sn).includes(q)).map(r=>`<tr><td class="l">${esc(r.sn)}</td><td class="fit">${r.err?'—':r.cannot?'Cannot trim':f(r.rTot,1)}</td><td class="fit">${r.cannot||r.err?'—':f(r.leg,1)}</td><td>${f(r.rinAfter,1)}</td><td class="fit">${r.shunt?f(r.shunt,0):'—'}</td><td class="l">☐</td></tr>`).join('');}
 function printFit(){showV('fit');document.getElementById('fSrch').value='';renderFit();setTimeout(()=>window.print(),100);}
-function exportFit(){const b=batch();if(!b)return;csv('fitting_sheet_'+b.name+'.csv',['S/N','Total series resistor (Ohm)','Per leg Ex+/Ex- (Ohm)','Input R after resistors (Ohm)','Shunt (Ohm)'],sortRes(results(b),'sn').map(r=>[r.sn,r.cannot?'Cannot trim':n4(r.rTot,1),r.cannot?'':n4(r.leg,1),n4(r.rinAfter,1),r.shunt?n4(r.shunt,0):'']));}
+function exportFit(){const b=batch();if(!b)return;csv('fitting_sheet_'+b.name+'.csv',['Loadcell S/N','Total series resistor (Ohm)','Per leg Ex+/Ex- (Ohm)','Input R after resistors (Ohm)','Shunt (Ohm)'],sortRes(results(b),'sn').map(r=>[r.sn,r.cannot?'Cannot trim':n4(r.rTot,1),r.cannot?'':n4(r.leg,1),n4(r.rinAfter,1),r.shunt?n4(r.shunt,0):'']));}
 
 // ═══ Match to weight ═══
 // Bring a cell to exactly the target weight: needed sensitivity S' = Target × Cap × 1000 ÷ (Target weight − Allowance)
@@ -366,7 +366,7 @@ function renderMatch(){const {set,avail,W}=matchList();
   document.getElementById('mStats').innerHTML=[{n:avail,l:'Cells that can reach the target within range'},{n:set.length,l:'Cells picked'},{n:f(spread,1),l:'Spread after trimming (kg)'},{n:set.length?f(Math.max(...set.map(r=>r.dist)),1):'—',l:'Furthest cell from target (kg)'}]
     .map(x=>`<div class="stat-card"><div class="num">${x.n}</div><div class="lab">${x.l}</div></div>`).join('');
   document.getElementById('mBody').innerHTML=set.length?set.map((r,i)=>`<tr><td class="l">${i+1}</td><td class="l">${esc(r.sn)}</td><td>${f(r.sens,4)}</td><td>${f(r.rin,1)}</td><td>${f(r.w,1)}</td><td>${f(r.dist,1)}</td><td class="fit">${f(r.mleg,1)}</td><td>${f(r.wAfter,1)}</td><td class="fit">${r.mshunt?f(r.mshunt,0):'—'}</td></tr>`).join(''):`<tr><td colspan="9" class="l" style="color:var(--text-dim);">No cells found — widen the distance or check the target weight.</td></tr>`;}
-function exportMatch(){const {set,W}=matchList();if(!set.length)return alert('No cells in this set.');csv('matched_set_'+W+'kg.csv',['#','S/N','Sensitivity (mV/V)','Input R (Ohm)','Weight now (kg)','Distance (kg)','Per leg FIT (Ohm)','Weight after (kg)','Shunt FIT (Ohm)'],set.map((r,i)=>[i+1,r.sn,n4(r.sens,4),n4(r.rin,1),n4(r.w,1),n4(r.dist,1),n4(r.mleg,1),n4(r.wAfter,1),r.mshunt?n4(r.mshunt,0):'']));}
+function exportMatch(){const {set,W}=matchList();if(!set.length)return alert('No cells in this set.');csv('matched_set_'+W+'kg.csv',['#','Loadcell S/N','Sensitivity (mV/V)','Input R (Ohm)','Weight now (kg)','Distance (kg)','Per leg FIT (Ohm)','Weight after (kg)','Shunt FIT (Ohm)'],set.map((r,i)=>[i+1,r.sn,n4(r.sens,4),n4(r.rin,1),n4(r.w,1),n4(r.dist,1),n4(r.mleg,1),n4(r.wAfter,1),r.mshunt?n4(r.mshunt,0):'']));}
 
 // ═══ Batches list + views ═══
 function renderBatches(){const all=g();const b=batch();

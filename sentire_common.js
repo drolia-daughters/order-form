@@ -29,13 +29,17 @@ ST.rulesDefaults={firstAfter:1,gap:7,max:3};
 ST.rules=()=>Object.assign({},ST.rulesDefaults,ST.get(ST.K.rules,{}));
 ST.clients=()=>ST.get(ST.K.clients,{});
 ST.client=name=>{const c=ST.clients()[name]||{};const loc=ST.get(ST.K.partyLocs,{})[name];return Object.assign({location:loc||''},c);};
-ST.transporter=name=>ST.get(ST.K.trContacts,{})[name]||{};
+/* 1.13.0: 'Self' = our own vehicle - no transporter name, phone, email or ID anywhere */
+ST.isSelf=name=>/^\s*self\b/i.test(String(name||''));
+ST.transporter=name=>ST.isSelf(name)?{}:(ST.get(ST.K.trContacts,{})[name]||{});
 ST.approvers=()=>ST.get(ST.K.approvers,[]);
 
 // ─── Items: an order can have several loadcell lines ───
 ST.items=o=>{if(o&&Array.isArray(o.items)&&o.items.length)return o.items;
   return [{type:(o&&(o.loadcellType||o.type))||'',qty:(o&&(o.quantity||o.qty))||'',capacity:(o&&(o.capacity||o.cap))||'',wire:(o&&o.wire)||''}];};
 /* SP = special price for an item sold WITHOUT warranty (e.g. old pieces). When SP is filled it is THE selling price: billed and collected. */
+/* 1.13.0: production uses the ACTUAL capacity (internal); the ordered capacity stays for the client, bill and order sheet */
+ST.prodCap=i=>(i&&(String(i.capacityActual||'').trim()||i.capacity))||'';
 ST.noWarr=x=>!!x&&(parseFloat(x.sp)>0||x.noWarranty===true);
 ST.price=x=>{const sp=parseFloat(x&&x.sp);return sp>0?sp:(parseFloat(x&&x.rate)||0);};
 ST.itemsSummary=items=>{const uniq=a=>[...new Set(a.map(x=>String(x||'').trim()).filter(Boolean))];
@@ -206,16 +210,16 @@ ST.drawOrderSheet=function(doc,o,top,opt){opt=opt||{};
     if(val==null)return;doc.setFont('helvetica',o2.bold?'bold':'normal');doc.setFontSize(o2.big?12:10);doc.setTextColor(20);
     const maxL=Math.max(1,Math.floor((h-2)/4.4));doc.splitTextToSize(String(val===''?'':val||'—'),w-lw-4).slice(0,maxL).forEach((ln,i)=>doc.text(ln,x+lw+2,y+Math.min(o2.big?6.4:5.6,h/2+2)+i*4.4));};
   const row=(cols,h)=>{let x=M;cols.forEach(c=>{const w=CW*c[2];cell(x,w,c[3],c[0],c[1],h,c[4]);x+=w;});y+=h;};
-  const tr=ST.transporter(o.transporterName);const tPhone=o.transporterPhone||tr.phone||'';
+  const tr=ST.transporter(o.transporterName);const tPhone=ST.isSelf(o.transporterName)?'':(o.transporterPhone||tr.phone||'');
   const desp=o.dod||o.deliveryDate||'';const despLabel=o.dod?'Despatch Date':'Delivery Date';
   row([['Name of Party',o.partyName,0.62,25,{bold:true,big:true}],['Location',o.location,0.38,20]],10);
   if(!multi){const it=items[0];
     row([['Type of Loadcell',it.type,0.42,25],['Qty (pcs.)',it.qty,0.2,17,{bold:true,big:true}],['Wire',it.wire,0.38,13]],9);
-    row([['Capacity',it.capacity,0.5,25],[despLabel,ST.fmtDate(desp),0.5,25,{bold:true}]],9);
+    row([['Capacity',ST.prodCap(it),0.5,25],[despLabel,ST.fmtDate(desp),0.5,25,{bold:true}]],9);
   }else{
     const cols=[['Type of Loadcell',0.3],['Qty (pcs.)',0.16],['Capacity',0.24],['Wire',0.3]];
     let x=M;doc.setFillColor(226,232,240);doc.rect(M,y,CW,7,'FD');cols.forEach(c=>{const w=CW*c[1];doc.rect(x,y,w,7);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(60);doc.text(c[0],x+2,y+4.8);x+=w;});y+=7;
-    items.forEach(it=>{let x2=M;[[it.type,0.3],[it.qty,0.16,true],[it.capacity,0.24],[it.wire,0.3]].forEach(c=>{const w=CW*c[1];doc.rect(x2,y,w,rowH);doc.setFont('helvetica',c[2]?'bold':'normal');doc.setFontSize(rowH<7?9:10);doc.setTextColor(20);
+    items.forEach(it=>{let x2=M;[[it.type,0.3],[it.qty,0.16,true],[ST.prodCap(it),0.24],[it.wire,0.3]].forEach(c=>{const w=CW*c[1];doc.rect(x2,y,w,rowH);doc.setFont('helvetica',c[2]?'bold':'normal');doc.setFontSize(rowH<7?9:10);doc.setTextColor(20);
       doc.text(doc.splitTextToSize(String(c[0]||'—'),w-4)[0],x2+2,y+rowH/2+1.6);x2+=w;});y+=rowH;});
     const tot=items.reduce((s,i)=>s+(parseFloat(i.qty)||0),0);
     row([['Total Qty',tot+' pcs',0.5,25,{bold:true}],[despLabel,ST.fmtDate(desp),0.5,25,{bold:true}]],9);}
@@ -365,7 +369,7 @@ ST.warrYears=(o,it)=>it&&ST.noWarr(it)?0:(parseFloat(o&&o.warrantyYears)||1);
 // sn → {orderNo, idx, capOk} for every cell (worked out fresh each time, so edits to orders show at once)
 ST.allocate=function(){const out={},cells=ST.cells(),orders=ST.orders().filter(o=>o.status!=='cancelled').slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.orderNo).localeCompare(String(b.orderNo)));
   const left={};orders.forEach(o=>ST.items(o).forEach((it,i)=>{left[o.orderNo+'#'+i]=parseFloat(it.qty)||0;}));
-  // 1.11.0: load cells put on a sales bill by hand (Masters → Load cell S/N → Change client / invoice)
+  // 1.11.0: load cells put on a sales bill by hand (Masters → Loadcell S/N → Change client / invoice)
   const salesAll=ST.get(ST.K.fin,[]).filter(e=>e.kind==='sale');
   cells.filter(c=>c.invoiceFix).forEach(c=>{const e=salesAll.find(x=>String(x.invoiceNo||'').toUpperCase()===String(c.invoiceFix).toUpperCase());if(!e)return;
     let ono=e.orderNo||'';if(!ono){const ob=orders.find(o=>o.billNo&&String(o.billNo).toUpperCase()===String(e.invoiceNo).toUpperCase());if(ob)ono=ob.orderNo;}
@@ -394,14 +398,14 @@ ST.cellInfo=function(sn,alloc){sn=String(sn||'').trim();if(!sn)return null;const
   const inv=(a&&a.manualInv?{no:a.invoiceNo,date:a.invDate}:null)||ST.invoiceFor(o)||(a&&a.invoiceNo?{no:a.invoiceNo,date:a.invDate}:null);const sold=(o&&o.dod)||(inv&&inv.date)||'';const yrs=o?ST.warrYears(o,it):1;const from=sold||c.testDate||'';
   const until=from&&yrs?ST.addDays(from.slice(0,10),Math.round(365.25*yrs)):'';
   return {sn:c.sn,found:true,cell:c,party:(o&&o.partyName)||ST.cellParty(c)||'',order:o,item:it,capOk:a?a.capOk:null,invoice:inv,sold,despatched:!!((o&&(o.dod||o.status==='completed'))||(a&&a.invoiceNo)),years:yrs,from,until,inWarranty:until?ST.daysBetween(ST.today(),until)>=0:null,repairs};};
-// The card shown in Masters → S/N search, Repairs and Test Reports
+// The card shown in Masters → Loadcell S/N search, Repairs and Test Reports
 ST.cellCard=function(x){const E=ST.esc;if(!x)return '';
-  if(!x.found)return '<div style="padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:rgba(245,158,11,.07)"><b>S/N '+E(x.sn)+'</b> — not found in any test report.'+(x.repairs.length?' Seen in '+x.repairs.length+' repair(s).':'')+'</div>';
+  if(!x.found)return '<div style="padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:rgba(245,158,11,.07)"><b>Loadcell S/N '+E(x.sn)+'</b> — not found in any test report.'+(x.repairs.length?' Seen in '+x.repairs.length+' repair(s).':'')+'</div>';
   const c=x.cell,o=x.order,dig=!(+c.sens);const row=(l,v)=>v===''||v==null?'':'<div><span style="color:var(--text-dim);font-size:11px;display:block">'+l+'</span><b>'+v+'</b></div>';
   const wb=x.years===0?'<span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">NO WARRANTY (SP)</span>'
     :x.until?(x.inWarranty?'<span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">IN WARRANTY till '+ST.fmtDate(x.until)+'</span>':'<span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 9px;border-radius:99px;font-weight:700;font-size:12px">WARRANTY OVER on '+ST.fmtDate(x.until)+'</span>'):'';
   return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface,#141922)">'
-   +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><b style="font-family:var(--mono);font-size:16px;color:#93c5fd">S/N '+E(c.sn)+'</b>'+wb+(x.years>1?'<span style="font-size:11px;color:var(--text-dim)">'+x.years+'-year extended warranty</span>':'')+'</div>'
+   +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><b style="font-family:var(--mono);font-size:16px;color:#93c5fd">Loadcell S/N '+E(c.sn)+'</b>'+wb+(x.years>1?'<span style="font-size:11px;color:var(--text-dim)">'+x.years+'-year extended warranty</span>':'')+'</div>'
    +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;font-size:13px">'
    +row('Customer',E(x.party||c.client||'—'))+row('Order',o?E(o.orderNo):(x.invoice?'<span style="color:var(--text-dim)">no order (linked by bill date)</span>':'<span style="color:#f59e0b">not linked</span>'))+row('Sales invoice',x.invoice?E(x.invoice.no)+(x.invoice.date?' · '+ST.fmtDate(x.invoice.date):'')+(c.invoiceFix?' <span style="color:var(--text-dim);font-weight:400">(set by hand)</span>':''):'—')
    +row('Despatched',o&&o.dod?ST.fmtDate(o.dod):(x.despatched?'yes':'not yet'))+row('Type',E(c.type))+row('Capacity',E(c.capacity)+(x.capOk===false?' <span style="color:#f59e0b">≠ order</span>':''))+row('Cable',E(c.cable))

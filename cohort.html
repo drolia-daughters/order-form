@@ -287,7 +287,7 @@ function findPeriod(q){const t=ST.today(),d=ST.parseISO(t),y=d.getFullYear(),m=d
   else{const n=ql.match(/\b(?:last|past)\s+(\d+)\s+(day|week|month)s?\b/);if(n){const k=+n[1]*(n[2]==='day'?1:n[2]==='week'?7:30);r={from:ST.addDays(t,-k+1),to:t,label:'last '+n[1]+' '+n[2]+'s'};}}
   if(!r){const mm=ql.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b(?:\s*[-' ]?\s*(\d{2,4}))?/);if(mm&&!(mm[1]==='may'&&!mm[2]&&/\bmay (i|we|you)\b/.test(ql))){const mi=MON.indexOf(mm[1]);const yy=mm[2]?(+mm[2]<100?2000+(+mm[2]):+mm[2]):(mi>m?y-1:y);r={from:mS(yy,mi),to:mE(yy,mi),label:mm[1][0].toUpperCase()+mm[1].slice(1)+' '+yy};}}
   if(!r){const yy=ql.match(/\b(20\d{2})\b/);if(yy)r={from:yy[1]+'-01-01',to:yy[1]+'-12-31',label:yy[1]};}return r;}
-const STAGE_WORDS={received:'Received',assembly:'Assembly',wiring:'Wiring',testing:'Testing',laser:'Laser',packing:'Packing',packed:'Packing',ready:'Ready',dispatched:'Dispatched',despatched:'Dispatched'};
+const STAGE_WORDS={received:'Received',assembly:'Bonding',bonding:'Bonding',wiring:'Wiring',testing:'Testing',laser:'Laser',packing:'Packing',packed:'Packing',ready:'Ready',dispatched:'Dispatched',despatched:'Dispatched'};
 const orderRow=o=>({Order:o.orderNo,Date:ST.fmtDate(o.date),Customer:o.partyName,Items:ST.itemsShort(ST.items(o)),Pcs:num(o.quantity),Status:o.status==='completed'?'Despatched':o.status==='awaiting'?'Awaiting approval':'In production'});
 
 function ask(text){const q=(text||document.getElementById('q').value).trim();if(!q)return;document.getElementById('q').value=q;let r;
