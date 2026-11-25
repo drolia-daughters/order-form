@@ -71,8 +71,9 @@ td input,td select{padding:4px 6px;font-size:12px;width:100%;min-width:110px;}td
 <div class="view" id="v_pay"><div class="row"><div><label>Search supplier</label><input id="qP" oninput="renderSide('pay')"></div><span class="sp"></span><button class="btn" onclick="exportSide('pay')">↓ Excel (CSV)</button></div><div class="tw"><table id="tP"></table></div><div class="dim">Supplier bills come from the purchase invoices posted in Accounts. Bills are treated as due 30 days after the bill date.</div></div>
 
 <div class="view" id="v_bank">
-  <div class="box"><h2>Add a bank statement</h2>
-    <div class="drop" id="drop" onclick="document.getElementById('file').click()"><div style="font-size:28px">🏦</div><b>Click or drop the statement here</b><div style="font-size:12px;margin-top:4px">PDF · Excel (.xls .xlsx) · CSV — HDFC, ICICI and other banks. Several files at once is fine.</div></div>
+  <div class="box"><h2>Bank statements</h2>
+    <div style="padding:8px 12px;border-radius:8px;background:rgba(14,165,233,.1);border:1px solid rgba(14,165,233,.35);margin:8px 0;font-size:13px">📂 Bank statements are now added in <b>Migration → Banking</b> (left menu). They are read and posted here.</div>
+    <div class="drop" id="drop" style="display:none" onclick="document.getElementById('file').click()"><div style="font-size:28px">🏦</div><b>Click or drop the statement here</b><div style="font-size:12px;margin-top:4px">PDF · Excel (.xls .xlsx) · CSV — HDFC, ICICI and other banks. Several files at once is fine.</div></div>
     <input type="file" id="file" accept=".pdf,.xls,.xlsx,.csv,.txt" multiple style="display:none" onchange="loadFiles(this.files);this.value=''">
     <div class="msg" id="impMsg"></div>
     <div class="dim">The file is read inside this browser only. Entries the software recognises are posted by themselves; the rest wait below. The same entry is never posted twice, so overlapping statements are safe.</div>
