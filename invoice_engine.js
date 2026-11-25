@@ -26,8 +26,29 @@
     });
     return _pdf;
   };
-  // Returns the PDF text with LINE breaks kept (so the buyer's name stays on its own line).
+  // 1.17.1: JPEG / PNG photos of bills are read with OCR (Tesseract.js, loaded once)
+  E.isImage = function (f) { return !!f && (/^image\/(jpe?g|png|webp)$/i.test(f.type || '') || /\.(jpe?g|png|webp)$/i.test(f.name || '')); };
+  var _ocr = null;
+  E.loadOcr = function () {
+    if (_ocr) return _ocr;
+    _ocr = new Promise(function (res, rej) {
+      if (window.Tesseract) return res();
+      var s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = function () { res(); }; s.onerror = function () { _ocr = null; rej(new Error('Could not load the photo reader (check the internet).')); };
+      document.head.appendChild(s);
+    });
+    return _ocr;
+  };
+  E.imageText = async function (file) {
+    await E.loadOcr();
+    var r = await window.Tesseract.recognize(file, 'eng');
+    var t = (r && r.data && r.data.text) || '';
+    if (t.replace(/\s/g, '').length < 30) throw new Error('The photo could not be read — take a sharper, straight photo of the bill');
+    return t.split('\n').map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean).join('\n') + '\n';
+  };
+  // Returns the PDF text with LINE breaks kept (so the buyer's name stays on its own line). Photos (JPEG / PNG) go through OCR.
   E.pdfText = async function (file) {
+    if (E.isImage(file)) return E.imageText(file);
     await E.loadPdfJs();
     var buf = await file.arrayBuffer();
     var doc = await window.pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
@@ -200,7 +221,7 @@
   E.pdfPathFor = function (kind, invoiceNo, party) { var n = String(invoiceNo || 'bill').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, ''); return (kind === 'purchase' ? 'purchase/' + String(party || '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 40) + '__' : 'sales/') + n + '.pdf'; };
   // Upload the PDF and note its place on the matching Accounts entry (also for bills posted earlier: re-migrating attaches the PDF)
   E.savePdf = async function (file, kind, invoiceNo, party) {
-    var c = sb(); if (!c || !file || !invoiceNo) return '';
+    var c = sb(); if (!c || !file || !invoiceNo || E.isImage(file)) return '';   // photos stay in Admin → Migration; only PDFs are kept as the original bill
     var path = E.pdfPathFor(kind, invoiceNo, party);
     var r = await c.storage.from('invoices').upload(path, file, { upsert: true, contentType: 'application/pdf' });
     if (r.error) { console.warn('PDF not saved', r.error); return ''; }
@@ -234,7 +255,7 @@
   };
 
   E.pdfFiles = function (fileList) {
-    return Array.prototype.filter.call(fileList || [], function (f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name); });
+    return Array.prototype.filter.call(fileList || [], function (f) { return f.type === 'application/pdf' || /\.pdf$/i.test(f.name) || E.isImage(f); });
   };
 
   // ---- Parties whose bills are NEVER migrated (asked 24 Nov 2026). Add more names here in CAPITALS. ----
