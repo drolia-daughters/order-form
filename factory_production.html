@@ -118,7 +118,11 @@ const dayOf=iso=>{if(!iso)return '';const d=new Date(iso);return isNaN(d)?String
 function cancelDay(j){if(!j||j.stage==='Dispatched')return null;if(j.cancelledAt)return dayOf(j.cancelledAt);const o=orderOf(j);if(o&&o.status==='cancelled')return dayOf(o.cancelledAt)||'0000-00-00';return null;}
 const isCanc=j=>cancelDay(j)!==null;
 /* VJ(): jobs to show — cancelled jobs only on the day they were cancelled (noCanc=true leaves out every cancelled job, for counts and alerts) */
-const VJ=noCanc=>g(JK).filter(j=>{const c=cancelDay(j);return c===null||(!noCanc&&c>=ST.today());});
+/* 1.17.0: SELF pickup — no L.R.; a despatched self-pickup job is no longer shown 24 hours after despatch */
+const isSelfJ=j=>ST.isSelf(trOf(j));
+const despAt=j=>{if(j.selfAt)return new Date(j.selfAt).getTime();const h=(j.history||[]).filter(x=>x.stage==='Dispatched').pop();if(h&&h.date)return new Date(h.date).getTime();return j.dod?new Date(j.dod+'T23:59:59').getTime():Date.now();};
+const oldSelf=j=>j.stage==='Dispatched'&&isSelfJ(j)&&Date.now()-despAt(j)>86400000;
+const VJ=noCanc=>g(JK).filter(j=>{if(oldSelf(j))return false;const c=cancelDay(j);return c===null||(!noCanc&&c>=ST.today());});
 const itemsOf=j=>{const o=orderOf(j);return ST.items(o||{items:j.items,type:j.type,qty:j.qty,cap:j.cap,wire:j.wire});};
 const trOf=j=>{const o=orderOf(j);return (o&&o.transporterName)||j.transporter||'';};
 const refreshAll=()=>{renderDash();renderBoard();renderJobs();renderBanners();advanceAlert();};
@@ -359,12 +363,24 @@ function ewbText(b){const c=ST.company();return ['E-WAY BILL DETAILS','Supplier:
 function copyText(t){if(navigator.clipboard)navigator.clipboard.writeText(t).then(()=>toast('📋 E-way bill details copied')).catch(()=>prompt('Copy:',t));else prompt('Copy:',t);}
 
 /* ═══════════ L.R. & DESPATCH ═══════════ */
-async function enterLR(no){const j=getJob(no);if(!j||j.stage!=='Ready')return;
-  if(!j.billNo&&!confirm('No bill has been made for '+no+' yet.\nDespatch without a bill?'))return;
+async function selfPickup(no){const j=getJob(no);if(!j||j.stage!=='Ready')return;
+  if(!confirm('Self pickup — '+no+' ('+j.party+')\nGoods collected / sent in our own vehicle? No L.R. is needed.\nIt moves to Despatched (and leaves the list after 24 hours).'))return;
+  const now=new Date().toISOString();const d={lr:'SELF PICKUP',dod:ST.today(),transporter:trOf(j)};
+  if(j.orderRef&&ST.findOrder(j.orderRef))ST.recordDespatch(j.orderRef,d);
+  else mutate(no,x=>{Object.assign(x,{lrNumber:d.lr,dod:d.dod,stage:'Dispatched'});hist(x,'Dispatched','Self pickup – despatched, no L.R.');});
+  mutate(no,x=>{x.selfAt=now;});refreshAll();toast('📦 Self pickup — despatched');}
+/* 1.17.0: Ready → '→ Next' despatches the job WITHOUT the L.R.; the L.R. number is entered later in Despatched (customer WhatsApp goes then) */
+async function despatchNext(no){const j=getJob(no);if(!j||j.stage!=='Ready')return;
+  if(!confirm((j.billNo?'':'No bill has been made for '+no+' yet.\n')+'Move '+no+' ('+j.party+') to Despatched?\nEnter the L.R. number there when you have it.'))return;
+  const now=new Date().toISOString(),d=ST.today();
+  mutate(no,x=>{x.stage='Dispatched';x.dod=x.dod||d;hist(x,'Dispatched','Despatched – L.R. to be entered');});
+  if(j.orderRef&&ST.findOrder(j.orderRef))ST.updateOrder(j.orderRef,o=>{o.dod=o.dod||d;if(o.status!=='cancelled'){o.status='completed';o.completedAt=o.completedAt||now;}});
+  refreshAll();toast('📦 Despatched — enter the L.R. no. when you have it');}
+async function enterLR(no){const j=getJob(no);if(!j||j.stage!=='Dispatched'||j.lrNumber)return;
   const o=orderOf(j);const trs=ST.get(ST.K.transporters,[]).slice().sort();const tr=trOf(j);
-  const r=await ST.modal({title:'🚚 L.R. & Despatch — '+no,sub:j.party+' · '+ST.itemsShort(itemsOf(j))+(j.billNo?' · Bill '+j.billNo:''),
-    html:`<label>L.R. Number *</label><input id="lr_no" placeholder="LR-123456"><label>Despatch Date</label><input id="lr_d" type="date" value="${ST.today()}"><label>Transporter</label><select id="lr_tr"><option value="">— Select —</option>${trs.map(x=>`<option ${x===tr?'selected':''}>${E(x)}</option>`).join('')}</select><label>No. of boxes</label><input id="lr_b" value="${E(j.boxes||'')}"><label>Weight (kg)</label><input id="lr_w" value="${E(j.weight||'')}"><label>Tracking link (optional)</label><input id="lr_t" value="${E((o&&o.trackingLink)||ST.transporter(tr).trackingBase||'')}">`,
-    buttons:[{label:'Cancel',value:null},{label:'✓ Save — Despatched',cls:'ok',onClick:(ov,err)=>{const q=id=>ov.querySelector('#'+id).value.trim();if(!q('lr_no')){err.textContent='Enter the L.R. number.';return false;}if(!q('lr_d')){err.textContent='Enter the despatch date.';return false;}
+  const r=await ST.modal({title:'🚚 L.R. number — '+no,sub:j.party+' · '+ST.itemsShort(itemsOf(j))+(j.billNo?' · Bill '+j.billNo:''),
+    html:`<label>L.R. Number *</label><input id="lr_no" placeholder="LR-123456"><label>Despatch Date</label><input id="lr_d" type="date" value="${E(j.dod||ST.today())}"><label>Transporter</label><select id="lr_tr"><option value="">— Select —</option>${trs.map(x=>`<option ${x===tr?'selected':''}>${E(x)}</option>`).join('')}</select><label>No. of boxes</label><input id="lr_b" value="${E(j.boxes||'')}"><label>Weight (kg)</label><input id="lr_w" value="${E(j.weight||'')}"><label>Tracking link (optional)</label><input id="lr_t" value="${E((o&&o.trackingLink)||ST.transporter(tr).trackingBase||'')}">`,
+    buttons:[{label:'Cancel',value:null},{label:'✓ Save L.R.',cls:'ok',onClick:(ov,err)=>{const q=id=>ov.querySelector('#'+id).value.trim();if(!q('lr_no')){err.textContent='Enter the L.R. number.';return false;}if(!q('lr_d')){err.textContent='Enter the despatch date.';return false;}
       return {lr:q('lr_no'),dod:q('lr_d'),transporter:q('lr_tr'),boxes:q('lr_b'),weight:q('lr_w'),tracking:q('lr_t')};}}]});
   if(!r)return;
   if(j.orderRef&&ST.findOrder(j.orderRef)){ST.recordDespatch(j.orderRef,r);refreshAll();toast('📦 Despatched — L.R. '+r.lr);ST.offerDespatch(j.orderRef);}
@@ -384,13 +400,15 @@ async function stepBack(no){const j=getJob(no);if(!j)return;const i=STAGE_IDX[j.
 function flags(j){const a=j.approvals||{};const f=[];
   if(j.stage==='Laser'&&!a.laser)f.push('<span class="flag wait">🔐 needs laser approval</span>');
   if(a.laser&&STAGE_IDX[j.stage]>=4)f.push('<span class="flag ok" title="'+E(a.laser.by+' · '+new Date(a.laser.at).toLocaleString('en-IN'))+'">✓ laser: '+E(a.laser.by)+'</span>');
-  if(ST.canBill()&&j.orderRef&&STAGE_IDX[j.stage]>=5&&j.stage!=='Dispatched'&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
-  if(j.stage==='Ready'&&!j.packedAt)f.push('<span class="flag warn">enter boxes & weight</span>');
+  if(ST.canBill()&&j.orderRef&&j.stage==='Ready'&&!j.billNo)f.push('<span class="flag wait">🧾 bill details ready (💰)'+(j.boxes?' · '+E(j.boxes)+' box, '+E(j.weight||'—')+' kg':'')+'</span>');
+  if(j.stage==='Ready'&&!j.packedAt&&!isSelfJ(j))f.push('<span class="flag warn">enter boxes & weight</span>');
   if(j.packedAt&&STAGE_IDX[j.stage]>=6)f.push('<span class="flag ok">✓ packed: '+E(j.boxes||'?')+' box</span>');
-  if(j.stage==='Ready'&&!j.pickupMsgAt)f.push('<span class="flag bad">📲 pickup msg not sent</span>');
+  if(j.stage==='Ready'&&isSelfJ(j))f.push('<span class="flag ok">🚗 self pickup — no L.R.</span>');
+  if(j.stage==='Ready'&&!j.pickupMsgAt&&!isSelfJ(j))f.push('<span class="flag bad">📲 pickup msg not sent</span>');
   if(j.pickupMsgAt&&j.stage==='Ready')f.push('<span class="flag ok">📲 pickup '+ST.fmtDate(j.pickupFor)+'</span>');
   if(j.bonding)f.push('<span class="flag '+(j.bonding.extra>0?'warn':'ok')+'" title="Bonding: '+E(j.bonding.cells)+' load cells, '+E(j.bonding.gauges)+' gauges used, '+E(j.bonding.expected)+' needed'+(j.bonding.by?' · '+E(j.bonding.by):'')+'">🧷 '+E(j.bonding.gauges)+' gauges'+(j.bonding.extra>0?' (+'+E(j.bonding.extra)+' extra)':'')+'</span>');
   if(j.billNo)f.push('<span class="flag ok">🧾 '+E(j.billNo)+'</span>');
+  if(j.stage==='Dispatched'&&!j.lrNumber&&!isSelfJ(j))f.push('<span class="flag warn">🚚 L.R. no. not entered</span>');
   if(j.lrNumber)f.push('<span class="flag ok">L.R. '+E(j.lrNumber)+'</span>');
   return f.join('');}
 function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h='';
@@ -399,12 +417,14 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   if(j.stage==='Bonding')h+=B('bond','bondingDone','✅ Bonding done','Enter the load cells bonded and the strain gauges used, then move to Wiring')+B('','advance','→ Next','Bonding / Assembly done somewhere else – move straight to Wiring without the gauge count');
   else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
   if(j.stage==='Laser')h+=a.laser?B('','laserDone','→ Next','Laser done – move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
-  if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
+  if(ST.canBill()&&j.stage==='Ready'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
   if(j.stage==='Packing')h+=B('','packingToReady','→ Next','Packing done — move to Ready');
-  if(j.stage==='Ready'){h+=j.packedAt?B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight — then send the pickup WhatsApp');
+  if(j.stage==='Ready'&&isSelfJ(j)){h+=B('','selfPickup','→ Next','Self pickup — goods collected, no L.R. needed (moves to Despatched)')+B('bill','openBill','🧾 Bill / E-way','Make the bill and e-way bill');}
+  else if(j.stage==='Ready'){h+=j.packedAt?B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight — then send the pickup WhatsApp');
     h+=B('bill','openBill','🧾 Bill / E-way','Make the bill and e-way bill');
-    h+=B('lr','enterLR','🚚 L.R. & Despatch','Enter L.R. — customer gets a WhatsApp');}
-  if(j.stage==='Dispatched'){h+=B('wa','resendDespatch','💬 Customer','Resend despatch WhatsApp');if(j.billNo)h+=B('bill','openBill','🧾','Bill / e-way bill');}
+    h+=B('','despatchNext','→ Next','Move to Despatched — enter the L.R. number there');}
+  if(j.stage==='Dispatched'&&!j.lrNumber&&!isSelfJ(j))h+=B('lr','enterLR','🚚 L.R. no.','Enter the L.R. number — the customer gets the despatch WhatsApp');
+  if(j.stage==='Dispatched'&&(j.lrNumber||isSelfJ(j))){h+=B('wa','resendDespatch','💬 Customer','Resend despatch WhatsApp');if(j.billNo)h+=B('bill','openBill','🧾','Bill / e-way bill');}
   if(!compact){h+=B('pr','printJob','🖨️','Print job card (same as order sheet)')+B('wa','waJob','💬','Send job details on WhatsApp')+B('ed','editJob','✏️','Edit job details');
     if(STAGE_IDX[j.stage]>=1&&j.stage!=='Dispatched')h+=B('bk','stepBack','↩','Move back one stage (needs approval)');}
   else h+=B('pr','printJob','🖨️','Print job card');
@@ -430,11 +450,11 @@ function renderDash(){const jobs=VJ(true),today=ST.today();const active=jobs.fil
   document.getElementById('urgList').innerHTML=overdue.length?overdue.map(j=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;"><span><strong>${E(j.party)}</strong> · ${E(j.jobNo)} · ${j.stage}</span><span style="color:var(--red);font-family:var(--mono);font-size:10px;">Due: ${ST.fmtDate(j.target)}</span></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No overdue jobs</p>';}
 function pendingActions(jobs){const out=[];jobs.forEach(j=>{const a=j.approvals||{};
   if(j.stage==='Laser'&&!a.laser)out.push({j,what:'🔐 Laser approval'});
-  if(j.stage==='Ready'&&!j.pickupMsgAt)out.push({j,what:'📲 Pickup WhatsApp'});
+  if(j.stage==='Ready'&&!j.pickupMsgAt&&!isSelfJ(j))out.push({j,what:'📲 Pickup WhatsApp'});
 });return out;}
 // Banners: pickup messages before the cut-off (2 PM) and approvals waiting
 let alertedFor='';
-function renderBanners(){const jobs=VJ(true);const pend=jobs.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt);const b=document.getElementById('pickupBanner');
+function renderBanners(){const jobs=VJ(true);const pend=jobs.filter(j=>j.stage==='Ready'&&!j.pickupMsgAt&&!isSelfJ(j));const b=document.getElementById('pickupBanner');
   if(!pend.length){b.className='banner';b.innerHTML='';}
   else{const w=pickupWhen();const now=new Date();const [h,m]=w.cut.split(':').map(Number);const left=h*60+(m||0)-(now.getHours()*60+now.getMinutes());
     b.className='banner show'+(w.late?' late':'')+(!w.late&&left<=60?' urgent':'');
