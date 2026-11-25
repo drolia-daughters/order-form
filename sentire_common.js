@@ -326,8 +326,8 @@ ST.words=function(n){n=Math.round((+n||0)*100)/100;const a=['','One','Two','Thre
   return 'Rupees '+(parts.join(' ')||'Zero')+(p?' and '+two(p)+' Paise':'')+' Only';};
 })();
 
-// ─── ADVANCE ORDERS: laser approval only after at least 25% of the order value is received ───
-ST.ADV_MIN=25;
+// ─── ADVANCE ORDERS: laser approval only after at least 10% of the order value is received (1.16.4: was 25%) ───
+ST.ADV_MIN=10;
 ST.canBill=()=>!window.SentireAuth||!SentireAuth.canBill||SentireAuth.canBill();
 ST.isAdmin=()=>!window.SentireAuth||!SentireAuth.enabled||!SentireAuth.user||SentireAuth.user.role==='Admin';
 ST.advanceCheck=function(o){o=o||{};const mode=(ST.payInfo(o)||{}).mode;
