@@ -186,7 +186,7 @@ async function approveLaser(no){const j=getJob(no);if(!j||(j.stage!=='Laser'&&j.
     if(!go)return;if(!(await overrideAdvance([j])))return;}}
   const r=await ST.approve({title:'Approve LASER — '+j.jobNo,action:'Laser approval',ref:j.jobNo,lines:lines(j,['Laser text: '+((o&&o.laserLogo)||'—'),(o&&o.logoImage)?'Logo image: attached (check it before laser)':'Logo image: none','Testing is complete — job is in the Laser stage.'])});
   if(!r)return;mutate(no,x=>{x.approvals=x.approvals||{};x.approvals.laser=r;x.stage='Laser';hist(x,'Laser','Laser approved by '+r.by+' ('+r.role+')');});toast('🔐 Laser approved by '+r.by);refreshAll();}
-async function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!(j.approvals&&j.approvals.laser)){alert('Laser is not approved yet for '+no+'.\nPress 🔐 Laser approval first.');return;}if(!confirm('Laser marking done for '+no+' ('+j.party+')?\nIt moves to Packing.'))return;
+async function laserDone(no){const j=getJob(no);if(!j||j.stage!=='Laser')return;if(!(j.approvals&&j.approvals.laser)){alert('Laser is not approved yet for '+no+'.\nPress 🔐 Laser approval first.');return;}
   mutate(no,x=>{x.stage='Packing';hist(x,'Packing','Laser done → Packing');});toast('→ Packing');refreshAll();notifyAcs(no);}
 // After laser: WhatsApp the Accounts officer (ACS) to prepare the bill. The message carries NO rates — only the ACS sees those, inside the app.
 async function notifyAcs(no){const j=getJob(no);if(!j)return;const o=orderOf(j),ph=(localStorage.getItem('ordersheet_acs_phone')||'').trim();
@@ -390,7 +390,7 @@ function actions(j,compact){const no=E(j.jobNo);const a=j.approvals||{};let h=''
   if(isCanc(j))return '<span class="flag bad" style="text-decoration:none;">✕ ORDER CANCELLED — STOP WORK</span>';
   if(j.stage==='Bonding')h+=B('bond','bondingDone','✅ Bonding done','Enter the load cells bonded and the strain gauges used, then move to Wiring')+B('','advance','→ Next','Bonding / Assembly done somewhere else – move straight to Wiring without the gauge count');
   else if(STAGE_IDX[j.stage]<=3)h+=B('','advance','→ Next','Move to '+STAGES[STAGE_IDX[j.stage]+1]);
-  if(j.stage==='Laser')h+=a.laser?B('','laserDone','✓ Laser done','Move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
+  if(j.stage==='Laser')h+=a.laser?B('','laserDone','→ Next','Laser done – move to Packing'):B('apv','approveLaser','🔐 Laser approval','Admin / Sub Admin / Authorised approves laser');
   if(ST.canBill()&&STAGE_IDX[j.stage]>=4&&j.stage!=='Dispatched'&&j.orderRef)h+=B('bill','billDetails','💰 Bill details','Order details with rates — for Accounts');
   if(j.stage==='Packing')h+=j.packedAt?B('','packingToReady','➡ Move to Ready','Packing already saved — move on to the pickup WhatsApp')+B('ed','packDetails','📦','Change boxes / weight'):B('','packDetails','📦 Boxes & weight','Enter number of boxes and weight');
   if(j.stage==='Ready'){h+=B('wa','sendPickup',j.pickupMsgAt?'📲 Pickup again':'📲 Pickup WhatsApp','WhatsApp the transporter with boxes and weight');
