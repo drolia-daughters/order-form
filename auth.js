@@ -203,6 +203,11 @@
         bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#b91c1c;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:8px 14px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.4);cursor:pointer;';
         bar.textContent = '🚨 SECURITY ALERT — ' + bad.length + ' warning' + (bad.length > 1 ? 's' : '') + ': ' + (fails ? fails + ' wrong login attempt' + (fails > 1 ? 's' : '') + '. ' : '') + (abroad ? abroad + ' login' + (abroad > 1 ? 's' : '') + ' from outside India. ' : '') + (err2 ? err2 + ' Error 2 (login refused from an address that is not allowed). ' : '') + (worst ? worst + ' serious (lock-out / role change). ' : '') + 'Click to open the Security page.';
         bar.onclick = function () { location.href = 'security.html'; };
+        // 1.16.2: '✓ Mark as seen' right on the alert bar at the top
+        var sb = document.createElement('button'); sb.type = 'button'; sb.textContent = '✓ Mark as seen';
+        sb.style.cssText = 'margin-left:12px;padding:3px 10px;border:1px solid #fff;border-radius:6px;background:#fff;color:#b91c1c;font:700 12px system-ui,sans-serif;cursor:pointer;';
+        sb.onclick = function (ev) { ev.stopPropagation(); sb.disabled = true; A.rpc('admin_security_seen').then(function () { bar.remove(); document.title = document.title.replace(/^🚨 /, ''); }).catch(function (e) { sb.disabled = false; alert(e.message); }); };
+        bar.appendChild(sb);
         document.body.appendChild(bar); document.title = '🚨 ' + document.title;
       });
     };
