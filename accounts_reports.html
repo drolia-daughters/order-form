@@ -31,7 +31,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><div class="icon">AR</div><h1>Accounts & Reports</h1><span>PHASE 5</span></div>
-<div class="tab-bar"><button class="tab-btn active" data-v="dash" onclick="showV('dash')">Dashboard</button><button class="tab-btn" data-v="sales" onclick="showV('sales')">🟢 Sales</button><button class="tab-btn" data-v="purchase" onclick="showV('purchase')">🔴 Purchase</button><button class="tab-btn" data-v="income" onclick="showV('income')">Income</button><button class="tab-btn" data-v="expense" onclick="showV('expense')">Expenses</button><button class="tab-btn" data-v="add" onclick="showV('add')">+ Add Entry</button><button class="tab-btn" data-v="import" onclick="showV('import')">🏦 Import Statement</button><button class="tab-btn" data-v="report" onclick="showV('report')">Reports</button><button class="tab-btn" id="grnTab" onclick="openPurchase()">📦 Purchase &amp; GRN</button><button class="tab-btn" data-v="receivable" onclick="showV('receivable')">Receivables</button></div></div>
+<div class="tab-bar"><button class="tab-btn active" data-v="dash" onclick="showV('dash')">Dashboard</button><button class="tab-btn" data-v="sales" onclick="showV('sales')">🟢 Sales</button><button class="tab-btn" data-v="purchase" onclick="showV('purchase')">🔴 Purchase</button><button class="tab-btn" data-v="income" onclick="showV('income')">Income</button><button class="tab-btn" data-v="expense" onclick="showV('expense')">Expenses</button><button class="tab-btn" data-v="add" onclick="showV('add')">+ Add Entry</button><button class="tab-btn" data-v="report" onclick="showV('report')">Reports</button><button class="tab-btn" id="grnTab" onclick="openPurchase()">📦 Purchase &amp; GRN</button><button class="tab-btn" data-v="receivable" onclick="showV('receivable')">Receivables</button></div></div>
 <div class="main">
 
 <!-- DASHBOARD -->
@@ -71,23 +71,6 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <div class="form-group full"><label>Notes</label><textarea id="ef_notes"></textarea></div>
 <div class="form-group full" style="flex-direction:row;gap:12px;justify-content:flex-end;"><button type="button" class="btn btn-ghost" onclick="resetEF()">Clear</button><button type="submit" class="btn btn-primary" id="efBtn">+ Add Entry</button></div>
 </form></div></div>
-
-<!-- IMPORT BANK STATEMENT -->
-<div class="view" id="v_import"><h2 style="margin-bottom:6px;">Import Bank Statement</h2>
-<p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">Download your HDFC or ICICI statement from net banking as <b>Excel (XLS/XLSX) or CSV</b>, then drop it here. GPay payments are included automatically — they appear in the bank statement as UPI. The file is read only inside this browser; nothing is uploaded anywhere.</p>
-<div class="card">
-<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:end;">
-<div class="form-group" style="width:170px;"><label>Bank</label><select id="impBank"><option value="auto">Auto-detect</option><option>HDFC</option><option>ICICI</option><option>Other</option></select></div>
-<label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-dim);cursor:pointer;"><input type="checkbox" id="impCredits" style="width:auto;" onchange="if(impRows.length)renderImport()"> Also import deposits (credits) as Income</label>
-</div>
-<div class="drop" id="impDrop" onclick="document.getElementById('impFile').click()"><div style="font-size:30px;">🏦</div><div style="font-weight:600;margin-top:6px;">Click or drop statement file here</div><div style="font-size:11px;margin-top:4px;">.xls · .xlsx · .csv · .txt</div></div>
-<input type="file" id="impFile" accept=".xls,.xlsx,.csv,.txt" style="display:none;" onchange="impLoad(this.files[0])">
-</div>
-<div id="impResult" style="display:none;">
-<div class="imp-sum" id="impSum"></div>
-<div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:10px;flex-wrap:wrap;"><button class="btn btn-ghost" onclick="impClear()">✕ Cancel</button><button class="btn btn-post" id="impPostBtn" onclick="impPostAll()">✅ Post All</button></div>
-<div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="impAll" style="width:auto;" checked onchange="impToggleAll(this.checked)"></th><th>Date</th><th>Type</th><th>Narration (from bank)</th><th>Party / Vendor</th><th>Category</th><th>Amount (₹)</th><th>Mode</th></tr></thead><tbody id="impBody"></tbody></table></div>
-</div></div>
 
 <!-- REPORTS -->
 <div class="view" id="v_report"><h2 style="margin-bottom:16px;">Financial Reports</h2>
@@ -226,10 +209,10 @@ const CAT_WORDS=[['Salary',/salary|wages|payroll|\bsal\b|advance to staff/],['Re
  ['China Import',/alibaba|china|customs|icegate|forex|swift|outward remit|clearing agent|cha /],['Marketing',/google ads|facebook|meta |indiamart|tradeindia|justdial|advert|marketing|printing|visiting card/],
  ['Equipment',/machine|machinery|tools|equipment|amazon|flipkart|hardware|computer|laptop/],['Raw Material',/steel|metal|alloy|cable|wire|strain gauge|gauge|epoxy|chemical|silicon|plating|nickel|material|traders|industries|enterprise|components/]];
 let impRows=[],impBankName='';
-const dropEl=document.getElementById('impDrop');
+const dropEl=document.getElementById('impDrop');if(dropEl){
 ['dragenter','dragover'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('over');}));
 ['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('over');}));
-dropEl.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)impLoad(f);});
+dropEl.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)impLoad(f);});}
 
 function impLoad(file){if(!file)return;
   if(/\.pdf$/i.test(file.name)){alert('PDF statements cannot be read here. In net banking, download the statement as Excel (XLS) or CSV instead.');return;}

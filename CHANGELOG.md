@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.18.5 | 26 Nov 2026 | Accounts & Reports: 🏦 Import Statement tab removed (not needed now; bank statements go through Migration → Banking) |
 | 1.18.4 | 26 Nov 2026 | Main Page menu refreshes by itself when a user's rights change (e.g. 📂 Migration ticked on the Users page) — no log out / log in needed |
 | 1.18.3 | 26 Nov 2026 | 📂 Migration is now a tickable right on the Users page; User 10 (jai) is ticked for it. Admin and Sub Admin always see it; other users only when ticked |
 | 1.18.2 | 26 Nov 2026 | Masters: Wires tab removed (wires belong to Inventory, not Masters) and Holidays tab removed (the saved holidays still show in red on the calendars and pickup requests still skip them). The Order Sheet wire drop-down and adding a new wire from the Order Sheet still work |
