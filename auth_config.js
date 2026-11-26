@@ -7,7 +7,7 @@ window.SENTIRE_SUPABASE_KEY = 'sb_publishable_oNoK_iC6LC20hATuJ_EspA_2uyPdrJm';
 
 // ---- Version shown on every page (change both lines when a new version goes live) ----
 window.SENTIRE_VERSION = '1.18.2';
-window.SENTIRE_BUILD   = '25 Nov 2026';
+window.SENTIRE_BUILD   = '26 Nov 2026';
 (function () {
   function show() {
     if (document.getElementById('stVer')) return;
