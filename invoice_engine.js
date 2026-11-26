@@ -178,7 +178,9 @@
     var all = fin();
     if (p.invoiceNo && all.some(function (e) { return e.kind === 'sale' && (e.invoiceNo || '') === p.invoiceNo; })) return { status: 'dup' };
     var os = orders(); var orderNo = '';
-    var m = os.filter(function (o) { return (o.billNo || '') && o.billNo === p.invoiceNo; })[0] || E.readyOrder(p);
+    // 1.21.1: OLD Tally bills (switch in Migration → Sales): post to Sales only — never matched to an order / production job
+    var old = E.oldBills();
+    var m = old ? null : (os.filter(function (o) { return (o.billNo || '') && o.billNo === p.invoiceNo; })[0] || E.readyOrder(p));
     if (m) orderNo = m.orderNo;
     var name = upsertParty(CLIENTS, p);
     if (name) {
@@ -189,8 +191,9 @@
     ST.set(FK, all);
     try { E.addStockItems(p.items); } catch (e) {}
     var desp = false; if (m) { try { desp = E.despatchFromBill(m.orderNo, p); } catch (e) {} }
-    return { status: 'posted', orderNo: orderNo, matched: !!m, despatched: desp };
+    return { status: 'posted', orderNo: orderNo, matched: !!m, despatched: desp, old: old };
   };
+  E.oldBills = function () { try { return localStorage.getItem('mig_sales_old') === '1'; } catch (e) { return false; } };
 
   // 1.7.0: the order of this party whose production job is READY (oldest first) — the migrated bill is its despatch bill
   function sameP(a, b) { var x = String(a || '').toUpperCase().replace(/^M\/S\.?\s*/, '').replace(/[^A-Z0-9]/g, ''), y = String(b || '').toUpperCase().replace(/^M\/S\.?\s*/, '').replace(/[^A-Z0-9]/g, ''); if (!x || !y) return false; return x === y || x.indexOf(y) === 0 || y.indexOf(x) === 0 || (x.length >= 8 && y.length >= 8 && x.slice(0, 8) === y.slice(0, 8)); }
@@ -259,7 +262,7 @@
   };
 
   // ---- Parties whose bills are NEVER migrated (asked 24 Nov 2026). Add more names here in CAPITALS. ----
-  E.SKIP_PARTIES = ['AKRITI SALES CORPORATION', 'PUNAM SALES'];
+  E.SKIP_PARTIES = ['AKRITI SALES CORPORATION', 'PUNAM SALES', 'AMBER INDUSTRIES'];
   function key(n) { return cleanName(n).replace(/[^A-Z0-9]/g, '').replace(/POONAM/g, 'PUNAM'); }
   E.skipParty = function (name) {
     var k = key(name); if (!k) return '';

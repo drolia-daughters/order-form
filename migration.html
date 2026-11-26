@@ -100,6 +100,7 @@ function renderPanel() {
   $('panel').innerHTML =
     '<div class="bar"><h2>' + f.ic + ' ' + esc(f.name) + '</h2><span class="sp"></span><button class="btn ok" id="migBtn" onclick="migrate()" ' + (pend ? '' : 'disabled') + '>🔄 Migrate' + (pend ? ' ' + pend + ' new file' + (pend > 1 ? 's' : '') : '') + '</button></div>' +
     '<div class="dim">Migrate reads the new files and posts them to ' + target + '. A file is never posted twice.</div>' +
+    (f.k === 'sales' ? '<label style="display:flex;gap:8px;align-items:center;margin:10px 0;padding:10px 12px;border:1px solid var(--border,#333);border-radius:8px;cursor:pointer;"><input type="checkbox" style="width:auto" ' + (localStorage.getItem('mig_sales_old') === '1' ? 'checked' : '') + ' onchange="localStorage.setItem(\'mig_sales_old\', this.checked ? \'1\' : \'0\'); renderPanel()"><span><b>📜 Old Tally bills</b> — post to Sales invoices only, don\'t look for order sheets or production jobs. Bills of AKRITI SALES CORPORATION, PUNAM SALES and AMBER INDUSTRIES are always left out.</span></label>' : '') +
     '<div class="drop" id="drop"><div style="font-size:26px">' + f.ic + '</div><b>Click or drop files here</b><div class="dim" style="margin-top:4px">' + esc(f.hint) + '</div></div>' +
     '<input type="file" id="file" multiple accept="' + esc(f.accept) + '" style="display:none">' +
     '<div class="msg" id="msg"></div>' +
