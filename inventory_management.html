@@ -15,6 +15,7 @@
 input,select,textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-family:var(--sans);font-size:13px;color:var(--text);outline:none;width:100%;}
 .btn{padding:10px 20px;border-radius:var(--radius);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);}.btn-primary{background:var(--accent);color:#000;border-color:var(--accent);}.btn-ghost{background:transparent;color:var(--text-dim);}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.form-group{display:flex;flex-direction:column;gap:5px;}.form-group.full{grid-column:1/-1;}.form-group label{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;font-family:var(--mono);}
+.bs-tbl select,.bs-tbl input{width:100%;padding:6px 8px;}.bs-tbl td{padding:4px 6px;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}.stat-card .num{font-size:26px;font-weight:700;font-family:var(--mono);}.stat-card .lab{font-size:10px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;font-family:var(--mono);}
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;}table{width:100%;border-collapse:collapse;font-size:12px;}thead th{background:var(--surface-2);padding:9px 10px;text-align:left;font-weight:600;font-size:10px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);border-bottom:1px solid var(--border);}tbody td{padding:7px 10px;border-bottom:1px solid var(--border);}
@@ -61,20 +62,31 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 </form></div></div>
 
 <!-- BOM -->
-<div class="view" id="v_bom"><h2 style="margin-bottom:16px;">Bill of Materials (BOM)</h2>
-<p style="color:var(--text-dim);margin-bottom:16px;font-size:13px;">Define how many of each item is needed to produce 1 unit of each loadcell type. Then calculate requirements for any production batch.</p>
+<div class="view" id="v_bom"><h2 style="margin-bottom:6px;">Bill of Materials (BOM)</h2>
+<p style="color:var(--text-dim);margin-bottom:16px;font-size:13px;">Pick the <b>target</b> (what you make, e.g. ALC), then fill the sheet with the <b>source</b> items needed to make <b>ONE</b> piece — pick each item from your Stock Items list — and press <b>Save</b>.</p>
 <div class="card" style="margin-bottom:16px;">
-<h3 style="margin-bottom:12px;">Quick BOM Calculator</h3>
+<div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px;">
+<div class="form-group" style="width:220px;"><label>Target — load cell type to make</label><input id="bs_target" list="bs_types" placeholder="e.g. ALC" onchange="bsLoad()"><datalist id="bs_types"></datalist></div>
+<span id="bs_info" style="font-size:12px;color:var(--text-dim);padding-bottom:10px;"></span>
+</div>
+<div class="table-wrap"><table data-tf="off" class="bs-tbl"><thead><tr><th style="width:36px">#</th><th>Source item (from Stock Items)</th><th class="num" style="width:150px">Qty for 1 piece</th><th style="width:80px">Unit</th><th class="num" style="width:110px">In stock</th><th style="width:44px"></th></tr></thead><tbody id="bs_rows"></tbody></table></div>
+<div style="display:flex;gap:8px;justify-content:space-between;margin-top:12px;flex-wrap:wrap;">
+<div style="display:flex;gap:8px;"><button class="btn" onclick="bsAdd(1)">+ Add row</button><button class="btn" onclick="bsAdd(5)">+ 5 rows</button></div>
+<div style="display:flex;gap:8px;"><button class="btn" id="bs_del" style="color:var(--red);" onclick="bsDelete()">🗑 Delete this BOM</button><button class="btn btn-primary" onclick="bsSave()">✓ Save BOM</button></div>
+</div>
+</div>
+<div class="card" style="margin-bottom:16px;">
+<h3 style="margin-bottom:12px;">Saved BOMs</h3><div id="bomList"></div>
+</div>
+<div class="card" style="margin-bottom:16px;">
+<h3 style="margin-bottom:12px;">Quick BOM Calculator — what is needed for a batch</h3>
 <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
-<div class="form-group" style="width:180px;"><label>Loadcell Type</label><select id="bom_type"><option>ALC</option><option>DLC</option><option>AS</option><option>DS</option><option>REG</option><option>CUT</option><option>JUMBO</option></select></div>
+<div class="form-group" style="width:180px;"><label>Loadcell Type</label><select id="bom_type"></select></div>
 <div class="form-group" style="width:120px;"><label>Quantity</label><input type="number" id="bom_qty" value="100" min="1"></div>
 <button class="btn btn-primary" onclick="calcBOM()">Calculate Requirements</button>
 </div>
 <div id="bomResult" style="margin-top:16px;"></div>
 </div>
-<h3 style="margin-bottom:12px;">BOM Templates</h3>
-<div id="bomList"></div>
-<button class="btn btn-primary" style="margin-top:12px;" onclick="addBOMEntry()">+ Add BOM Entry</button>
 </div>
 
 <!-- IMPORT TRACKING -->
@@ -166,16 +178,45 @@ document.getElementById('impBody').innerHTML=imports.slice().reverse().map((imp,
 function updateImportStatus(ri,st){const imports=g(IMPK);imports[ri].status=st;s(IMPK,imports);renderImports();toast('✓ Updated');}
 
 // BOM
-function renderBOM(){const bom=g(BOMK);
-document.getElementById('bomList').innerHTML=bom.length?bom.map((b,i)=>`<div style="display:flex;gap:12px;align-items:center;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px;"><span style="font-weight:700;min-width:80px;color:var(--accent);">${b.type}</span><span style="flex:1;">${b.itemCode} — ${b.itemName}</span><span style="font-family:var(--mono);font-weight:600;">${b.qtyPer} per unit</span><button class="act-btn" style="background:rgba(239,68,68,0.08);color:var(--red);border-color:rgba(239,68,68,0.2);" onclick="delBOM(${i})">✕</button></div>`).join(''):'<p style="color:var(--text-muted);font-size:13px;">No BOM entries yet. Add entries to define what materials each loadcell type needs.</p>';}
-function addBOMEntry(){const type=prompt('Loadcell Type (e.g. ALC, DLC):');if(!type)return;const itemCode=prompt('Item Code from inventory:');if(!itemCode)return;const itemName=prompt('Item Name:');const qtyPer=prompt('Quantity needed per 1 loadcell:');
-const bom=g(BOMK);bom.push({type:type.toUpperCase(),itemCode:itemCode.toUpperCase(),itemName:itemName||'',qtyPer:parseInt(qtyPer)||1});s(BOMK,bom);renderBOM();toast('✓ BOM Entry Added');}
+// 1.20.0: BOM sheet — target (load cell type) + source items picked from Stock Items, qty for ONE piece, Save
+const LC_BASE=['ALC','DLC','AS','DS','REG','CUT','JUMBO','S.E','S TYPE'];
+function bsTypes(){const x=[...LC_BASE];const add=t=>{t=String(t||'').trim().toUpperCase();if(t&&!x.includes(t))x.push(t);};g('ordersheet_lc_types').forEach(add);g(BOMK).forEach(b=>add(b.type));return x;}
+const bsEsc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+function bsItemOpts(sel){return '<option value="">— pick item —</option>'+g(IK).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(i=>`<option value="${bsEsc(i.code)}"${i.code===sel?' selected':''}>${bsEsc(i.name)} [${bsEsc(i.code)}]</option>`).join('');}
+function bsRow(b){b=b||{};return `<tr><td class="bs-n" style="color:var(--text-dim)"></td><td><select class="bs-it" onchange="bsInfoRow(this.closest('tr'))">${bsItemOpts(b.itemCode)}</select></td><td><input class="bs-q" type="number" min="0" step="any" value="${b.qtyPer!=null?bsEsc(b.qtyPer):''}" style="text-align:right"></td><td class="bs-u"></td><td class="num bs-s" style="font-family:var(--mono)"></td><td><button class="btn" style="padding:4px 10px" title="Remove row" onclick="this.closest('tr').remove();bsNum()">✕</button></td></tr>`;}
+function bsInfoRow(r){const it=g(IK).find(i=>i.code===r.querySelector('.bs-it').value);r.querySelector('.bs-u').textContent=it?(it.unit||''):'';r.querySelector('.bs-s').textContent=it?(it.stock??0):'';}
+function bsNum(){[...document.querySelectorAll('#bs_rows tr')].forEach((r,i)=>r.querySelector('.bs-n').textContent=i+1);}
+function bsAdd(n){const tb=document.getElementById('bs_rows');for(let k=0;k<n;k++)tb.insertAdjacentHTML('beforeend',bsRow());bsNum();}
+function bsLoad(){const t=document.getElementById('bs_target').value.trim().toUpperCase();document.getElementById('bs_target').value=t;
+  const rows=g(BOMK).filter(b=>b.type===t),tb=document.getElementById('bs_rows');
+  tb.innerHTML=rows.map(bsRow).join('');const extra=Math.max(10-rows.length,2);for(let k=0;k<extra;k++)tb.insertAdjacentHTML('beforeend',bsRow());
+  [...tb.rows].forEach(bsInfoRow);bsNum();
+  document.getElementById('bs_info').textContent=!t?'':rows.length?'Editing the saved BOM of '+t+' — '+rows.length+' item(s)':'New BOM for '+t;
+  document.getElementById('bs_del').style.display=rows.length?'':'none';}
+function bsSave(){const t=document.getElementById('bs_target').value.trim().toUpperCase();if(!t)return alert('Type or pick the target load cell type (e.g. ALC).');
+  const items=g(IK),seen={},out=[];let err='';
+  [...document.querySelectorAll('#bs_rows tr')].forEach((r,i)=>{const c=r.querySelector('.bs-it').value,q=parseFloat(r.querySelector('.bs-q').value);
+    if(!c&&!r.querySelector('.bs-q').value)return;
+    if(!c){err=err||'Row '+(i+1)+': pick the item.';return;} if(!(q>0)){err=err||'Row '+(i+1)+': type the quantity for 1 piece.';return;}
+    if(seen[c]){err=err||'Row '+(i+1)+': '+c+' is already in the sheet.';return;} seen[c]=1;
+    const it=items.find(x=>x.code===c);out.push({type:t,itemCode:c,itemName:it?it.name:'',unit:it?(it.unit||''):'',qtyPer:q});});
+  if(err)return alert(err); if(!out.length)return alert('Pick at least one source item.');
+  s(BOMK,g(BOMK).filter(b=>b.type!==t).concat(out));toast('✓ BOM of '+t+' saved — '+out.length+' items');renderBOM();bsLoad();}
+function bsDelete(){const t=document.getElementById('bs_target').value.trim().toUpperCase();if(!t)return;if(!confirm('Delete the whole BOM of '+t+'?'))return;s(BOMK,g(BOMK).filter(b=>b.type!==t));toast('BOM of '+t+' deleted');renderBOM();bsLoad();}
+function bsEdit(t){document.getElementById('bs_target').value=t;bsLoad();document.getElementById('bs_target').scrollIntoView({behavior:'smooth',block:'center'});}
+function renderBOM(){const bom=g(BOMK),types=bsTypes();
+  document.getElementById('bs_types').innerHTML=types.map(t=>`<option value="${bsEsc(t)}">`).join('');
+  const sel=document.getElementById('bom_type'),cur=sel.value;sel.innerHTML=types.map(t=>`<option${t===cur?' selected':''}>${bsEsc(t)}</option>`).join('');
+  const by={};bom.forEach(b=>(by[b.type]=by[b.type]||[]).push(b));
+  document.getElementById('bomList').innerHTML=Object.keys(by).length?Object.keys(by).map(t=>`<div style="display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;font-size:12px;"><span><strong style="color:var(--accent)">${bsEsc(t)}</strong> — ${by[t].length} items: ${by[t].map(b=>bsEsc(b.itemName||b.itemCode)+' × '+b.qtyPer).join(', ')}</span><button class="btn" style="padding:4px 12px" onclick="bsEdit('${bsEsc(t)}')">✏ Edit</button></div>`).join(''):'<p style="color:var(--text-dim);font-size:13px;">No BOM saved yet.</p>';
+  if(!document.getElementById('bs_rows').rows.length)bsLoad();}
+function addBOMEntry(){bsEdit(document.getElementById('bs_target').value||'');}
 function delBOM(i){const bom=g(BOMK);bom.splice(i,1);s(BOMK,bom);renderBOM();}
 function calcBOM(){const type=document.getElementById('bom_type').value;const qty=parseInt(document.getElementById('bom_qty').value)||0;
 const bom=g(BOMK).filter(b=>b.type===type);const items=g(IK);
 if(!bom.length){document.getElementById('bomResult').innerHTML='<p style="color:var(--orange);">No BOM defined for '+type+'. Add BOM entries first.</p>';return;}
 let html='<table style="min-width:auto;"><thead><tr><th>Item</th><th>Per Unit</th><th>Required</th><th>In Stock</th><th>Shortage</th></tr></thead><tbody>';
-bom.forEach(b=>{const needed=b.qtyPer*qty;const inv=items.find(i=>i.code===b.itemCode);const inStock=inv?inv.stock:0;const shortage=Math.max(0,needed-inStock);
+bom.forEach(b=>{const needed=Math.round(b.qtyPer*qty*1000)/1000;const inv=items.find(i=>i.code===b.itemCode);const inStock=inv?inv.stock:0;const shortage=Math.round(Math.max(0,needed-inStock)*1000)/1000;
 html+=`<tr><td>${b.itemCode} - ${b.itemName}</td><td style="font-family:var(--mono);">${b.qtyPer}</td><td style="font-family:var(--mono);font-weight:700;">${needed}</td><td style="font-family:var(--mono);">${inStock}</td><td style="font-family:var(--mono);font-weight:700;${shortage>0?'color:var(--red);':'color:var(--green);'}">${shortage>0?'-'+shortage:'✓ OK'}</td></tr>`;});
 html+='</tbody></table>';document.getElementById('bomResult').innerHTML=html;}
 
