@@ -37,7 +37,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 </head>
 <body>
 <div class="topbar"><div class="brand"><div class="icon">MS</div><h1>Masters</h1></div>
-<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="clients">Clients</button><button class="tab-btn" data-v="vendors">Vendors</button><button class="tab-btn" data-v="trans">Transporters</button><button class="tab-btn" data-v="appr">Approvers</button><button class="tab-btn" data-v="company">Company</button><button class="tab-btn" data-v="hol">Holidays</button><button class="tab-btn" data-v="rules">Payment Rules</button><button class="tab-btn" data-v="sn">🔎 Loadcell S/N</button><button class="tab-btn" onclick="openDetailTR()" title="All tested load cells by customer: ordered / tested / despatched, upload the testing machine Excel file">🧪 Detail Test Report</button><button class="tab-btn" data-v="wires">Wires</button></div></div>
+<div class="tab-bar" id="tabs"><button class="tab-btn active" data-v="clients">Clients</button><button class="tab-btn" data-v="vendors">Vendors</button><button class="tab-btn" data-v="trans">Transporters</button><button class="tab-btn" data-v="appr">Approvers</button><button class="tab-btn" data-v="company">Company</button><button class="tab-btn" data-v="rules">Payment Rules</button><button class="tab-btn" data-v="sn">🔎 Loadcell S/N</button><button class="tab-btn" onclick="openDetailTR()" title="All tested load cells by customer: ordered / tested / despatched, upload the testing machine Excel file">🧪 Detail Test Report</button></div></div>
 <div class="main">
 
 <div class="view active" id="v_clients"><h2>Clients</h2><p class="sub">Payment terms here are used for every new order and for reminders. GSTIN, address and pincode are used on the bill and e-way bill. WhatsApp numbers get despatch messages and payment reminders.</p>
@@ -60,11 +60,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 <div class="view" id="v_company"><h2>Company</h2><p class="sub">Printed on the bill and used in the e-way bill and in WhatsApp messages. Fill what you have now — the rest can be added later.</p>
 <div class="card"><div class="grid" id="coForm"></div><div style="display:flex;justify-content:flex-end;margin-top:16px;"><button class="btn ok" onclick="saveCompany()">✓ Save company details</button></div></div></div>
 
-<div class="view" id="v_hol"><h2>Industrial Holidays</h2><p class="sub">These dates show in red on every 📅 calendar (delivery date, despatch date) and pickup requests skip them. The 2026 list is from the Gujarat government holiday list — add your own factory holidays (e.g. Diwali vacation) and the 2027 festival dates when they are announced.</p>
-<div class="card"><div class="fg"><label>Weekly off</label><div class="wk" id="wkOff"></div></div></div>
-<div class="toolbar"><select id="hYear" style="max-width:130px" onchange="renderHol()"></select><input id="hDate" type="date" style="max-width:180px"><input id="hName" placeholder="Holiday name" style="max-width:260px"><button class="btn pri" onclick="addHol()">+ Add</button><span class="sp"></span><button class="btn" onclick="restoreHol()">↺ Restore Gujarat 2026 list</button></div>
-<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Holiday</th><th></th></tr></thead><tbody id="hBody"></tbody></table></div></div>
-
 <div class="view" id="v_rules"><h2>Payment Reminder Rules</h2><p class="sub">For credit orders. Due date = despatch date + client's credit days. Reminders go to the client on WhatsApp; if still unpaid after the last reminder, the order is escalated to Admin and Sub Admin.</p>
 <div class="card"><div class="grid">
 <div class="fg"><label>First reminder (days after due date)</label><input id="r_first" type="number" min="0"><div class="hint">1 = the day after the due date</div></div>
@@ -74,9 +69,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);}
 <div class="view" id="v_sn"><h2>🔎 Search load cell by serial number</h2><p class="sub">Type the serial number written on the load cell (from the testing machine). You see the customer, order, sales invoice, despatch date, test results, warranty (1 year, extended, or none for SP items) and any earlier repairs. Several numbers can be typed together, separated by commas.</p>
 <div class="toolbar"><input id="snQ" placeholder="e.g. 2602492221" style="max-width:420px;font-family:var(--mono);font-size:15px" onkeydown="if(event.key==='Enter')snSearch()"><button class="btn pri" onclick="snSearch()">Search</button><span class="sp"></span><button class="btn" onclick="openDetailTR()">🧪 Detail Test Report</button></div>
 <div id="snOut" style="display:grid;gap:12px"></div></div>
-<div class="view" id="v_wires"><h2>Wires</h2><p class="sub">The wire list used in the Order Sheet drop-down. Keep the same names in Tally and in the testing machine so all data matches (for example ARMOURED 16M, ORANGE 16M). A wire added from the Order Sheet appears here too.</p>
-<div class="toolbar"><input id="wNew" placeholder="New wire, e.g. ARMOURED 12M" style="max-width:300px" onkeydown="if(event.key==='Enter')addWireM()"><button class="btn pri" onclick="addWireM()">+ Add</button></div>
-<div class="table-wrap" style="max-width:640px"><table><thead><tr><th>Wire</th><th class="num">Used in orders</th><th></th></tr></thead><tbody id="wBody"></tbody></table></div></div>
 <div class="view" id="v_migrate"><h2>📥 Migrate Invoices</h2>
 <p class="sub">Point this at your <b>Sales</b> folder of invoice PDFs and press Migrate. Every bill is read, matched to its order, and its customer details are added to the Clients master. Bills of <b>AKRITI SALES CORPORATION</b> and <b>PUNAM SALES</b> are never migrated — the same as we did by hand this morning, but for the whole folder at once.</p>
 <div class="card">
@@ -103,7 +95,7 @@ const E=ST.esc;const K=ST.K;
 function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab-btn');if(!b||!b.dataset.v)return;showV(b.dataset.v);});
 function showV(v){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v_'+v));
-  const _mv={clients:renderClients,trans:renderTrans,appr:renderAppr,company:renderCompany,hol:renderHol,rules:renderRules,vendors:renderVendors,migrate:renderMigrate,sn:()=>document.getElementById('snQ').focus(),wires:renderWires};(_mv[v]||function(){})();}
+  const _mv={clients:renderClients,trans:renderTrans,appr:renderAppr,company:renderCompany,rules:renderRules,vendors:renderVendors,migrate:renderMigrate,sn:()=>document.getElementById('snQ').focus()};(_mv[v]||function(){})();}
 const stateName=c=>({'24':'Gujarat','27':'Maharashtra','08':'Rajasthan','23':'Madhya Pradesh','07':'Delhi','09':'Uttar Pradesh','06':'Haryana','03':'Punjab','29':'Karnataka','33':'Tamil Nadu','36':'Telangana','37':'Andhra Pradesh','19':'West Bengal','10':'Bihar','21':'Odisha','22':'Chhattisgarh','20':'Jharkhand','32':'Kerala','30':'Goa','26':'Dadra & Nagar Haveli and Daman & Diu','05':'Uttarakhand','02':'Himachal Pradesh','01':'Jammu & Kashmir','18':'Assam'})[String(c||'').padStart(2,'0')]||'';
 
 /* ═════ CLIENTS ═════ */
