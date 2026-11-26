@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.20.3 | 26 Nov 2026 | Import Tracking and BOM: Edit buttons now use the same pencil ✏️ as everywhere else (the text pencil looked like a minus); Edit / Delete buttons same size as the other action buttons |
 | 1.20.2 | 26 Nov 2026 | BOM: the Target is now a produced ITEM — a drop-down of Stock Items with category Finished Good (e.g. ALC-O16), not a group like ALC. Source items are grouped by category and the target can't be its own source. Calculator lists only items that have a BOM. 'Finished Good' added to the + Add Item category list |
 | 1.20.1 | 26 Nov 2026 | Import Tracking: new Reference No. (the number given by the party) next to the PO#; ✏ Edit and 🗑 Delete on every import order (delete: Admin / Sub Admin only); search box finds an import by PO, Reference No., supplier or item |
 | 1.20.0 | 26 Nov 2026 | Inventory → BOM is now a sheet: pick the TARGET load cell type (e.g. ALC), pick each SOURCE item from the Stock Items drop-down, type the qty for ONE piece (decimals allowed, e.g. 16.5 m wire), press ✓ Save BOM. Saved BOMs listed with ✏ Edit; whole BOM can be deleted. Calculator lists every type that has a BOM |
