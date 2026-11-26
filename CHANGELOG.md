@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.21.0 | 26 Nov 2026 | Inventory → 📂 Groups: every group (category) with the items under it; tick items and 🔁 Transfer them to another group (anyone). Only Abhishek (login 'admin') can create, rename or delete groups — not Kamna, not users. Group list (inv_groups) feeds + Add Item, the Stock Items filter and Purchase → New item |
 | 1.20.4 | 26 Nov 2026 | Item Code is no longer needed: + Add Item and Purchase → New item ask only for the Item Name (the code is made from the name by itself, and a duplicate name is refused); Item Code column removed from Stock Items; Stock Out asks for the item name; BOM, Import and Purchase item lists show names only. 'Finished Good' added to the Purchase new-item categories |
 | 1.20.3 | 26 Nov 2026 | Import Tracking and BOM: Edit buttons now use the same pencil ✏️ as everywhere else (the text pencil looked like a minus); Edit / Delete buttons same size as the other action buttons |
 | 1.20.2 | 26 Nov 2026 | BOM: the Target is now a produced ITEM — a drop-down of Stock Items with category Finished Good (e.g. ALC-O16), not a group like ALC. Source items are grouped by category and the target can't be its own source. Calculator lists only items that have a BOM. 'Finished Good' added to the + Add Item category list |

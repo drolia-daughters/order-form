@@ -27,7 +27,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><div class="icon">IM</div><h1>Inventory Mgmt</h1><span>PHASE 4</span></div>
-<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('items')">Stock Items</button><button class="tab-btn" onclick="showV('add')">+ Add Item</button><button class="tab-btn" onclick="showV('bom')">BOM</button><button class="tab-btn" onclick="showV('import')">Import Tracking</button><button class="tab-btn" onclick="showV('txn')">Transactions</button></div></div>
+<div class="tab-bar"><button class="tab-btn active" onclick="showV('dash')">Dashboard</button><button class="tab-btn" onclick="showV('items')">Stock Items</button><button class="tab-btn" onclick="showV('add')">+ Add Item</button><button class="tab-btn" onclick="showV('bom')">BOM</button><button class="tab-btn" onclick="showV('import')">Import Tracking</button><button class="tab-btn" onclick="showV('txn')">Transactions</button><button class="tab-btn" onclick="showV('groups')">📂 Groups</button></div></div>
 <div class="main">
 
 <!-- DASHBOARD -->
@@ -41,7 +41,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 
 <!-- STOCK ITEMS -->
 <div class="view" id="v_items"><h2 style="margin-bottom:16px;">Stock Items</h2>
-<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="iSrch" placeholder="Search..." oninput="renderItems()" style="max-width:250px;"><select id="iFilt" onchange="renderItems()" style="max-width:180px;"><option value="">All Categories</option><option>Loadcell Body</option><option>Electronics</option><option>Wire</option><option>Hardware</option><option>Packaging</option><option>Raw Material</option><option>Other</option></select><select id="iStock" onchange="renderItems()" style="max-width:150px;"><option value="">All Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div>
+<div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="iSrch" placeholder="Search..." oninput="renderItems()" style="max-width:250px;"><select id="iFilt" onchange="renderItems()" style="max-width:180px;"><option value="">All Categories</option></select><select id="iStock" onchange="renderItems()" style="max-width:150px;"><option value="">All Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div>
 <div class="table-wrap"><table><thead><tr><th>Actions</th><th>Item Name</th><th>Category</th><th>Current Stock</th><th>By location</th><th>Unit</th><th>Reorder Level</th><th>Status</th><th>Lead Time</th><th>Supplier</th><th>Cost/Unit (₹)</th><th>Last Updated</th></tr></thead><tbody id="iBody"></tbody></table></div></div>
 
 <!-- ADD ITEM -->
@@ -49,7 +49,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <form class="form-grid" id="iForm" onsubmit="return saveItem(event)">
 <input type="hidden" id="if_code">
 <div class="form-group"><label>Item Name *</label><input type="text" id="if_name" required></div>
-<div class="form-group"><label>Category</label><select id="if_cat"><option>Finished Good</option><option>Loadcell Body</option><option>Electronics</option><option>Wire</option><option>Hardware</option><option>Packaging</option><option>Raw Material</option><option>Other</option></select></div>
+<div class="form-group"><label>Category</label><select id="if_cat"></select></div>
 <div class="form-group"><label>Unit</label><select id="if_unit"><option>Pcs</option><option>Kg</option><option>Meters</option><option>Rolls</option><option>Sets</option><option>Boxes</option><option>Liters</option></select></div>
 <div class="form-group"><label id="if_stock_lbl">Opening Stock *</label><input type="number" id="if_stock" required min="0"></div>
 <div class="form-group"><label>Reorder Level *</label><input type="number" id="if_reorder" required min="0"></div>
@@ -103,6 +103,16 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 </div>
 <div class="table-wrap"><table><thead><tr><th>Actions</th><th>PO#</th><th>Reference No.</th><th>Supplier</th><th>Items</th><th>Order Date</th><th>ETA (50d)</th><th>Days Left</th><th>Status</th><th>Value ($)</th><th>Notes</th></tr></thead><tbody id="impBody"></tbody></table></div></div>
 
+<!-- GROUPS (1.21.0) -->
+<div class="view" id="v_groups"><h2 style="margin-bottom:6px;">Groups</h2>
+<p style="color:var(--text-dim);margin-bottom:14px;font-size:13px;">Every group with the items under it. Tick items posted in the wrong group and <b>Transfer</b> them. Only Abhishek can create, rename or delete groups.</p>
+<div class="card" style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+<b>Transfer ticked items to</b><select id="gr_to" style="max-width:220px;"></select><button class="btn btn-primary" onclick="grTransfer()">🔁 Transfer</button><span id="gr_sel" style="font-size:12px;color:var(--text-dim);"></span>
+<span style="flex:1"></span><span id="gr_own" style="display:none;gap:8px;align-items:center;"><input id="gr_new" placeholder="New group name" style="max-width:200px;" onkeydown="if(event.key==='Enter')grNew()"><button class="btn" onclick="grNew()">+ New group</button></span>
+</div>
+<div id="gr_list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;"></div>
+</div>
+
 <!-- TRANSACTIONS -->
 <div class="view" id="v_txn"><h2 style="margin-bottom:16px;">Stock Transactions</h2>
 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
@@ -115,9 +125,40 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <script>
 const IK='inv_items',TXK='inv_txns',IMPK='inv_imports',BOMK='inv_bom';let editCode=null;
 const g=k=>{try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}};const s=(k,d)=>localStorage.setItem(k,JSON.stringify(d));
-function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach((b,i)=>{const map={dash:0,items:1,add:2,bom:3,import:4,txn:5};if(i===map[v])b.classList.add('active');});
-if(v==='dash')renderDash();if(v==='items')renderItems();if(v==='bom')renderBOM();if(v==='import')renderImports();if(v==='txn')renderTxns();}
+function showV(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.getElementById('v_'+v).classList.add('active');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach((b,i)=>{const map={dash:0,items:1,add:2,bom:3,import:4,txn:5,groups:6};if(i===map[v])b.classList.add('active');});
+grFillSelects();if(v==='dash')renderDash();if(v==='items')renderItems();if(v==='bom')renderBOM();if(v==='import')renderImports();if(v==='txn')renderTxns();if(v==='groups')renderGroups();}
 function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓ Saved';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// GROUPS (1.21.0): the item categories. Only Abhishek (login 'admin') may create / rename / delete a group; anyone may transfer items.
+const GK='inv_groups',GR_BASE=['Finished Good','Loadcell Body','Electronics','Wire','Hardware','Packaging','Raw Material','Other'];
+const grEsc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+function grOwner(){const A=window.SentireAuth;return !A||!A.enabled||!!(A.user&&A.user.login_id==='admin');}
+function groups(){const st=g(GK),out=[];const add=x=>{x=String(x||'').trim();if(x&&!out.some(y=>y.toLowerCase()===x.toLowerCase()))out.push(x);};
+  (st.length?st:GR_BASE).forEach(add);g(IK).forEach(i=>add(i.category||'Other'));return out;}
+function grFillSelects(){const gs=groups();
+  const c=document.getElementById('if_cat');if(c){const v=c.value;c.innerHTML=gs.map(x=>`<option>${grEsc(x)}</option>`).join('');if(v&&gs.includes(v))c.value=v;}
+  const f=document.getElementById('iFilt');if(f){const v=f.value;f.innerHTML='<option value="">All Categories</option>'+gs.map(x=>`<option>${grEsc(x)}</option>`).join('');f.value=v;}}
+function renderGroups(){grFillSelects();const gs=groups(),items=g(IK),own=grOwner();
+  document.getElementById('gr_own').style.display=own?'flex':'none';
+  const to=document.getElementById('gr_to'),tv=to.value;to.innerHTML='<option value="">— pick group —</option>'+gs.map(x=>`<option${x===tv?' selected':''}>${grEsc(x)}</option>`).join('');
+  document.getElementById('gr_list').innerHTML=gs.map(gn=>{const its=items.filter(i=>(i.category||'Other')===gn).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    return `<div class="card" style="padding:14px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;"><h3 style="font-size:14px;">${grEsc(gn)} <span style="color:var(--text-dim);font-weight:400;">· ${its.length} item${its.length===1?'':'s'}</span></h3>${own?`<span style="display:flex;gap:4px;"><button class="act-btn" title="Rename group" onclick="grRename('${grEsc(gn)}')">✏️</button>${its.length?'':`<button class="act-btn" title="Delete empty group" style="color:var(--red);" onclick="grDel('${grEsc(gn)}')">🗑</button>`}</span>`:''}</div>`+
+      (its.length?its.map(i=>`<label style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;"><input type="checkbox" class="gr-ck" value="${grEsc(i.code)}" style="width:auto;" onchange="grCount()"><span style="flex:1">${grEsc(i.name||i.code)}</span><span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">${i.stock??0} ${grEsc(i.unit||'')}</span></label>`).join(''):'<p style="font-size:12px;color:var(--text-dim);">No items.</p>')+'</div>';}).join('');
+  grCount();}
+function grCount(){const n=document.querySelectorAll('.gr-ck:checked').length;document.getElementById('gr_sel').textContent=n?n+' item(s) ticked':'';}
+function grTransfer(){const to=document.getElementById('gr_to').value,codes=[...document.querySelectorAll('.gr-ck:checked')].map(c=>c.value);
+  if(!codes.length)return alert('Tick the items to transfer.');if(!to)return alert('Pick the group to transfer them to.');
+  const items=g(IK),today=new Date().toISOString().split('T')[0];let n=0;items.forEach(i=>{if(codes.includes(i.code)&&i.category!==to){i.category=to;i.updated=today;n++;}});
+  s(IK,items);toast('✓ '+n+' item(s) transferred to '+to);renderGroups();}
+function grSave(list){s(GK,list);}
+function grNew(){if(!grOwner())return alert('Only Abhishek can create a group.');const el=document.getElementById('gr_new'),n=el.value.trim();if(!n)return;
+  const gs=groups();if(gs.some(x=>x.toLowerCase()===n.toLowerCase()))return alert('Group '+n+' already exists.');gs.push(n);grSave(gs);el.value='';toast('✓ Group '+n+' created');renderGroups();}
+function grRename(old){if(!grOwner())return alert('Only Abhishek can rename a group.');const n=(prompt('New name for group '+old+':',old)||'').trim();if(!n||n===old)return;
+  const gs=groups();if(gs.some(x=>x.toLowerCase()===n.toLowerCase()&&x!==old))return alert('Group '+n+' already exists.');
+  grSave(gs.map(x=>x===old?n:x));const items=g(IK);items.forEach(i=>{if((i.category||'Other')===old)i.category=n;});s(IK,items);toast('✓ Group renamed to '+n);renderGroups();}
+function grDel(gn){if(!grOwner())return alert('Only Abhishek can delete a group.');if(g(IK).some(i=>(i.category||'Other')===gn))return alert('Move the items out of '+gn+' first.');
+  if(!confirm('Delete the empty group '+gn+'?'))return;grSave(groups().filter(x=>x!==gn));toast('Group '+gn+' deleted');renderGroups();}
+document.addEventListener('DOMContentLoaded',grFillSelects);
 
 // ITEMS
 function saveItem(e){e.preventDefault();const items=g(IK);
