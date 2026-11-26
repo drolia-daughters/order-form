@@ -343,4 +343,67 @@
       close();
     };
   };
+
+  // ---------- 1.22.0: learnt bill layouts (shared with Migration → 🎓 Teach) ----------
+  // A taught layout is stored in fin_mig_formats as { folder:'sales'|'purchases', keys:[words at the top of the bill],
+  // inv / date / total: { anchor: 'words in front of the value', next: value on the next line } }.
+  var L_COMMON = /^(THE|AND|FOR|FROM|WITH|DATE|TOTAL|NAME|ADDRESS|PHONE|MOBILE|GSTIN|STATE|CODE|INVOICE|COPY|PAGE|ORIGINAL|DUPLICATE|NUMBER|CONSIGNOR|CONSIGNEE|WEIGHT|PACKAGES|AMOUNT|FREIGHT|INDIA|GUJARAT|LIMITED|PRIVATE|LTD|PVT|TAX|BILL)$/;
+  function lLines(t) { return String(t || '').split('\n').map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean); }
+  function lNorm(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+  function lEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  E.layoutKeys = function (t) { var out = []; lLines(t).slice(0, 8).join(' ').toUpperCase().split(/[^A-Z]+/).forEach(function (w) { if (w.length >= 4 && !L_COMMON.test(w) && out.indexOf(w) < 0) out.push(w); }); return out.slice(0, 4); };
+  E.learnAnchor = function (t, val) {
+    if (val == null || val === '') return null; var L = lLines(t), v = String(val), nv = lNorm(v);
+    for (var i = 0; i < L.length; i++) {
+      var ln = L[i], idx = ln.toUpperCase().indexOf(v.toUpperCase());
+      if (idx < 0 && nv && lNorm(ln).indexOf(nv) >= 0) { var m = ln.match(new RegExp(v.split('').filter(function (c) { return /[A-Za-z0-9]/.test(c); }).map(lEsc).join('[^A-Za-z0-9]*'), 'i')); if (m) idx = m.index; }
+      if (idx < 0) continue;
+      var bw = ln.slice(0, idx).replace(/[:\-#.\s₹]+$/, '').trim().split(' '), bk = [];
+      for (var q = bw.length - 1; q >= 0 && bk.length < 3; q--) { if (/\d/.test(bw[q])) { if (bk.length) break; else continue; } bk.unshift(bw[q]); }
+      var before = bk.join(' ');
+      if (before.replace(/[^A-Za-z]/g, '').length >= 2) return { anchor: before, next: false };
+      if (i > 0) return { anchor: L[i - 1].split(' ').slice(-3).join(' '), next: true };
+    }
+    return null;
+  };
+  E.pickAnchor = function (t, rule, kind) {
+    if (!rule) return ''; var L = lLines(t), a = String(rule.anchor || '').toUpperCase(); if (!a) return '';
+    var pat = kind === 'date' ? '(\\d{1,2}[\\/\\-.][\\d A-Za-z]{1,9}[\\/\\-.]\\d{2,4})' : kind === 'amount' ? '([0-9][0-9,]*(?:\\.[0-9]{1,2})?)' : '([A-Za-z0-9][A-Za-z0-9\\-\\/]{1,24})';
+    for (var i = 0; i < L.length; i++) {
+      var U = L[i].toUpperCase(), p = U.indexOf(a); if (p < 0) continue;
+      if (rule.next) { var m1 = (L[i + 1] || '').match(new RegExp(pat)); if (m1) return m1[1]; continue; }
+      var m = L[i].slice(p + a.length).match(new RegExp('^[\\s:\\-#.₹]*' + pat)); if (m) return m[1];
+    }
+    return '';
+  };
+  E.layoutFor = function (folder, t) {
+    var U = ' ' + String(t || '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ') + ' ', F = [];
+    try { F = JSON.parse(localStorage.getItem('fin_mig_formats')) || []; } catch (e) {}
+    return F.filter(function (m) { return m.folder === folder && m.keys && m.keys.length && m.keys.every(function (k) { return U.indexOf(' ' + k + ' ') >= 0; }); })[0] || null;
+  };
+  E.toISO = function (d) { var m = String(d || '').match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/); if (!m) return /^\d{4}-\d{2}-\d{2}$/.test(d || '') ? d : ''; var y = m[3].length === 2 ? '20' + m[3] : m[3]; return y + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2); };
+  E.num = function (v) { var n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? 0 : n; };
+  // fill what the normal reader missed from a taught layout; returns true if anything was filled
+  E.applyLearned = function (t, folder, p) {
+    var f = E.layoutFor(folder, t); if (!f || !p) return false; var ch = false, v;
+    if (!p.invoiceNo && (v = E.pickAnchor(t, f.inv, 'code'))) { p.invoiceNo = v; ch = true; }
+    if (!p.date && (v = E.toISO(E.pickAnchor(t, f.date, 'date')))) { p.date = v; ch = true; }
+    if (!p.total && (v = E.num(E.pickAnchor(t, f.total, 'amount')))) { p.total = v; ch = true; }
+    if (!p.party && f.party) { p.party = f.party; ch = true; }
+    if (ch) p.learnt = true;
+    return ch;
+  };
+  // tell Migration what happened to a file it handed over (fin_migration entry id)
+  E.migReport = function (migId, state, note, extra) {
+    if (!migId || !window.ST) return;
+    var l = ST.get('fin_migration', []), ch = false;
+    l.forEach(function (x) {
+      if (x.id !== migId) return;
+      if (x.state === state && x.note === note && !x.waiting) return;
+      x.state = state; x.note = note; delete x.waiting; if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
+      if (state === 'check') x.sentAt = x.sentAt || new Date().toISOString();
+      ch = true;
+    });
+    if (ch) ST.set('fin_migration', l);
+  };
 })();

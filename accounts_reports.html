@@ -427,7 +427,7 @@ function initInbox(){
   ['dragleave'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.style.borderColor='var(--border)';}));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='var(--border)';if(e.dataTransfer&&e.dataTransfer.files)addFiles(e.dataTransfer.files);});
 }
-function addFiles(list){[...list].forEach(f=>{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)||(window.InvoiceEngine&&InvoiceEngine.isImage(f)))inbox.push({name:f.name,file:f,status:'pending'});});renderInbox();}
+function addFiles(list){[...list].forEach(f=>{if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)||(window.InvoiceEngine&&InvoiceEngine.isImage(f)))inbox.push({name:f.name,file:f,status:'pending',mig:f._mig||''});});renderInbox();}
 function clearInbox(){inbox=[];const r=document.getElementById('inboxResults');if(r)r.innerHTML='';const m=document.getElementById('inboxMsg');if(m)m.textContent='';renderInbox();}
 function renderInbox(){initInbox();const fl=document.getElementById('inboxFiles');if(!fl)return;
   fl.innerHTML=inbox.length?('<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">'+inbox.length+' file(s) in the pool:</div>'+inbox.map(it=>`<span class="pill">📄 ${aEsc(it.name)}</span>`).join(' ')):'<div style="color:var(--text-muted);font-size:13px;">No PDFs added yet.</div>';
@@ -437,13 +437,23 @@ async function runMigration(){
   const b=document.getElementById('migrateBtn'),msg=document.getElementById('inboxMsg');const old=b.textContent;b.disabled=true;b.textContent='Reading…';
   try{
     for(const it of inbox){if(it.parsed||it.error)continue;if(msg)msg.textContent='Reading '+it.name+'…';try{if(window.InvoiceEngine){it.text=await InvoiceEngine.pdfText(it.file);const q=InvoiceEngine.parse(it.text);it.parsed=q.kind==='sale'?q:Object.assign(parseInvoice(it.text.replace(/\n/g,' ')),{party:q.party||'',address:q.address,gstin:q.gstin||''});}else{it.text=await pdfText(it.file);it.parsed=parseInvoice(it.text);}}catch(e){it.error=e.message||'could not read';}}
+    // 1.22.0: use a layout taught in Migration → 🎓 Teach for anything the reader missed
+    inbox.forEach(it=>{if(it.posted||it.error||!it.parsed||!window.InvoiceEngine||!InvoiceEngine.applyLearned)return;const p=it.parsed,fld=p.kind==='sale'?'sales':'purchases';if(InvoiceEngine.applyLearned(it.text,fld,p)&&p.kind==='sale'&&p.invoiceNo&&p.party&&p.total&&p.date)p.confident=true;});
     inbox.forEach(it=>{if(it.posted||it.error||!it.parsed)return;if(it.parsed.kind==='sale'&&window.InvoiceEngine&&InvoiceEngine.skipParty(it.parsed.party)){it.status='skip';return;}if(it.parsed.kind==='sale'&&it.parsed.confident){const r=postSale(it.parsed,it.name);it.status=r.status;it.orderNo=r.orderNo;it.posted=(r.status==='posted');if(r.status==='dup')it.dup=g(FK).find(e=>e.kind==='sale'&&e.invoiceNo===it.parsed.invoiceNo);}else it.status='review';});    for(const it of inbox){if(it.file&&it.parsed&&(it.status==='posted'||it.status==='dup')&&!it.pdfSaved&&window.InvoiceEngine){if(msg)msg.textContent='Saving original PDF '+it.name+'…';try{it.pdfSaved=!!(await InvoiceEngine.savePdf(it.file,it.parsed.kind==='sale'?'sale':'purchase',it.parsed.invoiceNo,it.parsed.party));}catch(e){}}}
 
     if(msg)msg.textContent='';
   }catch(e){if(msg)msg.textContent=e.message;}
   b.disabled=false;b.textContent=old;renderResults();renderSales();renderPurchase();
 }
+// 1.22.0: report each file's result back to Migration (posted → done; not posted → "needs you" + 🎓 Teach there)
+function migWriteBack(){if(!window.InvoiceEngine||!InvoiceEngine.migReport)return;inbox.forEach(it=>{if(!it.mig)return;const p=it.parsed||{};
+  if(it.status==='posted')InvoiceEngine.migReport(it.mig,'posted',(p.kind==='sale'?'Sale ':'Purchase ')+(p.invoiceNo||'')+' posted'+(it.orderNo?' → '+it.orderNo:''));
+  else if(it.status==='dup')InvoiceEngine.migReport(it.mig,'posted','Already posted ('+(p.invoiceNo||'')+')');
+  else if(it.status==='skip')InvoiceEngine.migReport(it.mig,'posted','Skipped — '+(p.party||'')+' is never migrated');
+  else if(it.error||it.status==='review'){const why=it.error?('Could not read: '+it.error):!p.invoiceNo?'Invoice number not found':!p.party?'Party not found':!p.total?'Total not found':!p.date?'Date not found':(p.kind!=='sale'?'Purchase bill: pick its GRN':'Figures need checking');
+    InvoiceEngine.migReport(it.mig,'check',why+' — press 🎓 Teach',{guess:{kind:p.kind||'',invoiceNo:p.invoiceNo||'',date:p.date||'',party:p.party||'',gstin:p.gstin||'',taxable:p.taxable||0,igst:p.igst||0,cgst:p.cgst||0,sgst:p.sgst||0,total:p.total||0},text:String(it.text||'').slice(0,6000)});}});}
 function renderResults(){
+  try{migWriteBack();}catch(e){console.warn(e);}
   const el=document.getElementById('inboxResults');if(!el)return;
   if(!inbox.some(it=>it.parsed||it.error)){el.innerHTML='';return;}
   const rows=inbox.map((it,i)=>{
@@ -611,7 +621,7 @@ setType('income');renderDash();initInbox();
 let _pkBusy=false;async function pickShared(){if(_pkBusy||!('indexedDB' in window))return;_pkBusy=true;try{await _pickShared();}finally{_pkBusy=false;}}
 async function _pickShared(){let db;try{db=await new Promise((res,rej)=>{const r=indexedDB.open('sentire-share',1);r.onupgradeneeded=()=>r.result.createObjectStore('files',{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}catch(e){return;}
   const recs=await new Promise(res=>{const q=db.transaction('files').objectStore('files').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([]);});if(!recs.length)return;
-  const files=recs.map(r=>new File([r.blob],r.name,{type:r.type||'application/pdf'}));
+  const files=recs.map(r=>{const f=new File([r.blob],r.name,{type:r.type||'application/pdf'});f._mig=r.mig||'';return f;});
   await new Promise(res=>{const tx=db.transaction('files','readwrite');recs.forEach(r=>tx.objectStore('files').delete(r.id));tx.oncomplete=res;tx.onerror=res;});
   showV('invoices');addFiles(files);const m=document.getElementById('inboxMsg');if(m)m.textContent='📲 '+files.length+' invoice(s) received from WhatsApp — migrating…';
   await runMigration();toast('📲 '+files.length+' invoice(s) from WhatsApp processed — see the results');}

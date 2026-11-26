@@ -89,6 +89,7 @@ function renderFolders() {
 function openFolder(k) { cur = k; renderFolders(); renderPanel(); }
 function status(f, x) {
   if (x.state === 'check') return '<span class="tag t-chk">needs you</span><div class="dim">' + esc(x.note || '') + '</div>';
+  if (f.to === 'accounts' && x.waiting) return '<span class="tag t-new">sent to Accounts — waiting for the result</span><div class="dim">' + esc(when(x.sentAt)) + (x.sentBy ? ' · ' + esc(x.sentBy) : '') + '</div>';
   if (x.sentAt) return '<span class="tag t-sent">✓ ' + (f.to === 'accounts' || f.to === 'bank' ? 'migrated' : 'posted') + '</span><div class="dim">' + esc(x.note ? x.note + ' · ' : '') + esc(when(x.sentAt)) + (x.sentBy ? ' · ' + esc(x.sentBy) : '') + '</div>';
   return '<span class="tag t-new">new — not migrated yet</span>';
 }
@@ -108,6 +109,7 @@ function renderPanel() {
       return '<tr><td>📄 ' + esc(x.name) + (x.party ? '<div class="dim">' + esc(x.party) + (x.docType ? ' · ' + esc(x.docType) : '') + '</div>' : '') + '</td><td>' + esc(size(x.size || 0)) + '</td><td>' + esc(when(x.at)) + (x.by ? '<div class="dim">' + esc(x.by) + '</div>' : '') + '</td><td>' + status(f, x) + '</td><td style="white-space:nowrap">' +
         '<button class="btn sm" onclick="viewFile(\'' + x.id + '\')">👁 View</button> ' +
         ((f.to === 'lr' || f.to === 'other') && (x.state === 'check' || x.sentAt) ? '<button class="btn sm teach" onclick="teach(\'' + x.id + '\')">🎓 ' + (x.state === 'check' ? 'Teach' : 'Change') + '</button> ' : '') +
+        (f.to === 'accounts' && x.state === 'check' ? '<button class="btn sm teach" onclick="teach(\'' + x.id + '\')">🎓 Teach</button> ' : '') +
         ((f.to === 'accounts' || f.to === 'bank') && x.sentAt ? '<button class="btn sm" title="Send this file to migration again" onclick="migrate(\'' + x.id + '\')">🔄 Again</button> ' : '') +
         (canDel ? '<button class="btn sm red" onclick="delFile(\'' + x.id + '\')">🗑</button>' : '') + '</td></tr>';
     }).join('') + '</table>' : '<div class="dim" style="margin-top:8px">No files in this folder yet.</div>');
@@ -173,7 +175,7 @@ async function migrate(oneId) {
   if (!recs.length) { say('Could not get the files: ' + failed.join(', '), 'bad'); if (b) b.disabled = false; return; }
   try { await idbPut(f.to === 'bank' ? 'sentire-bank' : 'sentire-share', recs); } catch (e) { say('Could not hand the files over: ' + e.message, 'bad'); if (b) b.disabled = false; return; }
   var now = new Date().toISOString(), ids = recs.map(function (x) { return x.mig; });
-  save(list().map(function (y) { if (ids.indexOf(y.id) >= 0) { y.sentAt = now; y.sentBy = me(); } return y; }));
+  save(list().map(function (y) { if (ids.indexOf(y.id) >= 0) { y.sentAt = now; y.sentBy = me(); if (f.to === 'accounts') { y.waiting = true; delete y.state; } } return y; }));
   say('Opening ' + (f.to === 'bank' ? 'Smart Finance' : 'Accounts') + ' — the files are being read and posted…' + (failed.length ? ' (could not get: ' + failed.join(', ') + ')' : ''), 'good');
   setTimeout(function () {
     if (f.to === 'bank') { (inFrame() ? window.top : window).location.href = 'smart_finance.html'; return; }
@@ -259,11 +261,64 @@ function wireJobs() {
   };
   c.addEventListener('input', fill); fill();
 }
+// 1.22.0: 🎓 Teach for a Sales / Purchase bill that was not posted automatically.
+// The user checks / types the values once; the bill is posted and its layout is learnt (fin_mig_formats),
+// so the next bill of the same layout is read by itself in Accounts.
+async function teachBill(x, f, t, txt) {
+  var E = window.InvoiceEngine, sale = f.k === 'sales', g = x.guess || {}, lf = E.layoutFor(f.k, t) || {};
+  var v = {
+    inv: g.invoiceNo || E.pickAnchor(t, lf.inv, 'code'), date: g.date || E.toISO(E.pickAnchor(t, lf.date, 'date')) || E.toISO(guessDate(t)),
+    party: g.party || lf.party || partyIn(t) || '', gstin: g.gstin || '', taxable: g.taxable || '', igst: g.igst || '', cgst: g.cgst || '', sgst: g.sgst || '',
+    total: g.total || E.num(E.pickAnchor(t, lf.total, 'amount')) || ''
+  };
+  var P0 = sale ? Object.keys(ST.clients() || {}) : Object.keys(get('ordersheet_vendors', {}) || {});
+  var grn = sale ? [] : (get('inv_grn', []) || []).filter(function (r) { return !(ST.get('fin_entries', []) || []).some(function (e) { return e.kind === 'purchase' && e.grnNo === r.grnNo; }); });
+  var inp = function (id, lab, val, ph, typ) { return '<label>' + lab + '</label><input id="' + id + '" value="' + esc(val) + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + (typ ? ' type="' + typ + '"' : '') + '>'; };
+  var html = txt +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12px">' +
+    '<div>' + inp('b_inv', 'Invoice no.', v.inv, 'e.g. GST0520/26-27') + '</div><div>' + inp('b_date', 'Invoice date', v.date, '', 'date') + '</div>' +
+    '<div style="grid-column:1/3"><label>' + (sale ? 'Customer (bill to)' : 'Supplier') + '</label><input id="b_party" list="b_pl" value="' + esc(v.party) + '" placeholder="type or pick"><datalist id="b_pl">' + P0.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist></div>' +
+    '<div>' + inp('b_gstin', 'Party GST no.', v.gstin, '15 characters') + '</div><div>' + inp('b_tax', 'Taxable value (₹)', v.taxable, '', 'number') + '</div>' +
+    '<div>' + inp('b_igst', 'IGST (₹)', v.igst, '0 if CGST+SGST', 'number') + '</div><div>' + inp('b_cgst', 'CGST (₹)', v.cgst, '', 'number') + '</div>' +
+    '<div>' + inp('b_sgst', 'SGST (₹)', v.sgst, '', 'number') + '</div><div>' + inp('b_total', 'Bill total (₹)', v.total, '', 'number') + '</div>' +
+    (sale ? '' : '<div style="grid-column:1/3"><label>GRN of these goods</label><select id="b_grn"><option value="">— pick the GRN —</option>' + grn.map(function (r) { return '<option value="' + esc(r.grnNo) + '">' + esc(r.grnNo + (r.party ? ' · ' + r.party : '') + (r.date ? ' · ' + r.date : '')) + '</option>'; }).join('') + '<option value="NO-GOODS">No goods (service / expense bill)</option></select></div>') +
+    '</div>';
+  var r = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Check or type the values exactly as they are on this ' + (sale ? 'sales' : 'purchase') + ' bill, then Save & post. The software learns where they are, so the next bill like this is read by itself.', wide: true, html: html,
+    buttons: [{ label: 'Cancel', value: null }, { label: '✓ Save & post', cls: 'ok', onClick: function (ov, err) {
+      var q = function (i) { var el = ov.querySelector('#' + i); return el ? el.value.trim() : ''; };
+      if (!q('b_inv')) { err.textContent = 'Type the invoice number.'; return false; }
+      if (!q('b_date')) { err.textContent = 'Pick the invoice date.'; return false; }
+      if (!q('b_party')) { err.textContent = 'Type or pick the ' + (sale ? 'customer' : 'supplier') + '.'; return false; }
+      if (!E.num(q('b_total'))) { err.textContent = 'Type the bill total.'; return false; }
+      if (!sale && !q('b_grn')) { err.textContent = 'Pick the GRN (or "No goods").'; return false; }
+      return { inv: q('b_inv'), date: q('b_date'), party: q('b_party').toUpperCase(), gstin: q('b_gstin').toUpperCase(), taxable: E.num(q('b_tax')), igst: E.num(q('b_igst')), cgst: E.num(q('b_cgst')), sgst: E.num(q('b_sgst')), total: E.num(q('b_total')), grn: q('b_grn') };
+    } }] });
+  if (!r) return;
+  if (sale && E.skipParty(r.party)) { upd(x.id, function (y) { y.state = 'posted'; y.note = 'Skipped — ' + r.party + ' is never migrated'; }); renderFolders(); renderPanel(); say('Skipped: ' + r.party + ' bills are never migrated.', 'good'); return; }
+  var gstAmt = r.igst + r.cgst + r.sgst, tax = r.taxable || Math.max(0, r.total - gstAmt);
+  var p = { kind: sale ? 'sale' : 'purchase', invoiceNo: r.inv, date: r.date, party: r.party, gstin: r.gstin, taxable: tax, igst: r.igst, cgst: r.cgst, sgst: r.sgst, total: r.total,
+            gstType: r.igst ? 'IGST' : (r.cgst || r.sgst ? 'CGST+SGST' : ''), gstPct: tax ? Math.round(gstAmt / tax * 100) : 0, items: [], confident: true, taught: true };
+  if (!sale) p.grnNo = r.grn === 'NO-GOODS' ? '' : r.grn;
+  var res = sale ? E.postSale(p, x.name) : E.postPurchase(p, x.name);
+  // learn the layout: the words in front of the invoice no., date and total on this bill
+  if (t) {
+    var dShown = (String(t).match(/\b\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}\b/g) || []).find(function (d) { return E.toISO(d) === r.date; }) || '';
+    var totShown = (String(t).match(/[0-9][0-9,]*\.\d{2}/g) || []).find(function (a) { return Math.abs(E.num(a) - r.total) < 0.01; }) || '';
+    var keys = E.layoutKeys(t), rule = { folder: f.k, keys: keys, inv: E.learnAnchor(t, r.inv), date: dShown ? E.learnAnchor(t, dShown) : null, total: totShown ? E.learnAnchor(t, totShown) : null, at: new Date().toISOString(), by: me() };
+    if (keys.length && (rule.inv || rule.date || rule.total)) { var F = get(FMT, []).filter(function (m) { return !(m.folder === f.k && (m.keys || []).join() === keys.join()); }); F.push(rule); put(FMT, F); }
+  }
+  try { if (res.status === 'posted' || res.status === 'dup') { var bl = await blobOf(x); await E.savePdf(new File([bl], x.name, { type: x.type || bl.type }), sale ? 'sale' : 'purchase', r.inv, r.party); } } catch (e) {}
+  upd(x.id, function (y) { y.state = 'posted'; y.sentAt = y.sentAt || new Date().toISOString(); y.sentBy = me(); y.party = r.party; y.note = (res.status === 'dup' ? 'Already posted (' : (sale ? 'Sale ' : 'Purchase ') + 'posted (') + r.inv + ') — taught'; });
+  renderFolders(); renderPanel();
+  say(res.status === 'dup' ? 'Invoice ' + r.inv + ' was already posted — nothing added. Layout learnt.' : '✓ ' + (sale ? 'Sale' : 'Purchase') + ' ' + r.inv + ' posted for ' + r.party + '. Learnt — the next bill like this is read by itself.', 'good');
+}
+
 async function teach(id) {
   var x = list().find(function (y) { return y.id === id; }); if (!x) return; var f = fold(x.folder);
   var t = ''; try { say('Reading ' + x.name + '…'); t = await textOf(x); say(''); } catch (e) { say('Could not read: ' + e.message, 'bad'); }
   setTimeout(wireJobs, 60);
   var txt = '<div class="dim">What the software read from the document (👁 View shows the file):</div><div class="rtext">' + esc(t || '(nothing could be read — type the values from the document)') + '</div>';
+  if (f.to === 'accounts') { await teachBill(x, f, t, txt); return; }
   if (f.to === 'lr') {
     var P0 = parties();
     var r = await ST.modal({ title: '🎓 Teach — ' + esc(x.name), sub: 'Type the L.R. number and date exactly as they are on this L.R. copy and pick the client / consignee. Next time an L.R. like this is read by itself (the client is also found by name or GST number).', wide: true,
