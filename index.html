@@ -193,8 +193,8 @@ if(window.SentireAuth&&SentireAuth.filterApps)SentireAuth.filterApps(APPS); // r
 {const _A=window.SentireAuth;if(!_A||!_A.enabled||_A.isSecurityAdmin()||(_A.user&&Array.isArray(_A.user.apps)&&_A.user.apps.indexOf('migration.html')>=0)){const _p=APPS.findIndex(a=>a.key==='purchase');APPS.splice(_p>=0?_p+1:APPS.length,0,{key:'migration',file:'migration.html',name:'Migration',short:'Migrate',ic:'📂',c:'#0ea5e9',desc:'Folders for Sales, Purchases, L.R. copy, Banking and Other documents — save files, press Migrate, they are posted'});}}
 // The Admin section is for the Admin and Sub Admin only: everyone else does not get the Loadcell Calculator or Cohort at all.
 const ADMIN_KEYS=['calculator','cohort'];
-const ACC_KEYS=['accounts','purchase','migration'];
-const HIDDEN_KEYS=['tests'];   // Detail Test Report: opened from Masters, not listed in the menus   // the Accounts section: Accounts & Reports, Purchase & GRN
+const ACC_KEYS=['accounts','migration'];   // 1.18.6: Purchase & GRN is opened from Accounts & Reports only
+const HIDDEN_KEYS=['tests','purchase'];   // Detail Test Report: opened from Masters, not listed in the menus   // the Accounts section: Accounts & Reports, Purchase & GRN
 const IS_ADMIN=!window.SentireAuth||!SentireAuth.enabled||SentireAuth.isSecurityAdmin();
 if(!IS_ADMIN)ADMIN_KEYS.forEach(k=>{const _i=APPS.findIndex(a=>a.key===k);if(_i>=0)APPS.splice(_i,1);});
 const HOME={key:'home',name:'Main Page',short:'Main',ic:'⌂',c:'#3b82f6'};
