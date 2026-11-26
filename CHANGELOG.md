@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.20.1 | 26 Nov 2026 | Import Tracking: new Reference No. (the number given by the party) next to the PO#; ✏ Edit and 🗑 Delete on every import order (delete: Admin / Sub Admin only); search box finds an import by PO, Reference No., supplier or item |
 | 1.20.0 | 26 Nov 2026 | Inventory → BOM is now a sheet: pick the TARGET load cell type (e.g. ALC), pick each SOURCE item from the Stock Items drop-down, type the qty for ONE piece (decimals allowed, e.g. 16.5 m wire), press ✓ Save BOM. Saved BOMs listed with ✏ Edit; whole BOM can be deleted. Calculator lists every type that has a BOM |
 | 1.19.1 | 26 Nov 2026 | Inventory → Import Tracking: new import orders are entered as item lines in PIECES with the price per piece in US DOLLARS ($); the line totals and order total are in $ (no rupee calculation). Items can be picked from the stock list. Older ₹ entries show as '(old)' |
 | 1.19.0 | 26 Nov 2026 | One table format on every screen (table_format.js, loaded by auth.js): the client / party / customer / supplier / vendor / company name is the FIRST column (only a tick box or # may stay before it) and Actions is the LAST column, kept visible on the right while scrolling. Also applies to tables drawn later. Order-entry item table and stock item lists are left as they are; a table can opt out with data-tf="off" |

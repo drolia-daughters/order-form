@@ -91,17 +91,17 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 
 <!-- IMPORT TRACKING -->
 <div class="view" id="v_import"><h2 style="margin-bottom:16px;">China Import Tracking</h2>
-<button class="btn btn-primary" style="margin-bottom:16px;" onclick="addImport()">+ New Import Order</button>
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;"><button class="btn btn-primary" onclick="addImport()">+ New Import Order</button><input id="imp_q" placeholder="🔍 Search PO / Reference No. / supplier / item" oninput="renderImports()" style="max-width:340px;padding:9px 12px;"></div>
 <div class="card" id="impForm" style="display:none;margin-bottom:16px;">
-<h3 style="margin-bottom:4px;">New Import Order</h3><p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Quantity in <b>pieces</b> and price in <b>US dollars ($) per piece</b>, as on the supplier's invoice. No rupee calculation here.</p>
-<div class="form-grid"><div class="form-group"><label>PO Number</label><input id="ip_po"></div><div class="form-group"><label>Supplier</label><input id="ip_sup" placeholder="e.g. NINGBO ..."></div></div>
+<h3 style="margin-bottom:4px;" id="ip_title">New Import Order</h3><p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Quantity in <b>pieces</b> and price in <b>US dollars ($) per piece</b>, as on the supplier's invoice. No rupee calculation here.</p>
+<div class="form-grid"><div class="form-group"><label>PO Number</label><input id="ip_po"></div><div class="form-group"><label>Reference No. (given by the party)</label><input id="ip_ref" placeholder="e.g. supplier's PI / invoice / order no."></div><div class="form-group full"><label>Supplier</label><input id="ip_sup" placeholder="e.g. NINGBO ..."></div></div>
 <datalist id="ip_items"></datalist>
 <div class="table-wrap" style="margin-top:12px;"><table data-tf="off"><thead><tr><th>Item</th><th class="num">Qty (pcs)</th><th class="num">Price per pc ($)</th><th class="num">Line total ($)</th><th></th></tr></thead><tbody id="ip_lines"></tbody></table></div>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:10px;"><button class="btn" onclick="ipAddLine()">+ Add item line</button><div style="font-family:var(--mono);font-weight:700;">Total: <span id="ip_total">$0.00</span></div></div>
 <div class="form-group" style="margin-top:12px;"><label>Notes</label><input id="ip_notes"></div>
 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><button class="btn" onclick="document.getElementById('impForm').style.display='none'">Cancel</button><button class="btn btn-primary" onclick="saveImport()">✓ Save import order</button></div>
 </div>
-<div class="table-wrap"><table><thead><tr><th>Actions</th><th>PO#</th><th>Supplier</th><th>Items</th><th>Order Date</th><th>ETA (50d)</th><th>Days Left</th><th>Status</th><th>Value ($)</th><th>Notes</th></tr></thead><tbody id="impBody"></tbody></table></div></div>
+<div class="table-wrap"><table><thead><tr><th>Actions</th><th>PO#</th><th>Reference No.</th><th>Supplier</th><th>Items</th><th>Order Date</th><th>ETA (50d)</th><th>Days Left</th><th>Status</th><th>Value ($)</th><th>Notes</th></tr></thead><tbody id="impBody"></tbody></table></div></div>
 
 <!-- TRANSACTIONS -->
 <div class="view" id="v_txn"><h2 style="margin-bottom:16px;">Stock Transactions</h2>
@@ -157,23 +157,31 @@ function ipLine(l){l=l||{};return `<tr><td><input list="ip_items" class="ip_it" 
 function ipAddLine(){document.getElementById('ip_lines').insertAdjacentHTML('beforeend',ipLine());ipCalc();}
 function ipRows(){return [...document.querySelectorAll('#ip_lines tr')].map(r=>({item:r.querySelector('.ip_it').value.trim(),qty:+r.querySelector('.ip_q').value||0,usd:+r.querySelector('.ip_p').value||0,_r:r}));}
 function ipCalc(){let t=0;ipRows().forEach(l=>{const lt=l.qty*l.usd;t+=lt;l._r.querySelector('.ip_lt').textContent=usd(lt);});document.getElementById('ip_total').textContent=usd(t);}
-function addImport(){const f=document.getElementById('impForm');
+let ipEdit=-1;
+function addImport(ri){const f=document.getElementById('impForm');ipEdit=(typeof ri==='number')?ri:-1;const ex=ipEdit>=0?g(IMPK)[ipEdit]:null;
   document.getElementById('ip_items').innerHTML=g(IK).map(i=>`<option value="${escI(i.name+(i.code?' ['+i.code+']':''))}">`).join('');
-  ['ip_po','ip_sup','ip_notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('ip_lines').innerHTML=ipLine()+ipLine()+ipLine();ipCalc();
+  document.getElementById('ip_po').value=ex?ex.po||'':'';document.getElementById('ip_ref').value=ex?ex.ref||'':'';document.getElementById('ip_sup').value=ex?ex.supplier||'':'';document.getElementById('ip_notes').value=ex?ex.notes||'':'';
+  document.getElementById('ip_title').textContent=ex?'Edit Import Order '+ex.po:'New Import Order';
+  document.getElementById('ip_lines').innerHTML=(ex&&ex.lines&&ex.lines.length?ex.lines.map(ipLine).join(''):'')+ipLine()+(ex?'':ipLine()+ipLine());ipCalc();f.scrollIntoView({behavior:'smooth',block:'start'});
   f.style.display='block';document.getElementById('ip_po').focus();}
 function saveImport(){const po=document.getElementById('ip_po').value.trim();if(!po)return alert('Type the PO number.');
   const lines=ipRows().filter(l=>l.item||l.qty||l.usd).map(l=>({item:l.item,qty:l.qty,usd:l.usd}));
   if(!lines.length)return alert('Add at least one item line.');
   const bad=lines.find(l=>!l.item||!(l.qty>0)||!(l.usd>0));if(bad)return alert('Every line needs the item, the quantity in pieces and the price per piece in $.');
   const valueUsd=Math.round(lines.reduce((a,l)=>a+l.qty*l.usd,0)*100)/100;
-  const imports=g(IMPK);imports.push({po,supplier:document.getElementById('ip_sup').value.trim().toUpperCase(),lines,items:lines.map(l=>l.item+' × '+l.qty+' pcs @ '+usd(l.usd)+'/pc').join(', '),orderDate:new Date().toISOString().split('T')[0],eta:new Date(Date.now()+50*86400000).toISOString().split('T')[0],status:'Ordered',currency:'USD',valueUsd,notes:document.getElementById('ip_notes').value.trim()});
-  s(IMPK,imports);document.getElementById('impForm').style.display='none';toast('✓ Import order saved — '+usd(valueUsd));renderImports();}
+  const imports=g(IMPK),ref=document.getElementById('ip_ref').value.trim(),dup=imports.findIndex((x,k)=>k!==ipEdit&&String(x.po).toUpperCase()===po.toUpperCase());
+  if(dup>=0&&!confirm('PO '+po+' already exists. Save anyway?'))return;
+  const rec={po,ref,supplier:document.getElementById('ip_sup').value.trim().toUpperCase(),lines,items:lines.map(l=>l.item+' × '+l.qty+' pcs @ '+usd(l.usd)+'/pc').join(', '),currency:'USD',valueUsd,notes:document.getElementById('ip_notes').value.trim()};
+  if(ipEdit>=0){const old=imports[ipEdit];imports[ipEdit]=Object.assign({},old,rec);delete imports[ipEdit].value;}
+  else imports.push(Object.assign(rec,{orderDate:new Date().toISOString().split('T')[0],eta:new Date(Date.now()+50*86400000).toISOString().split('T')[0],status:'Ordered'}));
+  s(IMPK,imports);document.getElementById('impForm').style.display='none';toast((ipEdit>=0?'✓ Import order updated — ':'✓ Import order saved — ')+usd(valueUsd));ipEdit=-1;renderImports();}
+function delImport(ri){const imports=g(IMPK),x=imports[ri];if(!x)return;if(!confirm('Delete import order '+x.po+(x.ref?' (Ref '+x.ref+')':'')+'?'))return;imports.splice(ri,1);s(IMPK,imports);toast('Import order '+x.po+' deleted');renderImports();}
 function renderImports(){const imports=g(IMPK),today=new Date().toISOString().split('T')[0];
-document.getElementById('impBody').innerHTML=imports.slice().reverse().map((imp,i)=>{
-  const ri=imports.length-1-i;const daysLeft=Math.ceil((new Date(imp.eta)-Date.now())/86400000);
+const q=String((document.getElementById('imp_q')||{}).value||'').trim().toLowerCase();
+document.getElementById('impBody').innerHTML=imports.map((imp,ri)=>[imp,ri]).reverse().filter(([imp])=>!q||[imp.po,imp.ref,imp.supplier,imp.items,imp.notes].join(' ').toLowerCase().includes(q)).map(([imp,ri])=>{const daysLeft=Math.ceil((new Date(imp.eta)-Date.now())/86400000);
   const overdue=daysLeft<0&&imp.status!=='Received';
   const statusOpts=['Ordered','Shipped','In Transit','At Port','Customs','Received'];
-  return `<tr style="${imp.status==='Received'?'opacity:0.5;':''}"><td><select onchange="updateImportStatus(${ri},this.value)" style="padding:4px;font-size:10px;width:90px;">${statusOpts.map(st=>`<option${st===imp.status?' selected':''}>${st}</option>`).join('')}</select></td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${imp.po}</td><td>${imp.supplier||'—'}</td><td style="white-space:normal;max-width:320px;">${imp.lines?imp.lines.map(l=>escI(l.item)+' × '+l.qty+' pcs @ '+usd(l.usd)+'/pc').join('<br>'):(imp.items||'—')}</td><td style="font-family:var(--mono);font-size:10px;">${imp.orderDate}</td><td style="font-family:var(--mono);font-size:10px;">${imp.eta}</td><td style="font-family:var(--mono);font-weight:700;${overdue?'color:var(--red);':daysLeft<=7?'color:var(--orange);':''}">${imp.status==='Received'?'✓ Done':overdue?daysLeft+'d LATE':daysLeft+'d'}</td><td><span class="tag" style="background:${imp.status==='Received'?'var(--green-dim)':'rgba(59,130,246,0.12)'};color:${imp.status==='Received'?'var(--green)':'#60a5fa'};">${imp.status}</span></td><td style="font-family:var(--mono);">${imp.valueUsd!=null?usd(imp.valueUsd):imp.value?'₹'+parseInt(imp.value).toLocaleString()+' (old)':'—'}</td><td>${imp.notes||'—'}</td></tr>`;
+  return `<tr style="${imp.status==='Received'?'opacity:0.5;':''}"><td><select onchange="updateImportStatus(${ri},this.value)" style="padding:4px;font-size:10px;width:90px;">${statusOpts.map(st=>`<option${st===imp.status?' selected':''}>${st}</option>`).join('')}</select> <button class="act-btn" title="Edit" onclick="addImport(${ri})" style="padding:4px 8px;">✏</button> <button class="act-btn" title="Delete" onclick="delImport(${ri})" style="padding:4px 8px;color:var(--red);">🗑</button></td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${escI(imp.po)}</td><td style="font-family:var(--mono);">${imp.ref?escI(imp.ref):'—'}</td><td>${imp.supplier||'—'}</td><td style="white-space:normal;max-width:320px;">${imp.lines?imp.lines.map(l=>escI(l.item)+' × '+l.qty+' pcs @ '+usd(l.usd)+'/pc').join('<br>'):(imp.items||'—')}</td><td style="font-family:var(--mono);font-size:10px;">${imp.orderDate}</td><td style="font-family:var(--mono);font-size:10px;">${imp.eta}</td><td style="font-family:var(--mono);font-weight:700;${overdue?'color:var(--red);':daysLeft<=7?'color:var(--orange);':''}">${imp.status==='Received'?'✓ Done':overdue?daysLeft+'d LATE':daysLeft+'d'}</td><td><span class="tag" style="background:${imp.status==='Received'?'var(--green-dim)':'rgba(59,130,246,0.12)'};color:${imp.status==='Received'?'var(--green)':'#60a5fa'};">${imp.status}</span></td><td style="font-family:var(--mono);">${imp.valueUsd!=null?usd(imp.valueUsd):imp.value?'₹'+parseInt(imp.value).toLocaleString()+' (old)':'—'}</td><td>${imp.notes||'—'}</td></tr>`;
 }).join('');}
 function updateImportStatus(ri,st){const imports=g(IMPK);imports[ri].status=st;s(IMPK,imports);renderImports();toast('✓ Updated');}
 

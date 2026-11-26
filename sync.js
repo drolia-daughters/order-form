@@ -192,7 +192,7 @@
 
   // ── Admin-only delete: hide the buttons, and block the functions, for everyone else ──
   var APV = ['approveOrder', 'approveLaser', 'approvePacking', 'approveBill'];
-  var DEL = ['cancelOrder', 'deletePartyName', 'deleteSavedLogo', 'delMove', 'delParty', 'deleteCompetitor', 'deleteLead', 'delEntry', 'delAppr', 'delHol', 'delBOM', 'delBatch', 'delRem'];
+  var DEL = ['cancelOrder', 'deletePartyName', 'deleteSavedLogo', 'delMove', 'delParty', 'deleteCompetitor', 'deleteLead', 'delEntry', 'delAppr', 'delHol', 'delBOM', 'delBatch', 'delRem', 'delImport'];
   function lockList(list, allowed, text) {
     if (allowed) return;
     var css = document.createElement('style');
