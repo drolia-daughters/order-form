@@ -185,8 +185,8 @@ const APPS=[
   {key:'masters',    file:'masters.html',              name:'Masters',             short:'Masters',    ic:'MS',c:'#64748b',desc:'Clients & payment days, transporters, approvers, company, holidays, reminder rules'}
 ];
 if(window.SentireAuth&&SentireAuth.filterApps)SentireAuth.filterApps(APPS); // rights: hide apps this person may not open
-// 1.18.0: 📂 Migration — in the Accounts section of the menu, for the Admin, Sub Admin and the accounts login (bill right)
-{const _A=window.SentireAuth;if(!_A||!_A.enabled||_A.isSecurityAdmin()||(_A.canBill&&_A.canBill())){const _p=APPS.findIndex(a=>a.key==='purchase');APPS.splice(_p>=0?_p+1:APPS.length,0,{key:'migration',file:'migration.html',name:'Migration',short:'Migrate',ic:'📂',c:'#0ea5e9',desc:'Folders for Sales, Purchases, L.R. copy, Banking and Other documents — save files, press Migrate, they are posted'});}}
+// 1.18.3: 📂 Migration — in the Accounts section of the menu, for the Admin, Sub Admin and users ticked for Migration on the Users page (e.g. User 10)
+{const _A=window.SentireAuth;if(!_A||!_A.enabled||_A.isSecurityAdmin()||(_A.user&&Array.isArray(_A.user.apps)&&_A.user.apps.indexOf('migration.html')>=0)){const _p=APPS.findIndex(a=>a.key==='purchase');APPS.splice(_p>=0?_p+1:APPS.length,0,{key:'migration',file:'migration.html',name:'Migration',short:'Migrate',ic:'📂',c:'#0ea5e9',desc:'Folders for Sales, Purchases, L.R. copy, Banking and Other documents — save files, press Migrate, they are posted'});}}
 // The Admin section is for the Admin and Sub Admin only: everyone else does not get the Loadcell Calculator or Cohort at all.
 const ADMIN_KEYS=['calculator','cohort'];
 const ACC_KEYS=['accounts','purchase','migration'];

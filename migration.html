@@ -296,7 +296,7 @@ function start() {
 if (!A || !A.enabled) start();
 else A.ready.then(function (u) {
   if (!u) return;
-  if (!(A.isSecurityAdmin(u) || A.canBill())) { document.querySelector('.wrap').innerHTML = '<div class="top"><h1>📂 Migration</h1></div><p class="sub">Only the Admin, Sub Admin and the accounts login can open this page.</p>'; return; }
+  if (!(A.isSecurityAdmin(u) || (Array.isArray(u.apps) && u.apps.indexOf('migration.html') >= 0))) { document.querySelector('.wrap').innerHTML = '<div class="top"><h1>📂 Migration</h1></div><p class="sub">Only the Admin, Sub Admin and users ticked for 📂 Migration on the Users page can open this page.</p>'; return; }
   start();
 });
 document.addEventListener('st-sync', function (e) { if (!e.detail || !e.detail.keys || e.detail.keys.indexOf(KEY) >= 0) { renderFolders(); renderPanel(); } });
