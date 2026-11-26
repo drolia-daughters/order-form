@@ -42,12 +42,12 @@ input,select,textarea{background:var(--surface);border:1px solid var(--border);b
 <!-- STOCK ITEMS -->
 <div class="view" id="v_items"><h2 style="margin-bottom:16px;">Stock Items</h2>
 <div style="display:flex;gap:8px;margin-bottom:12px;"><input type="text" id="iSrch" placeholder="Search..." oninput="renderItems()" style="max-width:250px;"><select id="iFilt" onchange="renderItems()" style="max-width:180px;"><option value="">All Categories</option><option>Loadcell Body</option><option>Electronics</option><option>Wire</option><option>Hardware</option><option>Packaging</option><option>Raw Material</option><option>Other</option></select><select id="iStock" onchange="renderItems()" style="max-width:150px;"><option value="">All Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div>
-<div class="table-wrap"><table><thead><tr><th>Actions</th><th>Item Code</th><th>Item Name</th><th>Category</th><th>Current Stock</th><th>By location</th><th>Unit</th><th>Reorder Level</th><th>Status</th><th>Lead Time</th><th>Supplier</th><th>Cost/Unit (₹)</th><th>Last Updated</th></tr></thead><tbody id="iBody"></tbody></table></div></div>
+<div class="table-wrap"><table><thead><tr><th>Actions</th><th>Item Name</th><th>Category</th><th>Current Stock</th><th>By location</th><th>Unit</th><th>Reorder Level</th><th>Status</th><th>Lead Time</th><th>Supplier</th><th>Cost/Unit (₹)</th><th>Last Updated</th></tr></thead><tbody id="iBody"></tbody></table></div></div>
 
 <!-- ADD ITEM -->
 <div class="view" id="v_add"><h2 style="margin-bottom:16px;" id="ifTitle">Add Stock Item</h2><div class="card">
 <form class="form-grid" id="iForm" onsubmit="return saveItem(event)">
-<div class="form-group"><label>Item Code *</label><input type="text" id="if_code" required placeholder="e.g. LC-BODY-ALC"></div>
+<input type="hidden" id="if_code">
 <div class="form-group"><label>Item Name *</label><input type="text" id="if_name" required></div>
 <div class="form-group"><label>Category</label><select id="if_cat"><option>Finished Good</option><option>Loadcell Body</option><option>Electronics</option><option>Wire</option><option>Hardware</option><option>Packaging</option><option>Raw Material</option><option>Other</option></select></div>
 <div class="form-group"><label>Unit</label><select id="if_unit"><option>Pcs</option><option>Kg</option><option>Meters</option><option>Rolls</option><option>Sets</option><option>Boxes</option><option>Liters</option></select></div>
@@ -121,9 +121,10 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m||'✓
 
 // ITEMS
 function saveItem(e){e.preventDefault();const items=g(IK);
-const item={code:document.getElementById('if_code').value.trim().toUpperCase(),name:document.getElementById('if_name').value.trim(),category:document.getElementById('if_cat').value,unit:document.getElementById('if_unit').value,stock:parseInt(document.getElementById('if_stock').value)||0,reorder:parseInt(document.getElementById('if_reorder').value)||0,leadTime:parseInt(document.getElementById('if_lead').value)||50,cost:parseFloat(document.getElementById('if_cost').value)||0,supplier:document.getElementById('if_supplier').value,moq:parseInt(document.getElementById('if_moq').value)||0,notes:document.getElementById('if_notes').value,updated:new Date().toISOString().split('T')[0]};
+const nm=document.getElementById('if_name').value.trim();if(!nm)return alert('Type the item name.');
+const item={code:editCode||nm.toUpperCase(),name:nm,category:document.getElementById('if_cat').value,unit:document.getElementById('if_unit').value,stock:parseInt(document.getElementById('if_stock').value)||0,reorder:parseInt(document.getElementById('if_reorder').value)||0,leadTime:parseInt(document.getElementById('if_lead').value)||50,cost:parseFloat(document.getElementById('if_cost').value)||0,supplier:document.getElementById('if_supplier').value,moq:parseInt(document.getElementById('if_moq').value)||0,notes:document.getElementById('if_notes').value,updated:new Date().toISOString().split('T')[0]};
 if(editCode){const idx=items.findIndex(i=>i.code===editCode);if(idx>=0){item.stock=items[idx].stock;items[idx]=Object.assign({},items[idx],item);}editCode=null;}
-else{if(items.find(i=>i.code===item.code))return alert('Item code already exists!');items.push(item);}
+else{if(items.find(i=>i.code===item.code||String(i.name).trim().toUpperCase()===item.code))return alert('An item named '+nm+' already exists.');items.push(item);}
 s(IK,items);resetIF();toast();showV('items');}
 function resetIF(){document.getElementById('iForm').reset();document.getElementById('if_lead').value='50';editCode=null;document.getElementById('ifTitle').textContent='Add Stock Item';document.getElementById('if_stock').readOnly=false;document.getElementById('if_stock').style.opacity='';document.getElementById('if_stock_lbl').textContent='Opening Stock *';document.getElementById('ifBtn').textContent='+ Add Item';}
 function editItem(code){const items=g(IK),it=items.find(i=>i.code===code);if(!it)return;editCode=code;
@@ -136,12 +137,12 @@ const fl=items.filter(i=>{if(srch&&!((i.code+i.name+i.supplier).toLowerCase().in
 document.getElementById('iBody').innerHTML=fl.map(i=>{
   const low=i.stock<=i.reorder;const out=i.stock===0;
   const statusTag=out?'<span class="tag" style="background:rgba(239,68,68,0.12);color:var(--red);font-weight:700;">OUT OF STOCK</span>':low?'<span class="tag" style="background:rgba(245,158,11,0.12);color:var(--orange);">⚠ LOW</span>':'<span class="tag" style="background:var(--green-dim);color:var(--green);">OK</span>';
-  return `<tr class="${low?'low-stock':''}"><td><button class="act-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editItem('${i.code}')">✏️</button></td><td style="font-family:var(--mono);font-weight:600;color:var(--accent);">${i.code}</td><td><strong>${i.name}</strong></td><td>${i.category}</td><td style="font-family:var(--mono);font-weight:700;${low?'color:var(--red);':''}">${i.stock}</td><td style="font-size:10px;white-space:nowrap;">${locText(i)}</td><td>${i.unit}</td><td style="font-family:var(--mono);">${i.reorder}</td><td>${statusTag}</td><td>${i.leadTime||50}d</td><td>${i.supplier||'—'}</td><td style="font-family:var(--mono);">${i.cost?'₹'+i.cost.toLocaleString():'—'}</td><td style="font-size:10px;font-family:var(--mono);">${i.updated||'—'}</td></tr>`;
+  return `<tr class="${low?'low-stock':''}"><td><button class="act-btn" style="background:rgba(245,158,11,0.1);color:var(--orange);border-color:rgba(245,158,11,0.3);" onclick="editItem('${i.code}')">✏️</button></td><td><strong>${i.name}</strong></td><td>${i.category}</td><td style="font-family:var(--mono);font-weight:700;${low?'color:var(--red);':''}">${i.stock}</td><td style="font-size:10px;white-space:nowrap;">${locText(i)}</td><td>${i.unit}</td><td style="font-family:var(--mono);">${i.reorder}</td><td>${statusTag}</td><td>${i.leadTime||50}d</td><td>${i.supplier||'—'}</td><td style="font-family:var(--mono);">${i.cost?'₹'+i.cost.toLocaleString():'—'}</td><td style="font-size:10px;font-family:var(--mono);">${i.updated||'—'}</td></tr>`;
 }).join('');}
 
 // TRANSACTIONS
 function addTxn(type){if(type==='in'){location.href='purchase.html#newgrn';return;}const items=g(IK);if(!items.length)return alert('Add items first.');
-const code=prompt('Item Code (e.g. LC-BODY-ALC):');if(!code)return;const item=items.find(i=>i.code===code.toUpperCase());if(!item)return alert('Item not found: '+code);
+const code=prompt('Item name:');if(!code)return;const C=code.trim().toUpperCase();const item=items.find(i=>String(i.name).trim().toUpperCase()===C)||items.find(i=>i.code===C);if(!item)return alert('Item not found: '+code);
 const qty=parseInt(prompt((type==='in'?'Quantity received:':'Quantity used/shipped:')));if(!qty||qty<=0)return alert('Invalid quantity.');
 const ref=prompt('Reference (PO#, Order#, etc):');const note=prompt('Notes:');
 const before=item.stock;item.stock=type==='in'?item.stock+qty:Math.max(0,item.stock-qty);item.updated=new Date().toISOString().split('T')[0];
@@ -159,7 +160,7 @@ function ipRows(){return [...document.querySelectorAll('#ip_lines tr')].map(r=>(
 function ipCalc(){let t=0;ipRows().forEach(l=>{const lt=l.qty*l.usd;t+=lt;l._r.querySelector('.ip_lt').textContent=usd(lt);});document.getElementById('ip_total').textContent=usd(t);}
 let ipEdit=-1;
 function addImport(ri){const f=document.getElementById('impForm');ipEdit=(typeof ri==='number')?ri:-1;const ex=ipEdit>=0?g(IMPK)[ipEdit]:null;
-  document.getElementById('ip_items').innerHTML=g(IK).map(i=>`<option value="${escI(i.name+(i.code?' ['+i.code+']':''))}">`).join('');
+  document.getElementById('ip_items').innerHTML=g(IK).map(i=>`<option value="${escI(i.name||i.code)}">`).join('');
   document.getElementById('ip_po').value=ex?ex.po||'':'';document.getElementById('ip_ref').value=ex?ex.ref||'':'';document.getElementById('ip_sup').value=ex?ex.supplier||'':'';document.getElementById('ip_notes').value=ex?ex.notes||'':'';
   document.getElementById('ip_title').textContent=ex?'Edit Import Order '+ex.po:'New Import Order';
   document.getElementById('ip_lines').innerHTML=(ex&&ex.lines&&ex.lines.length?ex.lines.map(ipLine).join(''):'')+ipLine()+(ex?'':ipLine()+ipLine());ipCalc();f.scrollIntoView({behavior:'smooth',block:'start'});
@@ -189,14 +190,14 @@ function updateImportStatus(ri,st){const imports=g(IMPK);imports[ri].status=st;s
 // 1.20.0: BOM sheet — target (load cell type) + source items picked from Stock Items, qty for ONE piece, Save
 // 1.20.2: the TARGET is a produced ITEM (category Finished Good, e.g. ALC-O16) — never a group like ALC
 const isFG=i=>/finished/i.test(String(i.category||''));
-function bsTargets(){const items=g(IK),fg=items.filter(isFG).map(i=>({code:i.code,label:i.name&&i.name!==i.code?i.name+' ['+i.code+']':i.code}));
+function bsTargets(){const items=g(IK),fg=items.filter(isFG).map(i=>({code:i.code,label:i.name||i.code}));
   g(BOMK).forEach(b=>{if(!fg.some(x=>x.code===b.type))fg.push({code:b.type,label:b.type+' — old BOM, not a stock item',old:1});});
   return fg.sort((a,b)=>(a.old||0)-(b.old||0)||a.label.localeCompare(b.label));}
 const bsEsc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 function bsItemOpts(sel){const t=(document.getElementById('bs_target')||{}).value||'';const by={};
   g(IK).filter(i=>i.code!==t).forEach(i=>{const c=i.category||'Other';(by[c]=by[c]||[]).push(i);});
   const cats=Object.keys(by).sort((a,b)=>(/finished/i.test(a)?1:0)-(/finished/i.test(b)?1:0)||a.localeCompare(b));
-  return '<option value="">— pick item —</option>'+cats.map(c=>`<optgroup label="${bsEsc(c)}">`+by[c].sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(i=>`<option value="${bsEsc(i.code)}"${i.code===sel?' selected':''}>${bsEsc(i.name)}${i.name!==i.code?' ['+bsEsc(i.code)+']':''}</option>`).join('')+'</optgroup>').join('');}
+  return '<option value="">— pick item —</option>'+cats.map(c=>`<optgroup label="${bsEsc(c)}">`+by[c].sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(i=>`<option value="${bsEsc(i.code)}"${i.code===sel?' selected':''}>${bsEsc(i.name||i.code)}</option>`).join('')+'</optgroup>').join('');}
 function bsRow(b){b=b||{};return `<tr><td class="bs-n" style="color:var(--text-dim)"></td><td><select class="bs-it" onchange="bsInfoRow(this.closest('tr'))">${bsItemOpts(b.itemCode)}</select></td><td><input class="bs-q" type="number" min="0" step="any" value="${b.qtyPer!=null?bsEsc(b.qtyPer):''}" style="text-align:right"></td><td class="bs-u"></td><td class="num bs-s" style="font-family:var(--mono)"></td><td><button class="btn" style="padding:4px 10px" title="Remove row" onclick="this.closest('tr').remove();bsNum()">✕</button></td></tr>`;}
 function bsInfoRow(r){const it=g(IK).find(i=>i.code===r.querySelector('.bs-it').value);r.querySelector('.bs-u').textContent=it?(it.unit||''):'';r.querySelector('.bs-s').textContent=it?(it.stock??0):'';}
 function bsNum(){[...document.querySelectorAll('#bs_rows tr')].forEach((r,i)=>r.querySelector('.bs-n').textContent=i+1);}
@@ -234,7 +235,7 @@ const bom=g(BOMK).filter(b=>b.type===type);const items=g(IK);
 if(!bom.length){document.getElementById('bomResult').innerHTML='<p style="color:var(--orange);">No BOM defined for '+type+'. Add BOM entries first.</p>';return;}
 let html='<table style="min-width:auto;"><thead><tr><th>Item</th><th>Per Unit</th><th>Required</th><th>In Stock</th><th>Shortage</th></tr></thead><tbody>';
 bom.forEach(b=>{const needed=Math.round(b.qtyPer*qty*1000)/1000;const inv=items.find(i=>i.code===b.itemCode);const inStock=inv?inv.stock:0;const shortage=Math.round(Math.max(0,needed-inStock)*1000)/1000;
-html+=`<tr><td>${b.itemCode} - ${b.itemName}</td><td style="font-family:var(--mono);">${b.qtyPer}</td><td style="font-family:var(--mono);font-weight:700;">${needed}</td><td style="font-family:var(--mono);">${inStock}</td><td style="font-family:var(--mono);font-weight:700;${shortage>0?'color:var(--red);':'color:var(--green);'}">${shortage>0?'-'+shortage:'✓ OK'}</td></tr>`;});
+html+=`<tr><td>${b.itemName||b.itemCode}</td><td style="font-family:var(--mono);">${b.qtyPer}</td><td style="font-family:var(--mono);font-weight:700;">${needed}</td><td style="font-family:var(--mono);">${inStock}</td><td style="font-family:var(--mono);font-weight:700;${shortage>0?'color:var(--red);':'color:var(--green);'}">${shortage>0?'-'+shortage:'✓ OK'}</td></tr>`;});
 html+='</tbody></table>';document.getElementById('bomResult').innerHTML=html;}
 
 // DASHBOARD

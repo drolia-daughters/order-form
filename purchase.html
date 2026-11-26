@@ -166,8 +166,8 @@ async function addVendor(){
   vendorOptions(name);$('po_email').value=x.email||'';toast(ex?'✓ '+name+' already existed — selected':'✓ Supplier added');}
 
 /* ---------- PO form ---------- */
-function itemOpts(code){const it=Items().slice().sort((a,b)=>String(a.code).localeCompare(String(b.code)));
-  return '<option value="">— select item —</option>'+it.map(i=>`<option value="${E(i.code)}"${i.code===code?' selected':''}>${E(i.code)} — ${E(i.name)}</option>`).join('')+'<option value="__new">➕ New item…</option>';}
+function itemOpts(code){const it=Items().slice().sort((a,b)=>String(a.name||a.code).localeCompare(String(b.name||b.code)));
+  return '<option value="">— select item —</option>'+it.map(i=>`<option value="${E(i.code)}"${i.code===code?' selected':''}>${E(i.name||i.code)}</option>`).join('')+'<option value="__new">➕ New item…</option>';}
 function addPoRow(l){l=l||{};const d=document.createElement('div');d.className='lrow';
   d.innerHTML=`<select class="r-code" onchange="onPoItem(this)">${itemOpts(l.code)}</select><input class="r-qty" type="number" min="0" step="any" placeholder="Qty" value="${E(l.qty||'')}" oninput="poTotal()"><input class="r-unit" placeholder="Unit" value="${E(l.unit||'')}"><input class="r-rate" type="number" min="0" step="any" placeholder="₹" value="${E(l.rate||'')}" oninput="poTotal()"><button type="button" class="act-btn" style="color:var(--red);border-color:var(--red);" onclick="this.closest('.lrow').remove();if(!document.querySelector('#poRows .lrow'))addPoRow();poTotal();">✕</button>`;
   $('poRows').appendChild(d);return d;}
@@ -177,15 +177,15 @@ function onPoItem(sel){if(sel.value==='__new'){sel.value='';newItemTarget=sel;ne
 async function newStockItem(){
   const target=newItemTarget;newItemTarget=null;
   const r=await ST.modal({title:'New stock item',sub:'Added to Inventory → Stock Items with 0 stock. Stock comes in through the GRN.',
-    html:'<label>Item code</label><input id="ni_c" placeholder="e.g. WIRE-4C-RED"><label>Item name</label><input id="ni_n"><label>Unit</label><select id="ni_u">'+['Pcs','Kg','Meters','Rolls','Sets','Boxes','Liters'].map(x=>'<option>'+x+'</option>').join('')+'</select><label>Category</label><select id="ni_cat">'+['Loadcell Body','Electronics','Wire','Hardware','Packaging','Raw Material','Other'].map(x=>'<option>'+x+'</option>').join('')+'</select>',
+    html:'<label>Item name</label><input id="ni_n"><label>Unit</label><select id="ni_u">'+['Pcs','Kg','Meters','Rolls','Sets','Boxes','Liters'].map(x=>'<option>'+x+'</option>').join('')+'</select><label>Category</label><select id="ni_cat">'+['Loadcell Body','Electronics','Wire','Hardware','Packaging','Raw Material','Finished Good','Other'].map(x=>'<option>'+x+'</option>').join('')+'</select>',
     buttons:[{label:'Cancel',value:null},{label:'✓ Add item',cls:'pri',onClick:(ov,err)=>{const q=id=>((ov.querySelector('#'+id)||{}).value||'').trim();
-      const c=q('ni_c').toUpperCase().replace(/\s+/g,'-'),n=q('ni_n');if(!c||!n){err.textContent='Enter code and name.';return false;}
-      if(Items().some(i=>String(i.code).toUpperCase()===c)){err.textContent='Code '+c+' already exists.';return false;}
+      const n=q('ni_n'),c=n.toUpperCase();if(!n){err.textContent='Enter the item name.';return false;}
+      if(Items().some(i=>String(i.code).toUpperCase()===c||String(i.name).trim().toUpperCase()===c)){err.textContent='An item named '+n+' already exists.';return false;}
       return {c,n,u:q('ni_u'),cat:q('ni_cat')};}}]});
   if(!r)return;const items=Items();items.push({code:r.c,name:r.n,category:r.cat,unit:r.u,stock:0,reorder:0,leadTime:50,cost:0,supplier:$('po_vendor').value||'',moq:0,notes:'Added from Purchase Order',updated:ST.today()});ST.set(IK,items);
   document.querySelectorAll('#poRows .r-code').forEach(s=>{const v=s.value;s.innerHTML=itemOpts(v);});
   let sel=target;if(!sel){sel=[...document.querySelectorAll('#poRows .r-code')].find(s=>!s.value)||addPoRow().querySelector('.r-code');}
-  sel.value=r.c;onPoItem(sel);toast('✓ Item '+r.c+' added');}
+  sel.value=r.c;onPoItem(sel);toast('✓ Item '+r.n+' added');}
 function poLines(){return [...document.querySelectorAll('#poRows .lrow')].map(row=>{const code=row.querySelector('.r-code').value;const it=Items().find(i=>i.code===code)||{};
   return {code,name:it.name||'',qty:+row.querySelector('.r-qty').value||0,unit:row.querySelector('.r-unit').value.trim()||it.unit||'Pcs',rate:+row.querySelector('.r-rate').value||0};}).filter(l=>l.code&&l.code!=='__new');}
 function poTotal(){const t=poLines().reduce((a,l)=>a+l.qty*l.rate,0);$('poTotal').textContent=t?('Value ≈ '+ST.inr(t)+' (before GST)'):'';}
