@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.18.4 | 26 Nov 2026 | Main Page menu refreshes by itself when a user's rights change (e.g. 📂 Migration ticked on the Users page) — no log out / log in needed |
 | 1.18.3 | 26 Nov 2026 | 📂 Migration is now a tickable right on the Users page; User 10 (jai) is ticked for it. Admin and Sub Admin always see it; other users only when ticked |
 | 1.18.2 | 26 Nov 2026 | Masters: Wires tab removed (wires belong to Inventory, not Masters) and Holidays tab removed (the saved holidays still show in red on the calendars and pickup requests still skip them). The Order Sheet wire drop-down and adding a new wire from the Order Sheet still work |
 | 1.18.1 | 25 Nov 2026 | Migration → L.R. copy: 🎓 Teach now asks for the CLIENT / CONSIGNEE (pick from the client list) instead of the job; the client's despatched jobs waiting for an L.R. are listed below it (or 'keep the L.R. under the client' when none is waiting). On Migrate the client is found by its GST number on the L.R. first (from the client / vendor master), then by name. L.R. number reading improved (G.C. Note, AWB, Waybill; must contain digits) |
