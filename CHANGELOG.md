@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.19.0 | 26 Nov 2026 | One table format on every screen (table_format.js, loaded by auth.js): the client / party / customer / supplier / vendor / company name is the FIRST column (only a tick box or # may stay before it) and Actions is the LAST column, kept visible on the right while scrolling. Also applies to tables drawn later. Order-entry item table and stock item lists are left as they are; a table can opt out with data-tf="off" |
 | 1.18.6 | 26 Nov 2026 | Purchase & GRN removed from the left menu and the Main Page cards — it is opened from its tab inside Accounts & Reports |
 | 1.18.5 | 26 Nov 2026 | Accounts & Reports: 🏦 Import Statement tab removed (not needed now; bank statements go through Migration → Banking) |
 | 1.18.4 | 26 Nov 2026 | Main Page menu refreshes by itself when a user's rights change (e.g. 📂 Migration ticked on the Users page) — no log out / log in needed |

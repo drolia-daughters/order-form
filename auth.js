@@ -231,3 +231,5 @@
     });
   }
 })();
+// 1.19.0: one table format on every screen — client name first, Actions last (table_format.js)
+(function () { if (/login\.html$/.test(location.pathname)) return; var s = document.createElement('script'); s.src = 'table_format.js?v=' + (window.SENTIRE_VERSION || ''); (document.head || document.documentElement).appendChild(s); })();

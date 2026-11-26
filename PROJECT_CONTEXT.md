@@ -190,3 +190,6 @@ Status 22 Nov 2026: owner paused this. 9723510000 is on normal WhatsApp. Open ch
 
 ## WhatsApp: Desktop app, no piles of tabs (22 Nov 2026)
 `sync.js` → `window.SentireWA`. A named shared tab does NOT work: WhatsApp Web's security setting (cross-origin opener policy) stops the browser reusing it, so each message opened a new tab. Now each laptop is asked once (stored in localStorage `sentire_wa_mode`): **app** → `whatsapp://send?phone=…&text=…` opens the WhatsApp Desktop app (one window all day; needs WhatsApp Desktop installed and logged in); **browser** → WhatsApp Web in a new tab. Phones use `wa.me`. Covers `ST.openWA`, Orders, Factory Production, Job Work confirm and any `wa.me` link clicked. To ask again on a laptop: browser console `SentireWA.reset()`.
+
+## One table format (1.19.0, 26 Nov 2026)
+Owner's rule: in every table the client / party name comes first and Actions last. `table_format.js` (injected by `auth.js` on every page except login) reorders the columns of every `<table>` after it is drawn, by header name (Party, Client, Customer, Company, Supplier, Vendor → first; Action(s) → last, sticky on the right). Don't hard-code column positions (no `cells[n]`); opt a table out with `data-tf="off"`.
