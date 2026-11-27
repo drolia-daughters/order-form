@@ -6,7 +6,7 @@ window.SENTIRE_SUPABASE_URL = 'https://phuducopbugeyvkzhvki.supabase.co';
 window.SENTIRE_SUPABASE_KEY = 'sb_publishable_oNoK_iC6LC20hATuJ_EspA_2uyPdrJm';
 
 // ---- Version shown on every page (change both lines when a new version goes live) ----
-window.SENTIRE_VERSION = '1.22.4';
+window.SENTIRE_VERSION = '1.22.5';
 window.SENTIRE_BUILD   = '28 Nov 2026';
 (function () {
   function show() {

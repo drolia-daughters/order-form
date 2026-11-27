@@ -108,8 +108,8 @@ function renderPanel() {
     (l.length ? '<table><tr><th>File</th><th>Size</th><th>Saved</th><th>Status</th><th></th></tr>' + l.map(function (x) {
       return '<tr><td>📄 ' + esc(x.name) + (x.party ? '<div class="dim">' + esc(x.party) + (x.docType ? ' · ' + esc(x.docType) : '') + '</div>' : '') + '</td><td>' + esc(size(x.size || 0)) + '</td><td>' + esc(when(x.at)) + (x.by ? '<div class="dim">' + esc(x.by) + '</div>' : '') + '</td><td>' + status(f, x) + '</td><td style="white-space:nowrap">' +
         '<button class="btn sm" onclick="viewFile(\'' + x.id + '\')">👁 View</button> ' +
-        ((f.to === 'lr' || f.to === 'other') && (x.state === 'check' || x.sentAt) ? '<button class="btn sm teach" onclick="teach(\'' + x.id + '\')">🎓 ' + (x.state === 'check' ? 'Teach' : 'Change') + '</button> ' : '') +
-        (f.to === 'accounts' && x.state === 'check' ? '<button class="btn sm teach" onclick="teach(\'' + x.id + '\')">🎓 Teach</button> ' : '') +
+        ((f.to === 'accounts' || f.to === 'lr' || f.to === 'other') ? '<button class="btn sm teach" onclick="teach(\'' + x.id + '\')">🎓 ' + (x.sentAt ? 'Change' : 'Teach') + '</button> ' : '') +
+        
         ((f.to === 'accounts' || f.to === 'bank') && x.sentAt ? '<button class="btn sm" title="Send this file to migration again" onclick="migrate(\'' + x.id + '\')">🔄 Again</button> ' : '') +
         (canDel ? '<button class="btn sm red" onclick="delFile(\'' + x.id + '\')">🗑</button>' : '') + '</td></tr>';
     }).join('') + '</table>' : '<div class="dim" style="margin-top:8px">No files in this folder yet.</div>');

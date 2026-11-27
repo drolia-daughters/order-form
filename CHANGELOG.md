@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.22.5 | 28 Nov 2026 | Migration: the 🎓 Teach button now shows on Sales, Purchases and Other documents too (earlier it was only reliably there for L.R.). It appears on every file in those folders — "Teach" before it's posted, "Change" after — so any pending document (e.g. Sanatan, a contact document) can be taught. Banking is unchanged (bank statements are read by columns, not taught) |
 | 1.22.4 | 28 Nov 2026 | Two changes. (1) View buttons app-wide now show a clear eye icon (white eye shape with a black pupil) instead of the 👁 emoji, so a view button is unmistakable. (2) Opening an L.R. copy from a Sales invoice now opens an in-app viewer (image or PDF) with a green "WhatsApp to client" button that sends the client the L.R. with a 7-day link, plus Open full / Close |
 | 1.22.3 | 28 Nov 2026 | Accounts → Sales: the 🚚 L.R. next to View bill is now a clickable button — click it to open the actual L.R. (Lorry Receipt) copy that was uploaded for that despatch. If an L.R. number is posted but no copy was uploaded, the number still shows (not clickable) |
 | 1.22.2 | 28 Nov 2026 | Every WhatsApp button and label now shows the recognisable green WhatsApp logo instead of the 💬 speech balloon (which looked like the View icon). Done app-wide by a small shared script (wa_logo.js) added to every page, so buttons drawn later get the logo too |
