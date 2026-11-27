@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.22.2 | 28 Nov 2026 | Every WhatsApp button and label now shows the recognisable green WhatsApp logo instead of the 💬 speech balloon (which looked like the View icon). Done app-wide by a small shared script (wa_logo.js) added to every page, so buttons drawn later get the logo too |
 | 1.22.1 | 28 Nov 2026 | Accounts → Sales: each sales invoice row now shows a 🚚 L.R. tag next to the 👁 View bill button, showing the Lorry Receipt number posted against that client's order (from the despatch recorded on the order). Shows nothing when no L.R. has been posted yet |
 | 1.22.0 | 26 Nov 2026 | Migration → Sales / Purchases: Accounts now reports each file's result back to Migration. A bill that is not posted automatically shows "needs you" with the reason and a 🎓 Teach button: check / type invoice no., date, party, GST no., taxable, IGST/CGST/SGST, total (and GRN for purchases), Save & post. The bill's layout is learnt (fin_mig_formats) and the next bill of the same layout is read by itself in Accounts. Files handed to Accounts show "waiting for the result" until Accounts has read them |
 | 1.21.1 | 26 Nov 2026 | Migration → Sales: new switch '📜 Old Tally bills' — when ticked, bills are posted to Sales invoices only and never matched to an order sheet or production job. AMBER INDUSTRIES added to the parties whose bills are never migrated (with AKRITI SALES CORPORATION and PUNAM SALES) |
