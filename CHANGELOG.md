@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.22.3 | 28 Nov 2026 | Accounts → Sales: the 🚚 L.R. next to View bill is now a clickable button — click it to open the actual L.R. (Lorry Receipt) copy that was uploaded for that despatch. If an L.R. number is posted but no copy was uploaded, the number still shows (not clickable) |
 | 1.22.2 | 28 Nov 2026 | Every WhatsApp button and label now shows the recognisable green WhatsApp logo instead of the 💬 speech balloon (which looked like the View icon). Done app-wide by a small shared script (wa_logo.js) added to every page, so buttons drawn later get the logo too |
 | 1.22.1 | 28 Nov 2026 | Accounts → Sales: each sales invoice row now shows a 🚚 L.R. tag next to the 👁 View bill button, showing the Lorry Receipt number posted against that client's order (from the despatch recorded on the order). Shows nothing when no L.R. has been posted yet |
 | 1.22.0 | 26 Nov 2026 | Migration → Sales / Purchases: Accounts now reports each file's result back to Migration. A bill that is not posted automatically shows "needs you" with the reason and a 🎓 Teach button: check / type invoice no., date, party, GST no., taxable, IGST/CGST/SGST, total (and GRN for purchases), Save & post. The bill's layout is learnt (fin_mig_formats) and the next bill of the same layout is read by itself in Accounts. Files handed to Accounts show "waiting for the result" until Accounts has read them |
