@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.22.4 | 28 Nov 2026 | Two changes. (1) View buttons app-wide now show a clear eye icon (white eye shape with a black pupil) instead of the 👁 emoji, so a view button is unmistakable. (2) Opening an L.R. copy from a Sales invoice now opens an in-app viewer (image or PDF) with a green "WhatsApp to client" button that sends the client the L.R. with a 7-day link, plus Open full / Close |
 | 1.22.3 | 28 Nov 2026 | Accounts → Sales: the 🚚 L.R. next to View bill is now a clickable button — click it to open the actual L.R. (Lorry Receipt) copy that was uploaded for that despatch. If an L.R. number is posted but no copy was uploaded, the number still shows (not clickable) |
 | 1.22.2 | 28 Nov 2026 | Every WhatsApp button and label now shows the recognisable green WhatsApp logo instead of the 💬 speech balloon (which looked like the View icon). Done app-wide by a small shared script (wa_logo.js) added to every page, so buttons drawn later get the logo too |
 | 1.22.1 | 28 Nov 2026 | Accounts → Sales: each sales invoice row now shows a 🚚 L.R. tag next to the 👁 View bill button, showing the Lorry Receipt number posted against that client's order (from the despatch recorded on the order). Shows nothing when no L.R. has been posted yet |
