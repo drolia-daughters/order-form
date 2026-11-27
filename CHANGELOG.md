@@ -2,6 +2,7 @@
 
 | Version | Date | What changed |
 |---|---|---|
+| 1.22.6 | 28 Nov 2026 | Accounts → Sales: the 🚚 L.R. copy now shows even when the L.R. was filed under the party but never matched to a despatched job (e.g. Sanatan). The Sales invoice now looks up the L.R. copy from the L.R. folder (fin_migration) by L.R. number, else by party, as a fallback to the order/job link — so an attached L.R. is viewable from the bill |
 | 1.22.5 | 28 Nov 2026 | Migration: the 🎓 Teach button now shows on Sales, Purchases and Other documents too (earlier it was only reliably there for L.R.). It appears on every file in those folders — "Teach" before it's posted, "Change" after — so any pending document (e.g. Sanatan, a contact document) can be taught. Banking is unchanged (bank statements are read by columns, not taught) |
 | 1.22.4 | 28 Nov 2026 | Two changes. (1) View buttons app-wide now show a clear eye icon (white eye shape with a black pupil) instead of the 👁 emoji, so a view button is unmistakable. (2) Opening an L.R. copy from a Sales invoice now opens an in-app viewer (image or PDF) with a green "WhatsApp to client" button that sends the client the L.R. with a 7-day link, plus Open full / Close |
 | 1.22.3 | 28 Nov 2026 | Accounts → Sales: the 🚚 L.R. next to View bill is now a clickable button — click it to open the actual L.R. (Lorry Receipt) copy that was uploaded for that despatch. If an L.R. number is posted but no copy was uploaded, the number still shows (not clickable) |
